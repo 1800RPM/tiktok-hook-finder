@@ -1,0 +1,20 @@
+{
+  "name": "tiktok_hook_finder",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "playwright": "^1.57.0"
+  },
+  "scripts": {
+    "scrape": "C:/Users/tscho/.bun/bin/bun src/scraper.ts",
+    "analyze": "C:/Users/tscho/.bun/bin/bun src/analyzer.ts",
+    "api": "C:/Users/tscho/.bun/bin/bun src/api.ts"
+  }
+}
