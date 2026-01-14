@@ -1,29 +1,35 @@
-import { insertHook } from "./db/hooks";
+import db, { insertHook } from "./db/hooks";
 import { extractTextFromImage } from "./ocr";
 
 const SCRAPE_CREATORS_API_KEY = process.env.SCRAPE_CREATORS_API_KEY || "PLACEHOLDER_KEY";
 const NICHES = [
-    "BPD", "DBT", "Borderline Personality Disorder", "BPD symptoms", "BPD Favorite Person",
-    "BPD splitting", "Quiet BPD", "High functioning BPD", "CPTSD", "Trauma recovery",
-    "Toxic Relationships", "Relationship advice", "Attachment Styles", "Anxious Attachment",
-    "Avoidant Attachment", "Disorganized Attachment", "Narcissistic Abuse", "Narcissism signs",
-    "Abandonment Issues", "Childhood trauma", "Inner child healing", "Mental Health tips",
-    "Mental health Hacks", "Anxiety relief", "Depression facts", "Emotional dysregulation",
-    "Therapy thoughts", "POV Mental Health", "Self love journey", "Toxic friendship signs",
-    "Boundary setting", "Validation skills", "DBT coping skills", "Rejection sensitive dysphoria",
-    "ADHD and BPD", "Neurodivergent mental health"
+    "dark psychology", "manipulation signs", "toxic traits", "green flags", "emotional intelligence",
+    "subconscious mind", "inner child healing", "shadow work", "mental health truth", "psychology facts",
+    "dating advice for women", "dating advice for men", "relationship realizations", "breakup recovery",
+    "loneliness", "social anxiety", "introvert problems", "overthinking at night",
+    "career advice", "corporate humor", "burnout recovery", "productivity hacks",
+    "financial freedom", "wealth mindset", "discipline", "stoicism", "philosophy",
+    "morning routine", "wellness", "biohacking", "fitness motivation",
+    "travel hacks", "hidden gems", "digital nomad", "remote work",
+    "mindset shifts", "success secrets", "entrepreneurship", "startup life"
 ];
 
-const VIEW_THRESHOLD = 30000; // Lowered to 30k for volume while staying "viral"
-const PAGES_PER_NICHE = 5; // 5 pages * ~40 items = 200 items per niche attempt
-
+const VIEW_THRESHOLD = 20000; // Lowered to 20k for massive volume
+const PAGES_PER_NICHE = 10; // 10 pages * ~30 = 300 items per niche
 const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+
+// Helper to check if hook exists
+function hookExists(id: string): boolean {
+    const row = db.query("SELECT 1 FROM viral_hooks WHERE id = ?").get(id);
+    return !!row;
+}
 
 async function fetchData(hashtag: string) {
     console.log(`\n--- Searching for SLIDESHOWS in: ${hashtag} ---`);
     let cursor = 0;
     let count = 0;
-    const NICHE_LIMIT = 50;
+    const NICHE_LIMIT = 200;
 
     for (let page = 0; page < PAGES_PER_NICHE; page++) {
         if (count >= NICHE_LIMIT) break;
@@ -50,6 +56,12 @@ async function fetchData(hashtag: string) {
             for (const item of results) {
                 if (count >= NICHE_LIMIT) break;
 
+                // Check if already in DB - SKIP OCR if so
+                if (hookExists(item.id)) {
+                    // console.log(`    Skipping existing: ${item.id}`);
+                    continue;
+                }
+
                 const isSlideshow = item.content_type === "multi_photo" || (Array.isArray(item.images) && item.images.length > 0);
                 if (!isSlideshow) continue;
 
@@ -60,45 +72,42 @@ async function fetchData(hashtag: string) {
 
                 const videoUrl = `https://www.tiktok.com/@${item.author?.unique_id}/video/${item.id}`;
                 let hookText = "";
-                let isOcr = 0;
 
                 const firstImageUrl = Array.isArray(item.images) ? item.images[0] : null;
 
                 if (firstImageUrl) {
                     console.log(`    [OCR] Processing (${views.toLocaleString()} views): ${videoUrl}`);
                     hookText = await extractTextFromImage(firstImageUrl);
-                    isOcr = 1;
-                    await sleep(100);
-                }
 
-                if (hookText && hookText !== "NO_TEXT" && !hookText.startsWith("Error")) {
-                    insertHook.run({
-                        $id: item.id || Math.random().toString(),
-                        $hook_text: hookText,
-                        $video_url: videoUrl,
-                        $view_count: views,
-                        $like_count: item.statistics?.digg_count || 0,
-                        $share_count: item.statistics?.share_count || 0,
-                        $comment_count: item.statistics?.comment_count || 0,
-                        $niche: hashtag,
-                        $content_type: "slideshow",
-                        $is_ocr: isOcr,
-                        $transcription: null
-                    });
-                    console.log(`    Saved (${++count}/${NICHE_LIMIT}): "${hookText.substring(0, 40)}..."`);
+                    if (hookText && hookText !== "NO_TEXT" && !hookText.startsWith("Error")) {
+                        insertHook.run({
+                            $id: item.id || Math.random().toString(),
+                            $hook_text: hookText,
+                            $video_url: videoUrl,
+                            $view_count: views,
+                            $like_count: item.statistics?.digg_count || 0,
+                            $share_count: item.statistics?.share_count || 0,
+                            $comment_count: item.statistics?.comment_count || 0,
+                            $niche: hashtag,
+                            $content_type: "slideshow",
+                            $is_ocr: 1,
+                            $transcription: null
+                        });
+                        console.log(`    Saved (${++count}/${NICHE_LIMIT}): "${hookText.substring(0, 40)}..."`);
+                    }
+                    await sleep(100);
                 }
             }
 
-            // Update cursor from response if available, otherwise increment based on typical page size
             cursor = json.cursor || json.next_cursor || (cursor + results.length);
-
-            await sleep(500); // Between pages
+            await sleep(500);
         } catch (error) {
             console.error("  Error fetching page:", error);
             break;
         }
     }
 }
+
 
 async function run() {
     for (const niche of NICHES) {

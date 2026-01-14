@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import path from "path";
+import { readFileSync } from "fs";
 
 const db = new Database("data/hooks.db");
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -68,11 +69,12 @@ const server = Bun.serve({
                     let trends: any = null;
                     try {
                         const trendsPath = path.join(process.cwd(), 'data', 'trends_snapshot.json');
-                        const content = require("fs").readFileSync(trendsPath, "utf8");
+                        const content = readFileSync(trendsPath, "utf8");
                         trends = JSON.parse(content);
                     } catch (e) {
-                        // Fallback
+                        console.log("[Generate] Trends snapshot not found, using defaults");
                     }
+
 
                     console.log(`[Generate] Creating ${archetype || "Random"} hook for: ${topic}`);
 
@@ -92,25 +94,27 @@ const server = Bun.serve({
                                 max_tokens: 200,
                                 messages: [{
                                     role: 'user',
-                                    content: `You are a viral TikTok strategy and psychology expert for Millennials and Gen-Z (demographic: ages 20-35).
+                                    content: `You are a viral TikTok Contemporary Cultural Strategist specializing in the 20-35 demographic.
                                     
                                     TASK: Generate 3 VIRAL SLIDESHOW HOOKS (headlines) for the topic: "${topic}"
                                     ARCHETYPE: ${archetype || "The Warning / Signs"}
                                     
-                                    STYLE GUIDELINES (STRICT):
+                                    STYLE GUIDELINES (NUANCED):
                                     - NO EMOJIS.
                                     - NO HASHTAGS.
                                     - Tone: Authentic, deeply relatable, and slightly intellectual. 
-                                    - Avoid "internet slang" (e.g., no 'lowkey', 'gatekeeping', 'mfs').
-                                    - Focus on specific human experiences, realizations, or struggles.
+                                    - Subtly Native: Use lowercase-first if it feels "correct" for the archetype, but keep it readable and professional.
+                                    - Phrasing: Focus on "realizations" and "internal truths" that feel contemporary and native to the platform.
+                                    - Avoid "Old Corporate" marketing Speak.
                                     
                                     CURRENT PSYCHOLOGICAL TRENDS: ${trends?.slang?.slice(0, 5).join(', ') || 'personal growth, mental clarity, recovery'}
-                                    FORMATTING: ${trends?.formatting_rules?.join(', ') || 'no periods, conversational'}
+                                    FORMATTING RULES: ${trends?.formatting_rules?.join(', ') || 'no periods, conversational'}
                                     
                                     INSPIRATION FROM VIRAL POSTS:
                                     ${examples.map((e: any) => `- ${e.hook_text}`).join('\n')}
                                     
                                     Output format: JSON array of strings only. No other text.`
+
 
                                 }]
                             })

@@ -27,16 +27,17 @@ export class HookBrain {
 
         console.log("🧠 Brain is analyzing top performing hooks for Gen-Z trends...");
 
-        // Get top 50 hooks by view count to stay on top of what's viral
+        // Fetch top 200 performing hooks (instead of 150) to get a broader trend
         const topHooks = db.query(`
             SELECT hook_text, archetype, view_count 
             FROM viral_hooks 
             ORDER BY view_count DESC 
-            LIMIT 50
+            LIMIT 200
         `).all() as any[];
 
+
         if (topHooks.length === 0) {
-            console.warn("No hooks found in DB to analyze.");
+            console.log("⚠️ No hooks found in DB to analyze.");
             return null;
         }
 
@@ -53,16 +54,22 @@ export class HookBrain {
                     max_tokens: 1000,
                     messages: [{
                         role: 'user',
-                        content: `You are a Gen-Z TikTok culture analyst. I will give you a list of viral TikTok hooks (top performers).
-                        Analyze them and extract the core stylistic DNA that appeals to the 20-35 demographic.
+                        content: `You are a viral TikTok cultural anthropologist and content strategist. 
+                        I have a database of viral TikTok hooks. Your goal is to analyze them and extract "balanced" trends for high-conversion slideshow hooks.
                         
-                        Hooks:
+                        TARGET TONE: "Subtle Gen-Z / Contemporary Professional". 
+                        - Authentic and native to TikTok.
+                        - Relatable but slightly intellectual.
+                        - AVOID: "Brain rot" slang, excessive Gen-Z emojis, or cringey memes.
+                        - FAVOR: Native structures (lowercase starting, personal realizations, vulnerable truth-telling).
+
+                        HOOK DATA (Top 150):
                         ${topHooks.map(h => `- [${h.archetype}] ${h.hook_text}`).join('\n')}
                         
                         Return a JSON object with:
-                        1. "slang": List of 10 keywords/keywords found or related to these (e.g., POV, lowkey, era, BPD). Focus on psychological and relatable terms, not just internet slang.
-                        2. "formatting_rules": 5 rules for how these should look. CRITICAL: DO NOT include "emojis" or "hashtags" in the rules. Examples: "all lowercase", "no periods", "use of specific phrase structures".
-                        3. "emotional_triggers": 5 core psychological reasons why these work (e.g., "validating old trauma", "calling out toxic behavior").
+                        1. "slang": List of 10 keywords/phrases that feel "native" but not "unprofessional" (e.g., "personal era", "protection mechanism", "realization").
+                        2. "formatting_rules": 5 rules for high-conversion aesthetics. DO NOT include "emojis" or "hashtags". focus on sentence structure and capitalization.
+                        3. "emotional_triggers": 5 core psychological triggers found in these high-performing hooks.
                         
                         Return ONLY the raw JSON object.`
 
