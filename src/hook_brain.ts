@@ -60,11 +60,12 @@ export class HookBrain {
                         ${topHooks.map(h => `- [${h.archetype}] ${h.hook_text}`).join('\n')}
                         
                         Return a JSON object with:
-                        1. "slang": List of 10 keywords/slang found or related to these (e.g., POV, gatekeeping, lowkey, era).
-                        2. "formatting_rules": 5 rules for how these should look (e.g., "all lowercase", "no periods", "use of specific emojis").
-                        3. "emotional_triggers": 5 core psychological reasons why these work (e.g., "validating old trauma", "calling out toxic behavior", "situational relatability").
+                        1. "slang": List of 10 keywords/keywords found or related to these (e.g., POV, lowkey, era, BPD). Focus on psychological and relatable terms, not just internet slang.
+                        2. "formatting_rules": 5 rules for how these should look. CRITICAL: DO NOT include "emojis" or "hashtags" in the rules. Examples: "all lowercase", "no periods", "use of specific phrase structures".
+                        3. "emotional_triggers": 5 core psychological reasons why these work (e.g., "validating old trauma", "calling out toxic behavior").
                         
                         Return ONLY the raw JSON object.`
+
                     }]
                 })
             });

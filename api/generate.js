@@ -33,8 +33,9 @@ export default async function handler(req, res) {
         const trendsPath = path.join(process.cwd(), 'data', 'trends_snapshot.json');
         trends = JSON.parse(readFileSync(trendsPath, 'utf8'));
     } catch (e) {
-        // Fallback to defaults
+        console.warn('Trends snapshot not found, using generic style.');
     }
+
 
     // Get some examples for few-shot learning
     const examples = hooks
@@ -57,17 +58,20 @@ export default async function handler(req, res) {
                 max_tokens: 200,
                 messages: [{
                     role: 'user',
-                    content: `You are a viral TikTok marketing and psychology expert for Gen-Z (demographic: ages 20-35).
+                    content: `You are a viral TikTok strategy and psychology expert for Millennials and Gen-Z (demographic: ages 20-35).
           
           TASK: Generate 3 VIRAL SLIDESHOW HOOKS (headlines) for the topic: "${topic}"
           ARCHETYPE: ${archetype}
           
-          CURRENT TRENDS (Slang/Keywords): ${trends?.slang?.join(', ') || 'POV, lowkey, era, gatekeeping'}
-          FORMATTING RULES (IMPORTANT):
-          - ${trends?.formatting_rules?.join('\n          - ') || 'No periods\n          - Minimal capitalization\n          - Punchy and short'}
-          - Use a VERY relatable, "TikTok-native" voice. 
-          - Avoid corporate or forced marketing language. 
-          - Sound like a friend or creator, not a brand.
+          STYLE GUIDELINES (STRICT):
+          - NO EMOJIS.
+          - NO HASHTAGS.
+          - Tone: Authentic, deeply relatable, and slightly intellectual. 
+          - Avoid "internet slang" (e.g., no 'lowkey', 'gatekeeping', 'mfs').
+          - Focus on specific human experiences, realizations, or struggles.
+          
+          CURRENT PSYCHOLOGICAL TRENDS: ${trends?.slang?.slice(0, 5).join(', ') || 'personal growth, mental clarity, recovery'}
+          FORMATTING: ${trends?.formatting_rules?.join(', ') || 'no periods, conversational'}
           
           INSPIRATION FROM VIRAL POSTS:
           ${examples.map(e => `- ${e.hook_text}`).join('\n')}
@@ -76,6 +80,7 @@ export default async function handler(req, res) {
                 }]
             })
         });
+
 
 
         if (!response.ok) {
