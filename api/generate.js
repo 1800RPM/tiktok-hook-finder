@@ -27,6 +27,15 @@ export default async function handler(req, res) {
     if (!topic) return res.status(400).json({ error: 'Topic is required' });
     if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY is not configured on the server' });
 
+    // Load trends if available
+    let trends = null;
+    try {
+        const trendsPath = path.join(process.cwd(), 'data', 'trends_snapshot.json');
+        trends = JSON.parse(readFileSync(trendsPath, 'utf8'));
+    } catch (e) {
+        // Fallback to defaults
+    }
+
     // Get some examples for few-shot learning
     const examples = hooks
         .filter(h => h.archetype === archetype)
@@ -48,18 +57,26 @@ export default async function handler(req, res) {
                 max_tokens: 200,
                 messages: [{
                     role: 'user',
-                    content: `You are a viral TikTok marketing expert. 
-          Generate 3 VIRAL SLIDESHOW HOOKS (headlines) for the topic: "${topic}"
+                    content: `You are a viral TikTok marketing and psychology expert for Gen-Z (demographic: ages 20-35).
           
-          Use the following marketing archetype: ${archetype}
+          TASK: Generate 3 VIRAL SLIDESHOW HOOKS (headlines) for the topic: "${topic}"
+          ARCHETYPE: ${archetype}
           
-          Inspiration from viral hooks:
+          CURRENT TRENDS (Slang/Keywords): ${trends?.slang?.join(', ') || 'POV, lowkey, era, gatekeeping'}
+          FORMATTING RULES (IMPORTANT):
+          - ${trends?.formatting_rules?.join('\n          - ') || 'No periods\n          - Minimal capitalization\n          - Punchy and short'}
+          - Use a VERY relatable, "TikTok-native" voice. 
+          - Avoid corporate or forced marketing language. 
+          - Sound like a friend or creator, not a brand.
+          
+          INSPIRATION FROM VIRAL POSTS:
           ${examples.map(e => `- ${e.hook_text}`).join('\n')}
           
           Output format: JSON array of strings only. No other text.`
                 }]
             })
         });
+
 
         if (!response.ok) {
             const errorData = await response.json();

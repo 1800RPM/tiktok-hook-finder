@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import path from "path";
 
 const db = new Database("data/hooks.db");
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -63,6 +64,16 @@ const server = Bun.serve({
                 if (!topic) {
                     response = Response.json({ error: "Topic required" }, { status: 400 });
                 } else {
+                    // Load trends if available
+                    let trends: any = null;
+                    try {
+                        const trendsPath = path.join(process.cwd(), 'data', 'trends_snapshot.json');
+                        const content = require("fs").readFileSync(trendsPath, "utf8");
+                        trends = JSON.parse(content);
+                    } catch (e) {
+                        // Fallback
+                    }
+
                     console.log(`[Generate] Creating ${archetype || "Random"} hook for: ${topic}`);
 
                     // Fetch a few examples for the prompt
@@ -81,18 +92,26 @@ const server = Bun.serve({
                                 max_tokens: 200,
                                 messages: [{
                                     role: 'user',
-                                    content: `You are a viral TikTok marketing expert. 
-                                    Generate 3 VIRAL SLIDESHOW HOOKS (headlines) for the topic: "${topic}"
+                                    content: `You are a viral TikTok marketing and psychology expert for Gen-Z (demographic: ages 20-35).
                                     
-                                    Use the following marketing archetype: ${archetype || "The Warning / Signs"}
+                                    TASK: Generate 3 VIRAL SLIDESHOW HOOKS (headlines) for the topic: "${topic}"
+                                    ARCHETYPE: ${archetype || "The Warning / Signs"}
                                     
-                                    Inspiration from viral hooks:
+                                    CURRENT TRENDS (Slang/Keywords): ${trends?.slang?.join(', ') || 'POV, lowkey, era, gatekeeping'}
+                                    FORMATTING RULES (IMPORTANT):
+                                    - ${trends?.formatting_rules?.join('\n                                    - ') || 'No periods\n                                    - Minimal capitalization\n                                    - Punchy and short'}
+                                    - Use a VERY relatable, "TikTok-native" voice. 
+                                    - Avoid corporate or forced marketing language. 
+                                    - Sound like a friend or creator, not a brand.
+                                    
+                                    INSPIRATION FROM VIRAL POSTS:
                                     ${examples.map((e: any) => `- ${e.hook_text}`).join('\n')}
                                     
                                     Output format: JSON array of strings only. No other text.`
                                 }]
                             })
                         });
+
 
                         const data = await claudResponse.json() as any;
                         const resultText = data.content?.[0]?.text;
