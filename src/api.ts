@@ -12,6 +12,20 @@ const server = Bun.serve({
     async fetch(req) {
         const url = new URL(req.url);
 
+        // CORS Headers
+        const corsHeaders = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        };
+
+        // Handle OPTIONS request
+        if (req.method === "OPTIONS") {
+            return new Response(null, { headers: corsHeaders });
+        }
+
+        let response: Response;
+
         // GET /hooks - Get viral hooks from the DB
         if (url.pathname === "/hooks" && req.method === "GET") {
             const niche = url.searchParams.get("niche");
@@ -38,55 +52,66 @@ const server = Bun.serve({
             params.push(limit);
 
             const hooks = db.query(query).all(...params);
-            return Response.json(hooks);
+            response = Response.json(hooks);
         }
-
         // POST /generate - Generate a new hook using Claude and our Blueprints
-        if (url.pathname === "/generate" && req.method === "POST") {
-            if (!ANTHROPIC_API_KEY) return Response.json({ error: "API Key missing" }, { status: 500 });
+        else if (url.pathname === "/generate" && req.method === "POST") {
+            if (!ANTHROPIC_API_KEY) {
+                response = Response.json({ error: "API Key missing" }, { status: 500 });
+            } else {
+                const { topic, archetype } = await req.json() as any;
+                if (!topic) {
+                    response = Response.json({ error: "Topic required" }, { status: 400 });
+                } else {
+                    console.log(`[Generate] Creating ${archetype || "Random"} hook for: ${topic}`);
 
-            const { topic, archetype } = await req.json() as any;
-            if (!topic) return Response.json({ error: "Topic required" }, { status: 400 });
+                    // Fetch a few examples for the prompt
+                    const examples = db.query("SELECT hook_text FROM viral_hooks WHERE archetype = ? ORDER BY RANDOM() LIMIT 3").all(archetype || "The Warning / Signs");
 
-            console.log(`[Generate] Creating ${archetype || "Random"} hook for: ${topic}`);
+                    try {
+                        const claudResponse = await fetch('https://api.anthropic.com/v1/messages', {
+                            method: 'POST',
+                            headers: {
+                                'x-api-key': ANTHROPIC_API_KEY,
+                                'anthropic-version': '2023-06-01',
+                                'content-type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                model: 'claude-3-haiku-20240307',
+                                max_tokens: 200,
+                                messages: [{
+                                    role: 'user',
+                                    content: `You are a viral TikTok marketing expert. 
+                                    Generate 3 VIRAL SLIDESHOW HOOKS (headlines) for the topic: "${topic}"
+                                    
+                                    Use the following marketing archetype: ${archetype || "The Warning / Signs"}
+                                    
+                                    Inspiration from viral hooks:
+                                    ${examples.map((e: any) => `- ${e.hook_text}`).join('\n')}
+                                    
+                                    Output format: JSON array of strings only. No other text.`
+                                }]
+                            })
+                        });
 
-            // Fetch a few examples for the prompt
-            const examples = db.query("SELECT hook_text FROM viral_hooks WHERE archetype = ? ORDER BY RANDOM() LIMIT 3").all(archetype || "The Warning / Signs");
-
-            try {
-                const response = await fetch('https://api.anthropic.com/v1/messages', {
-                    method: 'POST',
-                    headers: {
-                        'x-api-key': ANTHROPIC_API_KEY,
-                        'anthropic-version': '2023-06-01',
-                        'content-type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'claude-3-haiku-20240307',
-                        max_tokens: 200,
-                        messages: [{
-                            role: 'user',
-                            content: `You are a viral TikTok marketing expert. 
-                            Generate 3 VIRAL SLIDESHOW HOOKS (headlines) for the topic: "${topic}"
-                            
-                            Use the following marketing archetype: ${archetype || "The Warning / Signs"}
-                            
-                            Inspiration from viral hooks:
-                            ${examples.map((e: any) => `- ${e.hook_text}`).join('\n')}
-                            
-                            Output format: JSON array of strings only. No other text.`
-                        }]
-                    })
-                });
-
-                const data = await response.json() as any;
-                const resultText = data.content?.[0]?.text;
-                return Response.json({ hooks: JSON.parse(resultText) });
-            } catch (e) {
-                return Response.json({ error: "Generation failed" }, { status: 500 });
+                        const data = await claudResponse.json() as any;
+                        const resultText = data.content?.[0]?.text;
+                        response = Response.json({ hooks: JSON.parse(resultText) });
+                    } catch (e) {
+                        response = Response.json({ error: "Generation failed" }, { status: 500 });
+                    }
+                }
             }
+        } else {
+            response = new Response("Hook Finder API is running!", { status: 200 });
         }
 
-        return new Response("Hook Finder API is running!", { status: 200 });
+        // Add CORS headers to the response
+        Object.entries(corsHeaders).forEach(([key, value]) => {
+            response.headers.set(key, value);
+        });
+
+        return response;
     },
 });
+

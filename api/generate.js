@@ -1,6 +1,22 @@
-import hooks from './viral_hooks.json';
+import { readFileSync } from 'fs';
+import path from 'path';
+
+// Fix for Vercel serverless functions with ESM
+const hooksPath = path.join(process.cwd(), 'api', 'viral_hooks.json');
+const hooks = JSON.parse(readFileSync(hooksPath, 'utf8'));
 
 export default async function handler(req, res) {
+    // Add CORS headers
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -9,7 +25,7 @@ export default async function handler(req, res) {
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
     if (!topic) return res.status(400).json({ error: 'Topic is required' });
-    if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: 'API key not configured' });
+    if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY is not configured on the server' });
 
     // Get some examples for few-shot learning
     const examples = hooks
@@ -18,6 +34,8 @@ export default async function handler(req, res) {
         .slice(0, 3);
 
     try {
+        console.log(`Generating hooks for topic: ${topic} with archetype: ${archetype}`);
+
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -43,10 +61,27 @@ export default async function handler(req, res) {
             })
         });
 
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Anthropic API Error:', errorData);
+            return res.status(response.status).json({
+                error: 'AI Generation failed',
+                details: errorData.error?.message || response.statusText
+            });
+        }
+
         const data = await response.json();
+
+        if (!data.content || !data.content[0] || !data.content[0].text) {
+            console.error('Unexpected response format from Anthropic:', data);
+            throw new Error('Unexpected response format from AI');
+        }
+
         const resultText = data.content[0].text;
         res.status(200).json({ hooks: JSON.parse(resultText) });
     } catch (error) {
-        res.status(500).json({ error: 'Generation failed' });
+        console.error('Generation handler error:', error);
+        res.status(500).json({ error: 'Generation failed', details: error.message });
     }
 }
+
