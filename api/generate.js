@@ -60,35 +60,35 @@ export default async function handler(req, res) {
                 max_tokens: 200,
                 messages: [{
                     role: 'user',
-                    content: `You are a viral TikTok Content Architect. Your goal is to create high-stakes "Curiosity Gaps" that stop the scroll instantly.
-                                    
-          TASK: Generate 3 VIRAL SLIDESHOW HOOKS.
-          TOPIC: "${topic || "Analysis of provided slides"}"
-          ARCHETYPE: ${archetype || "The Warning / Signs"}
-          ${slides ? `FULL SLIDE CONTEXT:\n${slides.map((s, i) => `Slide ${i + 1}: ${typeof s === 'string' ? s : s.text}`).join('\n')}` : ''}
-          
-          HOOK FRAMEWORK TO USE:
-          1. Forbidden Knowledge: Authority-challenging, "secrets" (e.g. "The truth your therapist won't say").
-          2. Specific Number: List-based, authority-building (e.g. "5 BPD lies I believed for years").
-          3. Pattern Interrupt: Reframes, confrontational energy (e.g. "You're not empathic. You're hypervigilant.").
-          4. Transformation: Before/After, success stories (e.g. "6 months ago vs now").
-          
-          ${framework_type ? `REQUIRED FRAMEWORK: ${framework_type}` : 'Choose the best framework(s) based on the topic/slides.'}
-          
-          CRITICAL RULES (STRICT):
-          - ONE SENTENCE ONLY. MAX 12 WORDS.
-          - DO NOT summarize or describe (AVOID: "an unfiltered look...", "why i...").
-          - IF SLIDES ARE PROVIDED: Ensure the hook "opens the loop" for the specific story in the slides.
-          - WRITE THE HOOK AS THE CONTENT (e.g. "i finally realized the real reason i split").
-          - NO EMOJIS / NO HASHTAGS.
-          
-          DNA TRENDS: ${trends?.slang?.slice(0, 5).join(', ') || 'hard truth, realization'}
-          AESTHETIC: ${trends?.formatting_rules?.slice(0, 2).join(', ') || 'single sentence, intrigue'}
-          
-          INSPIRATION (Top Viral DNA):
-          ${archetypeExamples.map(e => `- ${e.hook_text}`).join('\n')}
-          
-          Output format: JSON array of strings only. No other text.`
+                    content: `You are a viral TikTok Content Architect specializing in "Curiosity Gaps."
+
+${slides && slides.length > 0 ? `
+## YOUR PRIMARY CONTENT (USE THIS):
+${slides.map((s, i) => `Slide ${i + 1}: ${typeof s === 'string' ? s : s.text}`).join('\n')}
+
+## YOUR TASK:
+Generate 3 VIRAL HOOKS that "open the loop" for the SPECIFIC STORY above.
+The hook MUST directly reference or tease the core themes in these slides (e.g., "under-regulated," "withdrawal," "outdated software").
+DO NOT generate generic hooks. The hook should feel like it was written FOR these slides.
+` : `
+## YOUR TASK:
+Generate 3 VIRAL HOOKS for the topic: "${topic}"
+`}
+
+## HOOK STYLE: ${framework_type || 'Choose the best fit'}
+- Forbidden Knowledge: Authority-challenging, "secrets" (e.g. "The truth your therapist won't say").
+- Specific Number: List-based IF the slides have a list structure (e.g. "3 BPD truths I learned").
+- Pattern Interrupt: Reframes, confrontational (e.g. "You're not sensitive. You're under-regulated.").
+- Transformation: Before/After (e.g. "6 months ago vs now").
+
+## CRITICAL RULES:
+- ONE SENTENCE ONLY. MAX 12 WORDS.
+- DO NOT describe (AVOID: "an unfiltered look...").
+- MUST reference the content/themes from the slides if provided.
+- NO EMOJIS / NO HASHTAGS.
+
+Output format: JSON array of 3 strings only. No other text.`
+
                 }]
             })
         });
