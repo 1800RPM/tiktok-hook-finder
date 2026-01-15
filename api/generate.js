@@ -21,7 +21,8 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { topic, archetype = 'The Warning / Signs', slides, framework_type } = req.body;
+    const { topic, archetype = 'The Warning / Signs', slides, framework_type, topic_hint } = req.body;
+
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
     if (!topic && (!slides || slides.length === 0)) {
@@ -63,17 +64,21 @@ export default async function handler(req, res) {
                     content: `You are a viral TikTok Content Architect specializing in "Curiosity Gaps."
 
 ${slides && slides.length > 0 ? `
-## YOUR PRIMARY CONTENT (USE THIS):
-${slides.map((s, i) => `Slide ${i + 1}: ${typeof s === 'string' ? s : s.text}`).join('\n')}
+## TOPIC/CONTEXT:
+${topic_hint ? `The current hook/topic is: "${topic_hint}"` : topic ? `Topic: "${topic}"` : 'Infer the topic from the slides below.'}
+
+## SLIDE BODY CONTENT (Slides 2-6):
+${slides.map((s, i) => `Slide ${i + 2}: ${typeof s === 'string' ? s : s.text}`).join('\n')}
 
 ## YOUR TASK:
-Generate 3 VIRAL HOOKS that "open the loop" for the SPECIFIC STORY above.
-The hook MUST directly reference or tease the core themes in these slides (e.g., "under-regulated," "withdrawal," "outdated software").
+Generate 3 VIRAL HOOKS (for Slide 1) that "open the loop" for the story above.
+The hook MUST directly reference or tease the core themes in these slides.
 DO NOT generate generic hooks. The hook should feel like it was written FOR these slides.
 ` : `
 ## YOUR TASK:
 Generate 3 VIRAL HOOKS for the topic: "${topic}"
 `}
+
 
 ## HOOK STYLE: ${framework_type || 'Choose the best fit'}
 - Forbidden Knowledge: Authority-challenging, "secrets" (e.g. "The truth your therapist won't say").

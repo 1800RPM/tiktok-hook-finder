@@ -61,10 +61,11 @@ const server = Bun.serve({
             if (!ANTHROPIC_API_KEY) {
                 response = Response.json({ error: "API Key missing" }, { status: 500 });
             } else {
-                const { topic, archetype, slides, framework_type } = await req.json() as any;
+                const { topic, archetype, slides, framework_type, topic_hint } = await req.json() as any;
                 if (!topic && (!slides || slides.length === 0)) {
                     response = Response.json({ error: "Topic or Slides required" }, { status: 400 });
                 } else {
+
 
 
                     // Load trends if available
@@ -100,17 +101,21 @@ const server = Bun.serve({
                                     content: `You are a viral TikTok Content Architect specializing in "Curiosity Gaps."
 
 ${slides && slides.length > 0 ? `
-## YOUR PRIMARY CONTENT (USE THIS):
-${slides.map((s: any, i: number) => `Slide ${i + 1}: ${typeof s === 'string' ? s : s.text}`).join('\n')}
+## TOPIC/CONTEXT:
+${topic_hint ? `The current hook/topic is: "${topic_hint}"` : topic ? `Topic: "${topic}"` : 'Infer the topic from the slides below.'}
+
+## SLIDE BODY CONTENT (Slides 2-6):
+${slides.map((s: any, i: number) => `Slide ${i + 2}: ${typeof s === 'string' ? s : s.text}`).join('\n')}
 
 ## YOUR TASK:
-Generate 3 VIRAL HOOKS that "open the loop" for the SPECIFIC STORY above.
-The hook MUST directly reference or tease the core themes in these slides (e.g., "under-regulated," "withdrawal," "outdated software").
+Generate 3 VIRAL HOOKS (for Slide 1) that "open the loop" for the story above.
+The hook MUST directly reference or tease the core themes in these slides.
 DO NOT generate generic hooks. The hook should feel like it was written FOR these slides.
 ` : `
 ## YOUR TASK:
 Generate 3 VIRAL HOOKS for the topic: "${topic}"
 `}
+
 
 ## HOOK STYLE: ${framework_type || 'Choose the best fit'}
 - Forbidden Knowledge: Authority-challenging, "secrets" (e.g. "The truth your therapist won't say").
