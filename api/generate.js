@@ -21,10 +21,12 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { topic, archetype = 'The Warning / Signs' } = req.body;
+    const { topic, archetype = 'The Warning / Signs', slides, framework_type } = req.body;
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-    if (!topic) return res.status(400).json({ error: 'Topic is required' });
+    if (!topic && (!slides || slides.length === 0)) {
+        return res.status(400).json({ error: 'Topic or Slides required' });
+    }
     if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY is not configured on the server' });
 
     // Load trends if available
@@ -37,19 +39,13 @@ export default async function handler(req, res) {
     }
 
 
-    // Get some examples for few-shot learning
-    const examples = hooks
-        .filter(h => h.archetype === archetype)
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 3);
+    // Fetch TOP 5 examples for the prompt (Note: in serverless we use the static JSON)
+    const archetypeExamples = hooks
+        .filter(h => h.archetype === (archetype || "The Warning / Signs"))
+        .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+        .slice(0, 5);
 
     try {
-        // Fetch TOP 5 examples for the prompt (Note: in serverless we use the static JSON)
-        const archetypeExamples = hooks
-            .filter(h => h.archetype === (archetype || "The Warning / Signs"))
-            .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
-            .slice(0, 5);
-
         console.log(`Generating high-stakes hooks for topic: ${topic}`);
 
         const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -64,17 +60,26 @@ export default async function handler(req, res) {
                 max_tokens: 200,
                 messages: [{
                     role: 'user',
-                    content: `You are a viral TikTok Content Architect. Your content is visceral, high-stakes, and specialized in creating "Curiosity Gaps" that stop the scroll instantly.
+                    content: `You are a viral TikTok Content Architect. Your goal is to create high-stakes "Curiosity Gaps" that stop the scroll instantly.
                                     
-          TASK: Generate 3 VIRAL SLIDESHOW HOOKS for the topic: "${topic}"
+          TASK: Generate 3 VIRAL SLIDESHOW HOOKS.
+          TOPIC: "${topic || "Analysis of provided slides"}"
           ARCHETYPE: ${archetype || "The Warning / Signs"}
+          ${slides ? `FULL SLIDE CONTEXT:\n${slides.map((s, i) => `Slide ${i + 1}: ${typeof s === 'string' ? s : s.text}`).join('\n')}` : ''}
+          
+          HOOK FRAMEWORK TO USE:
+          1. Forbidden Knowledge: Authority-challenging, "secrets" (e.g. "The truth your therapist won't say").
+          2. Specific Number: List-based, authority-building (e.g. "5 BPD lies I believed for years").
+          3. Pattern Interrupt: Reframes, confrontational energy (e.g. "You're not empathic. You're hypervigilant.").
+          4. Transformation: Before/After, success stories (e.g. "6 months ago vs now").
+          
+          ${framework_type ? `REQUIRED FRAMEWORK: ${framework_type}` : 'Choose the best framework(s) based on the topic/slides.'}
           
           CRITICAL RULES (STRICT):
-          - ONE SENTENCE ONLY.
-          - MAX 12 WORDS.
+          - ONE SENTENCE ONLY. MAX 12 WORDS.
           - DO NOT summarize or describe (AVOID: "an unfiltered look...", "why i...").
-          - CREATE A CURIOSITY GAP (e.g. "The truth your therapist won't say", "i finally realized the real reason i split").
-          - USE FIRST PERSON (I, my, me) or direct callouts.
+          - IF SLIDES ARE PROVIDED: Ensure the hook "opens the loop" for the specific story in the slides.
+          - WRITE THE HOOK AS THE CONTENT (e.g. "i finally realized the real reason i split").
           - NO EMOJIS / NO HASHTAGS.
           
           DNA TRENDS: ${trends?.slang?.slice(0, 5).join(', ') || 'hard truth, realization'}
@@ -87,11 +92,6 @@ export default async function handler(req, res) {
                 }]
             })
         });
-
-
-
-
-
 
         if (!response.ok) {
             const errorData = await response.json();
