@@ -78,8 +78,9 @@ const server = Bun.serve({
 
                     console.log(`[Generate] Creating ${archetype || "Random"} hook for: ${topic}`);
 
-                    // Fetch a few examples for the prompt
-                    const examples = db.query("SELECT hook_text FROM viral_hooks WHERE archetype = ? ORDER BY RANDOM() LIMIT 3").all(archetype || "The Warning / Signs");
+                    // Fetch TOP 5 examples for the prompt to give it the "viral DNA"
+                    const examples = db.query("SELECT hook_text FROM viral_hooks WHERE archetype = ? ORDER BY view_count DESC LIMIT 5").all(archetype || "The Warning / Signs");
+
 
                     try {
                         const claudResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -94,26 +95,27 @@ const server = Bun.serve({
                                 max_tokens: 200,
                                 messages: [{
                                     role: 'user',
-                                    content: `You are a viral TikTok Contemporary Cultural Strategist specializing in the 20-35 demographic.
+                                    content: `You are a viral TikTok Content Architect. Your content is visceral, punchy, and feels like a personal diary or a realization that stops the scroll.
                                     
-                                    TASK: Generate 3 VIRAL SLIDESHOW HOOKS (headlines) for the topic: "${topic}"
+                                    TASK: Generate 3 VIRAL SLIDESHOW HOOKS for the topic: "${topic}"
                                     ARCHETYPE: ${archetype || "The Warning / Signs"}
                                     
-                                    STYLE GUIDELINES (NUANCED):
-                                    - NO EMOJIS.
-                                    - NO HASHTAGS.
-                                    - Tone: Authentic, deeply relatable, and slightly intellectual. 
-                                    - Subtly Native: Use lowercase-first if it feels "correct" for the archetype, but keep it readable and professional.
-                                    - Phrasing: Focus on "realizations" and "internal truths" that feel contemporary and native to the platform.
-                                    - Avoid "Old Corporate" marketing Speak.
+                                    CRITICAL STYLE RULES:
+                                    - DO NOT describe the content (e.g. AVOID "an unfiltered look at...", "exploring why...").
+                                    - WRITE THE HOOK as the content itself (e.g. "i think i'm splitting on my favorite person again").
+                                    - Use FIRST PERSON (I, my, me) or direct address (you, your).
+                                    - Keep it short, punchy, and emotionally high-stakes.
+                                    - NO EMOJIS / NO HASHTAGS.
                                     
-                                    CURRENT PSYCHOLOGICAL TRENDS: ${trends?.slang?.slice(0, 5).join(', ') || 'personal growth, mental clarity, recovery'}
-                                    FORMATTING RULES: ${trends?.formatting_rules?.join(', ') || 'no periods, conversational'}
+                                    SUBTLE TRENDS TO INJECT:
+                                    - Keywords: ${trends?.slang?.slice(0, 5).join(', ') || 'realization, era, protection mechanism'}
+                                    - Aesthetic: ${trends?.formatting_rules?.slice(0, 3).join(', ') || 'lowercase first, no periods'}
                                     
-                                    INSPIRATION FROM VIRAL POSTS:
+                                    INSPIRATION FROM VIRAL DNA (Top 5 Performers):
                                     ${examples.map((e: any) => `- ${e.hook_text}`).join('\n')}
                                     
                                     Output format: JSON array of strings only. No other text.`
+
 
 
                                 }]
