@@ -68,11 +68,12 @@ export class HookBrain {
 
                         
                         Return a JSON object with:
-                        1. "slang": List of 10 keywords/phrases that feel "native" but not "unprofessional" (e.g., "personal era", "protection mechanism", "realization").
-                        2. "formatting_rules": 5 rules for high-conversion aesthetics. DO NOT include "emojis" or "hashtags". focus on sentence structure and capitalization.
-                        3. "emotional_triggers": 5 core psychological triggers found in these high-performing hooks.
+                        1. "slang": List of 10 keywords/short phrases that feel "native" and have high "curiosity" value (e.g., "uncanny", "quiet realization", "hard truth"). AVOID multi-word clinical jargon.
+                        2. "formatting_rules": 5 rules for viral aesthetics. Focus on BREVITY and the use of one single sentence.
+                        3. "emotional_triggers": 5 core psychological triggers that prioritize "Curiosity Gaps" and "Inside Knowledge".
                         
                         Return ONLY the raw JSON object.`
+
 
                     }]
                 })

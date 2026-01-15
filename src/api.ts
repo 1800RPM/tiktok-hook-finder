@@ -95,26 +95,27 @@ const server = Bun.serve({
                                 max_tokens: 200,
                                 messages: [{
                                     role: 'user',
-                                    content: `You are a viral TikTok Content Architect. Your content is visceral, punchy, and feels like a personal diary or a realization that stops the scroll.
+                                    content: `You are a viral TikTok Content Architect. Your content is visceral, high-stakes, and specialized in creating "Curiosity Gaps" that stop the scroll instantly.
                                     
                                     TASK: Generate 3 VIRAL SLIDESHOW HOOKS for the topic: "${topic}"
                                     ARCHETYPE: ${archetype || "The Warning / Signs"}
                                     
-                                    CRITICAL STYLE RULES:
-                                    - DO NOT describe the content (e.g. AVOID "an unfiltered look at...", "exploring why...").
-                                    - WRITE THE HOOK as the content itself (e.g. "i think i'm splitting on my favorite person again").
-                                    - Use FIRST PERSON (I, my, me) or direct address (you, your).
-                                    - Keep it short, punchy, and emotionally high-stakes.
+                                    CRITICAL RULES (STRICT):
+                                    - ONE SENTENCE ONLY.
+                                    - MAX 12 WORDS.
+                                    - DO NOT summarize or describe (AVOID: "an unfiltered look...", "why i...").
+                                    - CREATE A CURIOSITY GAP (e.g. "The truth your therapist won't say", "i finally realized the real reason i split").
+                                    - USE FIRST PERSON (I, my, me) or direct callouts.
                                     - NO EMOJIS / NO HASHTAGS.
                                     
-                                    SUBTLE TRENDS TO INJECT:
-                                    - Keywords: ${trends?.slang?.slice(0, 5).join(', ') || 'realization, era, protection mechanism'}
-                                    - Aesthetic: ${trends?.formatting_rules?.slice(0, 3).join(', ') || 'lowercase first, no periods'}
+                                    DNA TRENDS: ${trends?.slang?.slice(0, 5).join(', ') || 'hard truth, realization'}
+                                    AESTHETIC: ${trends?.formatting_rules?.slice(0, 2).join(', ') || 'single sentence, intrigue'}
                                     
-                                    INSPIRATION FROM VIRAL DNA (Top 5 Performers):
+                                    INSPIRATION (Top Viral DNA):
                                     ${examples.map((e: any) => `- ${e.hook_text}`).join('\n')}
                                     
                                     Output format: JSON array of strings only. No other text.`
+
 
 
 
