@@ -63,8 +63,9 @@ export class HookBrain {
                         - AVOID: "Brain rot" slang, excessive Gen-Z emojis, or cringey memes.
                         - FAVOR: Native structures (lowercase starting, personal realizations, vulnerable truth-telling).
 
-                        HOOK DATA (Top 150):
-                        ${topHooks.map(h => `- [${h.archetype}] ${h.hook_text}`).join('\n')}
+                        HOOK DATA (Top 200):
+                        ${topHooks.map(h => `- ${h.hook_text}`).join('\n')}
+
                         
                         Return a JSON object with:
                         1. "slang": List of 10 keywords/phrases that feel "native" but not "unprofessional" (e.g., "personal era", "protection mechanism", "realization").
@@ -78,11 +79,19 @@ export class HookBrain {
             });
 
             const data = await response.json() as any;
-            const resultText = data.content?.[0]?.text;
+            let resultText = data.content?.[0]?.text;
 
             if (!resultText) throw new Error("No analysis result from AI");
 
+            // Clean up potentially non-JSON text from Claude's response
+            const jsonStart = resultText.indexOf('{');
+            const jsonEnd = resultText.lastIndexOf('}') + 1;
+            if (jsonStart !== -1 && jsonEnd !== 0) {
+                resultText = resultText.substring(jsonStart, jsonEnd);
+            }
+
             const analysis = JSON.parse(resultText);
+
             const snapshot: TrendSnapshot = {
                 ...analysis,
                 last_updated: new Date().toISOString()
