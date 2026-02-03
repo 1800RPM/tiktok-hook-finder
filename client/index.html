@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Slide Creator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🎬</span>
+                <h1>Slide Creator</h1>
+            </div>
+            <p class="tagline">Create stunning TikTok slideshow text overlays</p>
+            <div class="service-switcher">
+                <button class="service-btn active" data-service="dbt">DBT-Mind</button>
+                <button class="service-btn" data-service="syp">SaveYourPet</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Left Panel: Controls -->
+            <div id="panel-dbt" class="service-panel active">
+                <aside class="control-panel">
+                    <!-- STEP 1: CONTENT GENERATION -->
+                    <section class="panel-section step-container" id="step-1">
+                        <div class="step-badge">STEP 1</div>
+                        <h2>🤳 Native Story Dump</h2>
+                        <p class="section-hint">Generate viral POV-style slides based on the V2 framework.</p>
+
+                        <div class="native-gen-controls">
+                            <!-- Content Format Selection -->
+                            <div class="input-row">
+                                <div class="input-group">
+                                    <label for="native-gen-format">Content Format</label>
+                                    <select id="native-gen-format">
+                                        <option value="relatable">Relatable/Emotional (50%)</option>
+                                        <option value="pov">POV (20%)</option>
+                                        <option value="tips">Tips/Hacks (30%)</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="native-gen-topic">BPD Topic</label>
+                                    <select id="native-gen-topic">
+                                        <option value="favorite_person">Favorite Person (FP)</option>
+                                        <option value="splitting">Splitting</option>
+                                        <option value="quiet_bpd">Quiet BPD</option>
+                                        <option value="fear_of_abandonment">Fear of Abandonment</option>
+                                        <option value="identity_disturbance">Identity Disturbance</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Quick Select Combos -->
+                            <div class="viral-combos-section">
+                                <label class="viral-combos-label">🔥 Quick Combos <span class="tier-badge tier-1">High
+                                        Engagement</span></label>
+                                <div class="viral-combos-grid">
+                                    <button class="viral-combo-btn tier-1" data-format="relatable"
+                                        data-topic="favorite_person"
+                                        title="Nobody talks about how having an FP is basically emotional hostage syndrome">
+                                        <span class="combo-name">Relatable + FP</span>
+                                    </button>
+                                    <button class="viral-combo-btn tier-1" data-format="tips"
+                                        data-topic="favorite_person"
+                                        title="3 things that actually help when your FP hasn't texted back">
+                                        <span class="combo-name">Tips + FP</span>
+                                    </button>
+                                    <button class="viral-combo-btn tier-1" data-format="relatable"
+                                        data-topic="splitting"
+                                        title="Nobody talks about how fast you can go from 'soulmate' to 'enemy' in your head">
+                                        <span class="combo-name">Relatable + Splitting</span>
+                                    </button>
+                                    <button class="viral-combo-btn tier-1" data-format="pov" data-topic="splitting"
+                                        title="POV: they used the wrong tone and now you're rewriting your entire relationship">
+                                        <span class="combo-name">POV + Splitting</span>
+                                    </button>
+                                </div>
+                                <label class="viral-combos-label" style="margin-top: 8px;"><span
+                                        class="tier-badge tier-2">More Topics</span></label>
+                                <div class="viral-combos-grid">
+                                    <button class="viral-combo-btn tier-2" data-format="relatable"
+                                        data-topic="quiet_bpd"
+                                        title="Nobody talks about the version of BPD where you implode instead of explode">
+                                        <span class="combo-name">Relatable + Quiet BPD</span>
+                                    </button>
+                                    <button class="viral-combo-btn tier-2" data-format="pov" data-topic="quiet_bpd"
+                                        title="POV: you're having a complete breakdown and no one around you notices">
+                                        <span class="combo-name">POV + Quiet BPD</span>
+                                    </button>
+                                    <button class="viral-combo-btn tier-2" data-format="tips"
+                                        data-topic="fear_of_abandonment"
+                                        title="What to do when abandonment fear takes over">
+                                        <span class="combo-name">Tips + Abandonment</span>
+                                    </button>
+                                    <button class="viral-combo-btn tier-2" data-format="relatable"
+                                        data-topic="identity_disturbance"
+                                        title="Nobody talks about not knowing which version of yourself is the real one">
+                                        <span class="combo-name">Relatable + Identity</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Branding Toggle for DBT-Mind -->
+                            <div class="branding-toggle-container"
+                                style="margin: 12px 0; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border: 1px solid var(--border-color);">
+                                <label class="branding-toggle"
+                                    style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                    <input type="checkbox" id="include-branding_dbt" checked
+                                        style="width: 18px; height: 18px; cursor: pointer;">
+                                    <div>
+                                        <span style="font-weight: 600; display: block;">🧠 DBT-Mind erwähnen</span>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);">Deaktivieren für
+                                            mehr Vertrauen (erscheint dann in Description)</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <!-- Compatibility Warning -->
+                            <div id="compatibility-warning" class="compatibility-warning" style="display: none;">
+                                <div class="warning-icon">⚠️</div>
+                                <div class="warning-content">
+                                    <div class="warning-text"></div>
+                                    <div class="warning-suggestion"></div>
+                                </div>
+                            </div>
+                            <button class="btn btn-fire full-width" id="generate-native-slides-btn">
+                                <span>🔥 Generate Story Dump (Opus)</span>
+                            </button>
+                        </div>
+
+                        <div class="content-crafting" style="margin-top: 20px;">
+                            <textarea id="slide-text-input" placeholder="Slide 1: Hook Text...
+Slide 2: Escalation...
+Slide 3: App Placement..." style="height: 120px;"></textarea>
+
+                            <div class="hook-tools" style="margin-top: 12px;">
+                                <button class="btn btn-fire btn-sm full-width" id="quick-improve-hook">🔥 Better
+                                    Hooks</button>
+                            </div>
+
+                            <button class="btn btn-primary full-width" id="parse-slides" style="margin-top: 8px;">
+                                <span>Parse & Apply to Preview</span>
+                            </button>
+                        </div>
+
+                        <div id="hook-context-status" class="context-status" style="display: none;">
+                            <span class="status-icon">🧠</span>
+                            <span class="status-text">Using 0 slides for context</span>
+                        </div>
+
+                        <div id="hook-options" class="hook-options" style="display: none;">
+                            <h3>Select a Hook:</h3>
+                            <div id="hook-list" class="hook-list"></div>
+                        </div>
+
+                        <!-- TikTok Metadata Section -->
+                        <div class="metadata-tools"
+                            style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                            <button class="btn btn-primary full-width" id="generate-metadata-btn">
+                                <span>📱 Generate TikTok Title & Desc (Opus)</span>
+                            </button>
+
+                            <div id="metadata-output" class="metadata-output"
+                                style="display: none; margin-top: 15px; background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px;">
+                                <div class="metadata-item">
+                                    <label
+                                        style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Catchy
+                                        Title</label>
+                                    <div id="metadata-title"
+                                        style="font-weight: bold; margin-bottom: 10px; color: var(--accent);"></div>
+                                </div>
+                                <div class="metadata-item">
+                                    <label
+                                        style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Description</label>
+                                    <div id="metadata-desc" style="white-space: pre-wrap; font-size: 0.9rem;"></div>
+                                </div>
+                                <button class="btn btn-secondary btn-sm full-width" id="copy-metadata-btn"
+                                    style="margin-top: 10px;">📋 Copy All Metadata</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- STEP 2: PROMPT ENGINEERING -->
+                    <section class="panel-section step-container" id="step-2">
+                        <div class="step-badge">STEP 2</div>
+                        <h2>🐱 Character Prompts</h2>
+                        <p class="section-hint">Select a character and generate tailored AI prompts.</p>
+
+                        <div class="character-controls">
+                            <!-- Character selection removed for DBT to enforce Classical Art style -->
+                            <div class="character-action-row" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                                <button class="btn btn-accent" id="generate-image-prompts-btn" style="flex: 1;">
+                                    <span>✨ Create Classical Art Prompts</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Framing Context Indicator -->
+                        <div id="framing-context-indicator" class="framing-context-indicator" style="display: none;">
+                            <span class="framing-context-icon">🎭</span>
+                            <span class="framing-context-text">Framing: <strong
+                                    id="framing-context-name">-</strong></span>
+                        </div>
+
+                        <div id="prompts-loading" style="display: none; text-align: center; padding: 12px;">
+                            <span class="loading-spinner">⏳</span>
+                            <p style="margin: 8px 0 0 0; color: var(--text-muted);">Crafting prompts...</p>
+                        </div>
+
+                        <div id="image-prompts-section" style="display: none; margin-top: 16px;">
+                            <div id="image-prompts-container" class="image-prompts-container"></div>
+                        </div>
+                    </section>
+
+                    <!-- STEP 3: IMAGE PRODUCTION -->
+                    <section class="panel-section step-container" id="step-3">
+                        <div class="step-badge">STEP 3</div>
+                        <h2>🎨 AI Generation</h2>
+                        <p class="section-hint">Produce high-quality images with Nano Banana Pro.</p>
+
+                        <button class="btn btn-accent full-width" id="generate-ai-images">
+                            <span>🚀 Generate All Images (API)</span>
+                        </button>
+
+                        <div id="ai-images-progress" class="progress-container"
+                            style="display: none; margin-top: 12px;">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="ai-images-progress-fill"></div>
+                            </div>
+                            <span class="progress-text" id="ai-images-progress-text">API communicating...</span>
+                        </div>
+
+                        <div id="generated-images-container" class="generated-images-grid"
+                            style="display: none; margin-top: 16px;"></div>
+
+                        <div class="parsing-tools" style="margin-top: 12px; display: none;"
+                            id="parsing-tools-container">
+                            <button class="btn btn-primary full-width" id="parse-images-to-slides">
+                                <span>🎨 Parse to Slide Preview</span>
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- MASTER CONTROLS: STYLE & EXPORT -->
+                    <section class="panel-section collapsed">
+                        <div class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                            <h2>🛠️ Master Style & Manual</h2>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+
+                        <div class="collapsible-content">
+                            <!-- Image Source -->
+                            <div class="sub-section">
+                                <h3>🖼️ Manual Images</h3>
+                                <div class="source-tabs">
+                                    <button class="tab-btn active" data-tab="upload">Upload</button>
+                                    <button class="tab-btn" data-tab="supabase">Supabase</button>
+                                </div>
+
+                                <div class="tab-content active" id="upload-tab">
+                                    <div class="dropzone" id="dropzone">
+                                        <p>Drag images here</p>
+                                        <input type="file" id="file-input" accept="image/*" multiple hidden>
+                                    </div>
+                                </div>
+
+                                <div class="tab-content" id="supabase-tab">
+                                    <div class="supabase-config">
+                                        <input type="text" id="supabase-url" placeholder="Project URL">
+                                        <input type="password" id="supabase-key" placeholder="Anon Key">
+                                        <input type="text" id="supabase-bucket" placeholder="Bucket Name">
+                                        <button class="btn btn-primary btn-sm full-width"
+                                            id="connect-supabase">Connect</button>
+                                    </div>
+                                    <div class="supabase-images" id="supabase-images"></div>
+                                </div>
+                            </div>
+
+                            <!-- Text Style -->
+                            <div class="sub-section" style="margin-top: 16px;">
+                                <h3>🎨 Style Overlays</h3>
+                                <div class="style-grid">
+                                    <div class="input-group">
+                                        <label>Size <span id="font-size-value"
+                                                style="color: var(--accent-cyan); font-weight: 600;">28px</span></label>
+                                        <input type="range" id="font-size" min="12" max="72" value="28">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Width <span id="text-width-value"
+                                                style="color: var(--accent-cyan); font-weight: 600;">120%</span></label>
+                                        <input type="range" id="text-width" min="20" max="300" value="120">
+                                    </div>
+                                    <div class="input-row">
+                                        <div class="input-group"><label>Text</label><input type="color" id="text-color"
+                                                value="#000000"></div>
+                                        <div class="input-group"><label>BG</label><input type="color" id="bg-color"
+                                                value="#ffffff"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- EXPORT SECTION -->
+                    <section class="panel-section">
+                        <h2>💾 Export & Save</h2>
+                        <button class="btn btn-success full-width" id="download-all" style="margin-bottom: 8px;">
+                            <span>📥 Download All Slides</span>
+                        </button>
+                        <button class="btn btn-secondary full-width" id="download-current">
+                            <span>🖼️ Download Current Slide</span>
+                        </button>
+                    </section>
+                </aside>
+            </div>
+
+            <!-- SaveYourPet Panel (Duplicated Structure) -->
+            <div id="panel-syp" class="service-panel">
+                <aside class="control-panel">
+                    <!-- STEP 1: CONTENT GENERATION -->
+                    <section class="panel-section step-container step-1-style" id="step-1_syp">
+                        <div class="step-badge">STEP 1</div>
+                        <h2>🤳 Native Story Dump (SYP)</h2>
+                        <p class="section-hint">Generate viral slides for Pet Insurance.</p>
+
+                        <div class="native-gen-controls">
+                            <div class="input-row">
+                                <div class="input-group">
+                                    <label for="native-gen-profile_syp">Profile</label>
+                                    <select id="native-gen-profile_syp">
+                                        <option value="lisa_milo">Lisa und Milo (Hund)</option>
+                                        <option value="anna_simba">Anna und Simba (Katze)</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="native-gen-topic_syp">Topic</label>
+                                    <select id="native-gen-topic_syp">
+                                        <optgroup label="Standard SYP">
+                                            <option value="random">🎲 Random Variation</option>
+                                            <option value="structure_a">A: Kosten-Liste</option>
+                                            <option value="structure_b">B: Schock-Zahl</option>
+                                            <option value="structure_c">C: Vergleich</option>
+                                            <option value="structure_d">D: Expectation vs Reality</option>
+                                            <option value="structure_e">E: Timeline</option>
+                                            <option value="structure_f">F: FOMO (Positiv)</option>
+                                        </optgroup>
+                                        <optgroup label="Lifestyle SYP">
+                                            <option value="lifestyle_random">🎲 Lifestyle Random</option>
+                                            <option value="lifestyle_a">A: Browser-Tabs</option>
+                                            <option value="lifestyle_b">B: Checkliste</option>
+                                            <option value="lifestyle_c">C: Zwei Typen</option>
+                                            <option value="lifestyle_d">D: Nacht / Overthinking</option>
+                                            <option value="lifestyle_e">E: Starter Pack</option>
+                                            <option value="lifestyle_f">F: Apps / Handy</option>
+                                            <option value="lifestyle_g">G: Lessons Learned</option>
+                                            <option value="lifestyle_h">H: POV Main Character</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Branding Options -->
+                            <div class="branding-options-container"
+                                style="margin: 12px 0; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border: 1px solid var(--border-color);">
+                                <span style="font-weight: 600; display: block; margin-bottom: 10px;">🏷️ SaveYourPet
+                                    Erwähnung</span>
+
+                                <!-- Option 1: Full Branding -->
+                                <label class="branding-option"
+                                    style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 8px; padding: 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.03);">
+                                    <input type="radio" name="syp-branding-mode" value="full" checked
+                                        style="width: 18px; height: 18px; cursor: pointer; margin-top: 2px;">
+                                    <div>
+                                        <span style="font-weight: 500; display: block;">In Slides erwähnen</span>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);">saveyourpet.de wird
+                                            direkt in einer Slide genannt</span>
+                                    </div>
+                                </label>
+
+                                <!-- Option 2: Soft Branding (NEW) -->
+                                <label class="branding-option"
+                                    style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 8px; padding: 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.03);">
+                                    <input type="radio" name="syp-branding-mode" value="soft"
+                                        style="width: 18px; height: 18px; cursor: pointer; margin-top: 2px;">
+                                    <div>
+                                        <span style="font-weight: 500; display: block;">Nur in Description</span>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);">Slides: "Hat seinen
+                                            Liebling abgesichert" o.ä. → Description: saveyourpet.de</span>
+                                    </div>
+                                </label>
+
+                                <!-- Option 3: No Branding -->
+                                <label class="branding-option"
+                                    style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.03);">
+                                    <input type="radio" name="syp-branding-mode" value="none"
+                                        style="width: 18px; height: 18px; cursor: pointer; margin-top: 2px;">
+                                    <div>
+                                        <span style="font-weight: 500; display: block;">Keine Erwähnung</span>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);">Keine saveyourpet.de
+                                            Erwähnung, weder in Slides noch Description</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <button class="btn btn-fire full-width" id="generate-native-slides-btn_syp">
+                                <span>🔥 Generate Story Dump (Opus)</span>
+                            </button>
+                        </div>
+
+                        <div class="content-crafting" style="margin-top: 20px;">
+                            <textarea id="slide-text-input_syp" placeholder="Slide 1: Hook Text...
+Slide 2: Escalation...
+Slide 3: App Placement..." style="height: 120px;"></textarea>
+
+                            <div class="hook-tools" style="margin-top: 12px;">
+                                <button class="btn btn-fire btn-sm full-width" id="quick-improve-hook_syp">🔥 Better
+                                    Hooks</button>
+                            </div>
+
+                            <button class="btn btn-primary full-width" id="parse-slides_syp" style="margin-top: 8px;">
+                                <span>Parse & Apply to Preview</span>
+                            </button>
+                        </div>
+
+                        <div id="hook-context-status_syp" class="context-status" style="display: none;">
+                            <span class="status-icon">🧠</span>
+                            <span class="status-text">Using 0 slides for context</span>
+                        </div>
+
+                        <div id="hook-options_syp" class="hook-options" style="display: none;">
+                            <h3>Select a Hook:</h3>
+                            <div id="hook-list_syp" class="hook-list"></div>
+                        </div>
+
+                        <!-- TikTok Metadata Section -->
+                        <div class="metadata-tools"
+                            style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                            <button class="btn btn-primary full-width" id="generate-metadata-btn_syp">
+                                <span>📱 Generate TikTok Title & Desc (Opus)</span>
+                            </button>
+
+                            <div id="metadata-output_syp" class="metadata-output"
+                                style="display: none; margin-top: 15px; background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px;">
+                                <div class="metadata-item">
+                                    <label
+                                        style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Catchy
+                                        Title</label>
+                                    <div id="metadata-title_syp"
+                                        style="font-weight: bold; margin-bottom: 10px; color: var(--accent);"></div>
+                                </div>
+                                <div class="metadata-item">
+                                    <label
+                                        style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Description</label>
+                                    <div id="metadata-desc_syp" style="white-space: pre-wrap; font-size: 0.9rem;"></div>
+                                </div>
+                                <button class="btn btn-secondary btn-sm full-width" id="copy-metadata-btn_syp"
+                                    style="margin-top: 10px;">📋 Copy All Metadata</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- STEP 2: PROMPT ENGINEERING -->
+                    <section class="panel-section step-container step-2-style" id="step-2_syp">
+                        <div class="step-badge">STEP 2</div>
+                        <h2>🐱 Character Prompts (SYP)</h2>
+                        <p class="section-hint">Select a character and generate tailored AI prompts.</p>
+
+                        <div class="character-controls">
+                            <select id="character-preset_syp" class="select-input"
+                                style="width: 100%; margin-bottom: 12px;">
+                                <option value="lisa_milo">🐶 Lisa & Milo (Hund)</option>
+                                <option value="anna_simba">🐱 Anna & Simba (Katze)</option>
+                                <option value="sarah_luna">🐱 Sarah & Luna (Katze)</option>
+                                <option value="julia_balu">🐶 Julia & Balu (Hund)</option>
+                            </select>
+                            <div class="character-action-row" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                                <button class="btn btn-accent" id="generate-image-prompts-btn_syp" style="flex: 1;">
+                                    <span>✨ Create Prompts</span>
+                                </button>
+                                <button class="btn btn-secondary btn-sm" id="upload-anchor-btn_syp"
+                                    style="width: auto;">
+                                    <span>📤 Upload Ref</span>
+                                </button>
+                                <input type="file" id="anchor-file-input_syp" accept="image/*" hidden>
+                            </div>
+                        </div>
+
+                        <div id="prompts-loading_syp" style="display: none; text-align: center; padding: 12px;">
+                            <span class="loading-spinner">⏳</span>
+                            <p style="margin: 8px 0 0 0; color: var(--text-muted);">Crafting prompts...</p>
+                        </div>
+
+                        <div id="image-prompts-section_syp" style="display: none; margin-top: 16px;">
+                            <div id="image-prompts-container_syp" class="image-prompts-container"></div>
+                        </div>
+                    </section>
+
+                    <!-- STEP 3: IMAGE PRODUCTION -->
+                    <section class="panel-section step-container step-3-style" id="step-3_syp">
+                        <div class="step-badge">STEP 3</div>
+                        <h2>🎨 AI Generation (SYP)</h2>
+                        <p class="section-hint">Produce high-quality images with Nano Banana Pro.</p>
+
+                        <div id="anchor-reference-display_syp"
+                            style="display: none; margin-bottom: 12px; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <img id="anchor-reference-img_syp" src=""
+                                style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                            <div style="flex: 1;">
+                                <span
+                                    style="font-size: 0.8rem; font-weight: bold; display: block; color: var(--text-color);">Active
+                                    Ref</span>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">Will be used for
+                                    generation</span>
+                            </div>
+                            <button class="btn btn-sm btn-secondary" id="clear-anchor-ref-btn_syp"
+                                style="width: auto; padding: 4px 10px; font-size: 0.75rem;">Clear</button>
+                        </div>
+
+                        <button class="btn btn-accent full-width" id="generate-ai-images_syp">
+                            <span>🚀 Generate All Images (API)</span>
+                        </button>
+
+                        <div id="ai-images-progress_syp" class="progress-container"
+                            style="display: none; margin-top: 12px;">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="ai-images-progress-fill_syp"></div>
+                            </div>
+                            <span class="progress-text" id="ai-images-progress-text_syp">API communicating...</span>
+                        </div>
+
+                        <div id="generated-images-container_syp" class="generated-images-grid"
+                            style="display: none; margin-top: 16px;"></div>
+
+                        <div class="parsing-tools" style="margin-top: 12px; display: none;"
+                            id="parsing-tools-container_syp">
+                            <button class="btn btn-primary full-width" id="parse-images-to-slides_syp">
+                                <span>🎨 Parse to Slide Preview</span>
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- MASTER CONTROLS: STYLE & EXPORT -->
+                    <section class="panel-section collapsed">
+                        <div class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                            <h2>🛠️ Master Style & Manual</h2>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+
+                        <div class="collapsible-content">
+                            <!-- Image Source -->
+                            <div class="sub-section">
+                                <h3>🖼️ Manual Images</h3>
+                                <div class="source-tabs">
+                                    <button class="tab-btn active" data-tab="upload_syp">Upload</button>
+                                    <button class="tab-btn" data-tab="supabase_syp">Supabase</button>
+                                </div>
+
+                                <div class="tab-content active" id="upload_syp-tab">
+                                    <div class="dropzone" id="dropzone_syp">
+                                        <p>Drag images here</p>
+                                        <input type="file" id="file-input_syp" accept="image/*" multiple hidden>
+                                    </div>
+                                </div>
+
+                                <div class="tab-content" id="supabase_syp-tab">
+                                    <div class="supabase-config">
+                                        <input type="text" id="supabase-url_syp" placeholder="Project URL">
+                                        <input type="password" id="supabase-key_syp" placeholder="Anon Key">
+                                        <input type="text" id="supabase-bucket_syp" placeholder="Bucket Name">
+                                        <button class="btn btn-primary btn-sm full-width"
+                                            id="connect-supabase_syp">Connect</button>
+                                    </div>
+                                    <div class="supabase-images" id="supabase-images_syp"></div>
+                                </div>
+                            </div>
+
+                            <!-- Text Style -->
+                            <div class="sub-section" style="margin-top: 16px;">
+                                <h3>🎨 Style Overlays</h3>
+                                <div class="style-grid">
+                                    <div class="input-group">
+                                        <label>Size <span id="font-size-value_syp"
+                                                style="color: var(--accent-cyan); font-weight: 600;">28px</span></label>
+                                        <input type="range" id="font-size_syp" min="12" max="72" value="28">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Width <span id="text-width-value_syp"
+                                                style="color: var(--accent-cyan); font-weight: 600;">120%</span></label>
+                                        <input type="range" id="text-width_syp" min="20" max="300" value="120">
+                                    </div>
+                                    <div class="input-row">
+                                        <div class="input-group"><label>Text</label><input type="color"
+                                                id="text-color_syp" value="#000000"></div>
+                                        <div class="input-group"><label>BG</label><input type="color" id="bg-color_syp"
+                                                value="#ffffff"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- EXPORT SECTION -->
+                    <section class="panel-section">
+                        <h2>💾 Export & Save</h2>
+                        <button class="btn btn-success full-width" id="download-all_syp" style="margin-bottom: 8px;">
+                            <span>📥 Download All Slides</span>
+                        </button>
+                        <button class="btn btn-secondary full-width" id="download-current_syp">
+                            <span>🖼️ Download Current Slide</span>
+                        </button>
+                    </section>
+                </aside>
+            </div>
+
+
+            <!-- Right Panel: Slides Preview Grid -->
+            <section class="slides-panel">
+                <div class="slides-header">
+                    <h2>📱 Slides Preview</h2>
+                    <span id="slide-counter" class="slide-count-badge">0 slides</span>
+                </div>
+
+                <div class="slides-container" id="slides-container">
+                    <div class="empty-state">
+                        <span class="empty-icon">🖼️</span>
+                        <p>No slides yet</p>
+                        <span>Upload images and add text to get started</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Hidden canvas for rendering -->
+    <canvas id="render-canvas" style="display: none;"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

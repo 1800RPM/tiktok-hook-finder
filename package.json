@@ -1,20 +1,19 @@
 {
-  "name": "tiktok_hook_finder",
-  "module": "index.ts",
-  "type": "module",
+  "name": "slide-creator-monorepo",
+  "version": "1.0.0",
   "private": true,
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "playwright": "^1.57.0"
-  },
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
-    "scrape": "C:/Users/tscho/.bun/bin/bun src/scraper.ts",
-    "analyze": "C:/Users/tscho/.bun/bin/bun src/analyzer.ts",
-    "api": "C:/Users/tscho/.bun/bin/bun src/api.ts"
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && bun --watch src/api.ts",
+    "client": "npx serve client",
+    "build": "echo 'No build step for root'",
+    "install:all": "npm install && cd server && bun install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
   }
 }

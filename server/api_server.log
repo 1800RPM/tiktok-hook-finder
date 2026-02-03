@@ -1,0 +1,32 @@
+­ƒöä Loading hook embeddings into memory...
+Ô£à Loaded 2488 embeddings in 199ms
+ÔÜá´©Å Keys not found in process.env, attempting manual load...
+­ƒôØ Loading keys from G:\Projects\Tiktok_Hook_Finder\server\.env
+­ƒôØ Loading keys from G:\Projects\Tiktok_Hook_Finder\.env
+­ƒÜÇ Hook Bridge API starting on http://localhost:3001
+­ƒôé Working Directory: G:\Projects\Tiktok_Hook_Finder\server
+­ƒöæ Anthropic Key: true
+­ƒöæ OpenAI Key: true
+­ƒû╝´©Å Gemini Key: true
+­ƒºá Semantic search ready with 2488 hooks
+Ô£à Database connected: {"1":1}
+[Request] OPTIONS /generate-native-slides
+[Request] POST /generate-native-slides
+[Router] POST /generate-native-slides -> Cleaned Path: /generate-native-slides
+[Native Slides] Requesting from Claude: He Doesn't Know | Splitting
+[Native Slides] Raw AI Output (first 100 chars): ```json
+{
+  "slides": [
+    {
+      "slide_number": 1,
+      "hook_text": "He doesn't know about spl
+[Request] OPTIONS /generate-native-slides
+[Request] POST /generate-native-slides
+[Router] POST /generate-native-slides -> Cleaned Path: /generate-native-slides
+[Native Slides] Requesting from Claude: He Doesn't Know | Relationships
+[Native Slides] Raw AI Output (first 100 chars): ```json
+{
+  "slides": [
+    {
+      "slide_number": 1,
+      "hook_text": "He doesn't know that when

@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     // Load trends if available
     let trends = null;
     try {
-        const trendsPath = path.join(process.cwd(), 'data', 'trends_snapshot.json');
+        const trendsPath = path.join(process.cwd(), 'server', 'data', 'trends_snapshot.json');
         trends = JSON.parse(readFileSync(trendsPath, 'utf8'));
     } catch (e) {
         console.warn('Trends snapshot not found, using generic style.');

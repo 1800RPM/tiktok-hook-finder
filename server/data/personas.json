@@ -1,0 +1,145 @@
+{
+    "personas": [
+        {
+            "id": "lisa",
+            "name": "Lisa (Curvy / Dog / SYP)",
+            "supported_projects": [
+                "syp"
+            ],
+            "subject": {
+                "description": "young woman, mid 20s, dark blonde hair, voluptuous figure with very large breasts, deep visible cleavage, hourglass body",
+                "age": "mid 20s",
+                "hair": {
+                    "color": "dark blonde",
+                    "style": "loose beachy waves, natural volume, soft layers framing face"
+                },
+                "body": {
+                    "figure": "voluptuous with very large full breasts, busty hourglass figure, prominent bust",
+                    "details": "deep visible cleavage line between large breasts, breasts pushed together, chest prominently displayed"
+                }
+            },
+            "face": {
+                "makeup": "Soft glam makeup, defined lashes, natural flush on cheeks, glossy nude-pink lips",
+                "skin": "Ultra-realistic skin texture, visible micro-pores, healthy natural glow, slight tan"
+            },
+            "accessories": {
+                "earrings": "small gold hoops",
+                "jewelry": "delicate gold chain necklace resting on chest above cleavage, dainty gold rings",
+                "phone_case": "clear case with gold accents"
+            },
+            "pet": {
+                "type": "dog",
+                "description": "fluffy golden retriever named Milo looking curious and playful"
+            },
+            "clothing_style": "very tight fitted top with deep plunging V-neckline showing significant cleavage, fabric stretched tight across large bust, breasts clearly visible"
+        },
+        {
+            "id": "luna",
+            "name": "Luna (Fashion / Cat)",
+            "supported_projects": [
+                "syp",
+                "dbt"
+            ],
+            "subject": {
+                "description": "young woman, early 20s, dark brunette hair, modern central European features, precise bone structure",
+                "age": "early 20s",
+                "hair": {
+                    "color": "dark brunette",
+                    "style": "slightly messy tied-back, soft face-framing strands"
+                }
+            },
+            "face": {
+                "makeup": "Sharp elegant black winged eyeliner, defined lashes, muted nude lips with satin finish",
+                "skin": "Ultra-realistic skin texture, visible micro-pores, natural glow"
+            },
+            "accessories": {
+                "earrings": "minimalist silver hoops",
+                "jewelry": "silver chain necklace, simple silver rings",
+                "phone_case": "clear minimalist case"
+            },
+            "pet": {
+                "type": "cat",
+                "description": "orange tabby cat looking unbothered and superior"
+            }
+        },
+        {
+            "id": "mia",
+            "name": "Mia (Fashion / Dog)",
+            "supported_projects": [
+                "syp",
+                "dbt"
+            ],
+            "subject": {
+                "description": "young woman, mid 20s, blonde wavy hair, modern fashion-model proportions, sharp features",
+                "age": "mid 20s",
+                "hair": {
+                    "color": "blonde",
+                    "style": "loose wavy hairstyle, natural imperfect texture"
+                }
+            },
+            "face": {
+                "makeup": "Muted earth-tone eyeshadow, sharp defined upper lash line, soft rose tone lips",
+                "skin": "Authentic skin texture, visible micro-details, natural highlights"
+            },
+            "accessories": {
+                "earrings": "none",
+                "jewelry": "silver necklace, multiple rings",
+                "phone_case": "silver metallic phone case"
+            },
+            "pet": {
+                "type": "dog",
+                "description": "small fluffy white dog looking curious and slightly confused"
+            }
+        },
+        {
+            "id": "chloe",
+            "name": "Chloe (Relatable / DBT Only)",
+            "supported_projects": [
+                "dbt"
+            ],
+            "subject": {
+                "description": "young woman, early 20s, copper red hair, friendly approachable features, soft jawline",
+                "age": "early 20s",
+                "hair": {
+                    "color": "copper red",
+                    "style": "loose messy bun with many stray hairs"
+                }
+            },
+            "face": {
+                "makeup": "minimally visible 'no-makeup' look, light freckles over nose",
+                "skin": "Natural youthful skin, some redness on cheeks, visible pores"
+            },
+            "accessories": {
+                "earrings": "none",
+                "jewelry": "thin gold dainty necklace",
+                "phone_case": "basic silicone sage green case"
+            },
+            "pet": null
+        },
+        {
+            "id": "zoe",
+            "name": "Zoe (Alt / Relatable / DBT Only)",
+            "supported_projects": [
+                "dbt"
+            ],
+            "subject": {
+                "description": "young woman, early 20s, short dark bob hair, slightly edgy but kind features",
+                "age": "21",
+                "hair": {
+                    "color": "black",
+                    "style": "chin-length blunt bob with short fringe"
+                }
+            },
+            "face": {
+                "makeup": "slightly smudged kohl eyeliner, natural skin texture",
+                "skin": "Authentic skin with visible micro-imperfections, natural glow"
+            },
+            "accessories": {
+                "earrings": "small silver studs",
+                "jewelry": "black cord necklace with small pendant",
+                "phone_case": "black matte case"
+            },
+            "pet": null
+        }
+    ]
+}

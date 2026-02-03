@@ -1,0 +1,168 @@
+{
+    "description": "Home/apartment settings for SaveYourPet image generation. Random selection adds variety to slides while maintaining cozy pet-owner aesthetic.",
+    "settings": [
+        {
+            "id": "cozy_bedroom",
+            "name": "Cozy Bedroom",
+            "description": "cozy bedroom with unmade bed, soft white sheets, fairy lights on wall, warm ambient lighting",
+            "elements": [
+                "unmade bed with wrinkled sheets",
+                "decorative pillows",
+                "soft blanket",
+                "fairy lights",
+                "bedside lamp glowing warm"
+            ],
+            "lighting": "warm golden hour light through sheer curtains mixed with soft lamp light",
+            "vibe": "intimate, relaxed morning/evening energy"
+        },
+        {
+            "id": "living_room_couch",
+            "name": "Living Room Couch",
+            "description": "modern living room, sitting on comfortable couch, throw blanket, houseplants visible",
+            "elements": [
+                "plush couch with cushions",
+                "cozy throw blanket",
+                "coffee table with mug",
+                "houseplants",
+                "soft rug"
+            ],
+            "lighting": "natural daylight from large windows, soft shadows",
+            "vibe": "casual weekend afternoon at home"
+        },
+        {
+            "id": "kitchen_counter",
+            "name": "Kitchen Counter",
+            "description": "bright modern kitchen, leaning against counter or sitting on counter, casual morning vibe",
+            "elements": [
+                "clean white countertop",
+                "coffee maker",
+                "fruit bowl",
+                "pendant lights",
+                "subway tile backsplash"
+            ],
+            "lighting": "bright natural morning light, clean and fresh",
+            "vibe": "casual morning coffee moment"
+        },
+        {
+            "id": "bathroom_mirror",
+            "name": "Bathroom Mirror Selfie",
+            "description": "modern bathroom, mirror selfie, clean aesthetic, getting ready vibe",
+            "elements": [
+                "large bathroom mirror",
+                "marble countertop",
+                "skincare products visible",
+                "soft towels",
+                "ring light reflection"
+            ],
+            "lighting": "bright vanity lighting, flattering and even",
+            "vibe": "getting ready, beauty routine moment"
+        },
+        {
+            "id": "home_office",
+            "name": "Home Office/Desk",
+            "description": "aesthetic home office setup, sitting at desk or in desk chair, modern workspace",
+            "elements": [
+                "minimalist desk",
+                "laptop visible",
+                "aesthetic desk accessories",
+                "plant on desk",
+                "comfortable chair"
+            ],
+            "lighting": "natural window light from side, soft and productive",
+            "vibe": "work from home, creative space"
+        },
+        {
+            "id": "bedroom_floor",
+            "name": "Bedroom Floor",
+            "description": "sitting on bedroom floor against bed, casual and intimate, cozy carpet or rug",
+            "elements": [
+                "fluffy rug or carpet",
+                "bed visible behind",
+                "scattered pillows",
+                "cozy corner"
+            ],
+            "lighting": "soft diffused light, warm tones",
+            "vibe": "lazy day at home, grounded and relaxed"
+        },
+        {
+            "id": "balcony_golden_hour",
+            "name": "Balcony/Terrace Golden Hour",
+            "description": "small apartment balcony during golden hour, plants, city or nature view in background",
+            "elements": [
+                "balcony railing",
+                "potted plants",
+                "string lights",
+                "small bistro chair",
+                "blurred city/nature view"
+            ],
+            "lighting": "golden hour sunlight, warm orange glow, backlit",
+            "vibe": "peaceful evening moment, sunset vibes"
+        },
+        {
+            "id": "bed_lying_down",
+            "name": "Lying in Bed",
+            "description": "lying in bed looking up at camera, cozy blankets, morning or evening mood",
+            "elements": [
+                "soft pillows around head",
+                "cozy duvet",
+                "messy but aesthetic bedding",
+                "phone held above"
+            ],
+            "lighting": "soft side lighting from window or lamp, intimate",
+            "vibe": "lazy morning in bed, just woke up energy"
+        },
+        {
+            "id": "walk_in_closet",
+            "name": "Walk-in Closet/Dressing Area",
+            "description": "in front of closet or dressing area, clothes visible behind, getting dressed vibe",
+            "elements": [
+                "organized closet racks",
+                "mirror",
+                "shoe collection visible",
+                "aesthetic storage"
+            ],
+            "lighting": "bright overhead lighting, fashion vibe",
+            "vibe": "choosing outfit, fashion moment"
+        },
+        {
+            "id": "reading_nook",
+            "name": "Reading Nook/Window Seat",
+            "description": "cozy window seat or reading corner, blanket, looking contemplative",
+            "elements": [
+                "window with view",
+                "cushioned seat",
+                "throw blanket",
+                "book or magazine",
+                "cup of tea"
+            ],
+            "lighting": "beautiful natural window light, soft and dreamy",
+            "vibe": "quiet cozy moment, introspective"
+        },
+        {
+            "id": "dining_area",
+            "name": "Dining Area",
+            "description": "sitting at dining table or breakfast bar, casual meal moment",
+            "elements": [
+                "wooden dining table",
+                "aesthetic chairs",
+                "pendant light above",
+                "food or coffee visible"
+            ],
+            "lighting": "warm overhead pendant light mixed with natural light",
+            "vibe": "casual meal time, everyday life"
+        },
+        {
+            "id": "hallway_mirror",
+            "name": "Hallway/Entrance Mirror",
+            "description": "full-length mirror in hallway or entrance, checking outfit, about to leave vibe",
+            "elements": [
+                "full-length mirror",
+                "coat hooks",
+                "shoe rack visible",
+                "keys on console table"
+            ],
+            "lighting": "natural light from entrance, transitional space",
+            "vibe": "ready to go out, quick mirror check"
+        }
+    ]
+}

@@ -1,0 +1,188 @@
+{
+    "gestures": [
+        {
+            "id": "truth_telling",
+            "description": "hand raised near face, fingers pointing upward, expressive 'let me tell you something' gesture"
+        },
+        {
+            "id": "pointing_at_camera",
+            "description": "index finger pointing directly at camera, accusatory and engaging"
+        },
+        {
+            "id": "counting_fingers",
+            "description": "hand up showing number with fingers, counting gesture"
+        },
+        {
+            "id": "hand_on_chest",
+            "description": "hand resting on chest over heart, sincere and personal"
+        },
+        {
+            "id": "chin_rest",
+            "description": "chin resting on hand, thoughtful and contemplative"
+        },
+        {
+            "id": "peace_sign",
+            "description": "casual peace sign near face, playful energy"
+        },
+        {
+            "id": "wait_gesture",
+            "description": "palm facing camera in 'wait, hold on' gesture"
+        },
+        {
+            "id": "hair_touch",
+            "description": "hand casually touching or playing with hair"
+        },
+        {
+            "id": "covering_mouth",
+            "description": "hand partially covering mouth like sharing a secret"
+        },
+        {
+            "id": "thumbs_up_sarcastic",
+            "description": "sarcastic thumbs up with deadpan expression"
+        },
+        {
+            "id": "finger_to_lips",
+            "description": "finger to lips in 'shh' or thoughtful gesture"
+        },
+        {
+            "id": "temple_tap",
+            "description": "finger tapping temple, 'think about it' gesture"
+        },
+        {
+            "id": "hand_on_heart",
+            "description": "one hand pressed to heart/chest, sincere or pleading"
+        },
+        {
+            "id": "facepalm_partial",
+            "description": "hand partially covering face, exasperated but relatable"
+        },
+        {
+            "id": "finger_guns",
+            "description": "playful finger guns at camera, cheeky energy"
+        }
+    ],
+    "expressions": [
+        {
+            "id": "knowing_smirk",
+            "description": "slight smirk with raised eyebrow, 'I know something you don't' energy"
+        },
+        {
+            "id": "intense_stare",
+            "description": "direct eye contact, slightly intense, truth-bomb energy"
+        },
+        {
+            "id": "wide_eyed_shock",
+            "description": "eyes wide, eyebrows raised, 'can you believe this?' expression"
+        },
+        {
+            "id": "deadpan",
+            "description": "completely neutral expression, deadpan delivery"
+        },
+        {
+            "id": "soft_smile",
+            "description": "gentle, genuine half-smile, warm and approachable"
+        },
+        {
+            "id": "eye_roll_subtle",
+            "description": "subtle eye roll, relatable frustration"
+        },
+        {
+            "id": "biting_lip",
+            "description": "biting lower lip, nervous or contemplative"
+        },
+        {
+            "id": "pursed_lips",
+            "description": "lips pressed together, holding back or processing"
+        },
+        {
+            "id": "side_eye",
+            "description": "looking to the side with suspicious energy"
+        },
+        {
+            "id": "vulnerable_open",
+            "description": "open, vulnerable expression, slightly sad but honest"
+        },
+        {
+            "id": "confused_squint",
+            "description": "slightly squinting, head tilted, confused but relatable"
+        },
+        {
+            "id": "mischievous_grin",
+            "description": "playful grin, like about to reveal something juicy"
+        },
+        {
+            "id": "tired_acceptance",
+            "description": "tired but accepting expression, 'I've been through it' energy"
+        },
+        {
+            "id": "raised_eyebrows",
+            "description": "both eyebrows raised, 'seriously?' or 'here we go' energy"
+        },
+        {
+            "id": "genuine_laugh",
+            "description": "mid-laugh or just finished laughing, authentic joy"
+        }
+    ],
+    "positions": [
+        {
+            "id": "mirror_selfie_standing",
+            "description": "standing in front of mirror, classic selfie pose"
+        },
+        {
+            "id": "sitting_on_bed",
+            "description": "sitting cross-legged on bed, casual and intimate"
+        },
+        {
+            "id": "lying_on_bed_propped",
+            "description": "lying on bed propped up on elbows, relaxed"
+        },
+        {
+            "id": "head_hanging_off_bed",
+            "description": "lying on bed with head hanging over edge, looking up at camera upside down"
+        },
+        {
+            "id": "couch_curled_up",
+            "description": "curled up on couch with blanket, cozy vibes"
+        },
+        {
+            "id": "sitting_on_counter",
+            "description": "sitting on kitchen counter, casual and slightly rebellious"
+        },
+        {
+            "id": "car_selfie",
+            "description": "sitting in driver's seat or passenger seat, natural lighting"
+        },
+        {
+            "id": "floor_sitting",
+            "description": "sitting on floor against wall or bed, grounded"
+        },
+        {
+            "id": "window_seat",
+            "description": "sitting by window with natural light, contemplative"
+        },
+        {
+            "id": "blanket_burrito",
+            "description": "wrapped in blanket like a burrito, only face visible"
+        },
+        {
+            "id": "hugging_pillow",
+            "description": "hugging pillow or stuffed animal, vulnerable but cute"
+        },
+        {
+            "id": "pet_in_lap",
+            "description": "pet sitting in lap while taking selfie"
+        },
+        {
+            "id": "leaning_on_doorframe",
+            "description": "casually leaning against doorframe, confident"
+        },
+        {
+            "id": "lying_on_floor",
+            "description": "lying flat on floor looking up at camera, dramatic but relatable"
+        },
+        {
+            "id": "front_camera_close",
+            "description": "very close front camera selfie, intimate and personal"
+        }
+    ]
+}

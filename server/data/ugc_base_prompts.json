@@ -1,0 +1,126 @@
+{
+    "dbt": {
+        "slide_1_base": {
+            "format": "9:16 vertical",
+            "camera": {
+                "type": "iPhone front-camera selfie",
+                "characteristics": [
+                    "Raw UGC aesthetic",
+                    "slight wide-angle distortion",
+                    "visible grain",
+                    "no beauty filters",
+                    "handheld authentication"
+                ]
+            },
+            "aesthetic": {
+                "style": "Authentic 'girl-next-door' sharing mental health journey",
+                "vibes": [
+                    "relatable",
+                    "grounded",
+                    "natural imperfection",
+                    "cozy but real"
+                ]
+            },
+            "skin_realism": [
+                "visible pores",
+                "natural redness",
+                "authentic skin texture",
+                "slight T-zone shine"
+            ],
+            "makeup": {
+                "style": "no makeup or 'clean girl' minimal makeup",
+                "details": "natural skin, soft lashes, clear or nude lip balm"
+            }
+        },
+        "clothing_options": [
+            "oversized sage green crewneck",
+            "cozy cream sweater",
+            "hoodie and messy hair",
+            "basic tank top and cardigan"
+        ]
+    },
+    "syp": {
+        "slide_1_base": {
+            "format": "9:16 vertical",
+            "camera": {
+                "type": "Modern smartphone mirror selfie, handheld fashion lens",
+                "characteristics": [
+                    "ultra-realistic photographic texture",
+                    "slight wide-angle distortion",
+                    "subtle sensor noise",
+                    "editorial realism"
+                ]
+            },
+            "aesthetic": {
+                "style": "Modern mirror selfie fashion aesthetic, soft grunge + urban femininity",
+                "vibes": [
+                    "editorial fashion",
+                    "Gen-Z fashion mood",
+                    "high-end UGC",
+                    "fashion-forward"
+                ]
+            },
+            "skin_realism": [
+                "ultra-realistic micro-texture",
+                "visible micro-pores",
+                "natural oils caught in mixed light"
+            ],
+            "makeup": {
+                "style": "Sharp elegant black winged eyeliner",
+                "details": [
+                    "accentuated upper lash line",
+                    "defined lashes",
+                    "muted nude or rose satin lips"
+                ]
+            }
+        },
+        "clothing_options": [
+            "light jacket with abstract graphic prints",
+            "black zip-up top with edgy white illustrations",
+            "streetwear hoodie",
+            "modern neutral fashion base"
+        ]
+    },
+    "settings": {
+        "cozy_bedroom": {
+            "id": "cozy_bedroom",
+            "description": "modern bedroom with soft neutral background, minimal decor",
+            "lighting": "warm-neutral ambient light",
+            "elements": [
+                "mirror visible",
+                "soft neutral walls",
+                "minimalist aesthetic"
+            ]
+        },
+        "fashion_mirror": {
+            "id": "fashion_mirror",
+            "description": "dressing room or hallway with large mirror, fashion backdrop",
+            "lighting": "mixed ambient light, realistic reflections",
+            "elements": [
+                "full length mirror",
+                "urban aesthetic"
+            ]
+        },
+        "car_interior": {
+            "id": "car_interior",
+            "description": "passenger seat of a car, natural lighting through windows",
+            "lighting": "bright natural daylight",
+            "elements": [
+                "car seat",
+                "seatbelt visible"
+            ]
+        }
+    },
+    "jewelry": {
+        "syp": [
+            "minimalist silver chain",
+            "multiple silver rings",
+            "dark neutral nail polish"
+        ],
+        "dbt": [
+            "small gold hoops",
+            "dainty necklace",
+            "no nail polish or clear coat"
+        ]
+    }
+}

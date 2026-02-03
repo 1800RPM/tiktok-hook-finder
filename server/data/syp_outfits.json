@@ -1,0 +1,143 @@
+{
+    "description": "Outfit options for SaveYourPet. All outfits feature deep V-necklines with visible cleavage like the reference image - tight black top with plunging neckline showing significant bust.",
+    "outfits": [
+        {
+            "id": "deep_v_tight",
+            "name": "Deep V Tight Top",
+            "description": "very tight black fitted top with deep plunging V-neckline extending down between very large breasts, significant cleavage visible, fabric stretched tight",
+            "style_tags": [
+                "sexy",
+                "tight",
+                "revealing"
+            ],
+            "fit": "skin-tight, deep V showing cleavage"
+        },
+        {
+            "id": "ruched_vneck",
+            "name": "Ruched V-Neck Top",
+            "description": "tight ruched front top with deep V-neckline, drawstring detail pulling fabric between large breasts, deep cleavage line visible, very busty",
+            "style_tags": [
+                "trendy",
+                "sexy",
+                "tight"
+            ],
+            "fit": "tight ruched, maximum cleavage display"
+        },
+        {
+            "id": "cropped_deep_v",
+            "name": "Cropped Deep V",
+            "description": "cropped tight top with extremely deep V-neckline plunging down showing large breasts pushed together, visible cleavage line, midriff showing",
+            "style_tags": [
+                "crop",
+                "sexy",
+                "revealing"
+            ],
+            "fit": "tight crop, deep plunge"
+        },
+        {
+            "id": "wrap_plunge",
+            "name": "Wrap Plunge Top",
+            "description": "tight wrap-style top with plunging neckline wrapping between very large breasts, fabric pulled tight, deep cleavage prominently displayed",
+            "style_tags": [
+                "feminine",
+                "sexy",
+                "elegant"
+            ],
+            "fit": "wrapped tight, bust spilling"
+        },
+        {
+            "id": "ribbed_deep_v",
+            "name": "Ribbed Deep V",
+            "description": "very tight ribbed top with deep V-neckline, ribbed fabric stretched across very large bust, cleavage line clearly visible between breasts",
+            "style_tags": [
+                "casual",
+                "tight",
+                "sexy"
+            ],
+            "fit": "skin-tight ribbed, V-cleavage"
+        },
+        {
+            "id": "lace_up_plunge",
+            "name": "Lace-Up Plunge",
+            "description": "tight top with lace-up front detail and deep plunging neckline, crisscross lacing between very large breasts, significant cleavage exposed",
+            "style_tags": [
+                "edgy",
+                "sexy",
+                "revealing"
+            ],
+            "fit": "tight lace-up, exposed cleavage"
+        },
+        {
+            "id": "sweetheart_bustier",
+            "name": "Sweetheart Bustier",
+            "description": "structured bustier-style top with sweetheart neckline pushing very large breasts up, deep cleavage between pushed-together breasts",
+            "style_tags": [
+                "glamorous",
+                "structured",
+                "sexy"
+            ],
+            "fit": "bustier push-up, breast display"
+        },
+        {
+            "id": "cutout_vneck",
+            "name": "Cutout V-Neck",
+            "description": "tight fitted top with v-shaped cutout in front exposing cleavage between very large breasts, fabric hugging bust",
+            "style_tags": [
+                "trendy",
+                "revealing",
+                "modern"
+            ],
+            "fit": "tight with cutout, cleavage window"
+        },
+        {
+            "id": "halter_plunge_deep",
+            "name": "Deep Halter Plunge",
+            "description": "halter-style top with extremely deep plunging V-neckline to stomach, very large breasts pushed together, maximum cleavage visible",
+            "style_tags": [
+                "daring",
+                "sexy",
+                "glamorous"
+            ],
+            "fit": "halter with extreme plunge"
+        },
+        {
+            "id": "bodysuit_low_v",
+            "name": "Low-V Bodysuit",
+            "description": "skin-tight bodysuit with low V-neckline showing deep cleavage, very large bust straining against fabric, breasts prominently displayed",
+            "style_tags": [
+                "sleek",
+                "tight",
+                "sexy"
+            ],
+            "fit": "bodysuit, low V-cut"
+        },
+        {
+            "id": "tight_henley_unbuttoned",
+            "name": "Unbuttoned Tight Henley",
+            "description": "very tight henley-style top with buttons undone showing deep V of cleavage, very large breasts visible, fabric stretched tight",
+            "style_tags": [
+                "casual",
+                "sexy",
+                "effortless"
+            ],
+            "fit": "tight henley, unbuttoned cleavage"
+        },
+        {
+            "id": "scoop_extreme_low",
+            "name": "Extreme Low Scoop",
+            "description": "super tight top with extremely low scooped neckline, very large breasts mostly visible, deep cleavage line prominent",
+            "style_tags": [
+                "revealing",
+                "tight",
+                "bold"
+            ],
+            "fit": "extremely low cut, bust exposed"
+        }
+    ],
+    "body_descriptions": {
+        "lisa": {
+            "figure": "voluptuous with very large breasts, busty hourglass, prominent chest",
+            "details": "deep visible cleavage line between large breasts, breasts pushed together, chest prominently displayed in tight low-cut tops"
+        }
+    }
+}

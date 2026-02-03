@@ -1,0 +1,73 @@
+{
+    "project": "DBT-Mind",
+    "description": "Photography and visual guidelines for BPD/DBT mental health content.",
+    "subject": {
+        "beauty_level": "strikingly beautiful, effortlessly attractive",
+        "face": {
+            "structure": "symmetrical features, refined bone structure, soft feminine jawline",
+            "eyes": "large expressive eyes with natural depth, captivating gaze",
+            "lips": "naturally full lips with soft natural color",
+            "brows": "well-shaped natural brows, groomed but not overdone"
+        },
+        "skin": {
+            "quality": "flawless, luminous skin with a healthy natural glow",
+            "texture": "smooth with minimal visible pores, soft-focus skin quality",
+            "tone": "even skin tone, slight natural warmth in cheeks",
+            "imperfections": "none or very subtle - no acne, no blemishes"
+        },
+        "makeup": {
+            "style": "enhanced natural beauty, 'no-makeup makeup' done perfectly",
+            "details": [
+                "subtle mascara enhancing lash length",
+                "soft nude lip tint",
+                "light concealer for flawless under-eyes",
+                "gentle highlighting on cheekbones"
+            ]
+        },
+        "hair": {
+            "quality": "healthy, shiny, well-maintained",
+            "styling": "effortlessly styled, natural movement"
+        },
+        "expression": {
+            "mood": "soft, relatable, emotionally authentic",
+            "eyes": "gentle, slightly vulnerable, inviting connection"
+        }
+    },
+    "environment": {
+        "setting": "small aesthetic bedroom with soft natural light seeping through the window",
+        "background_elements": {
+            "wall_art": "framed artwork behind her, same size and orientation as the reference",
+            "lighting_fixture": "minimalist lamp with small warm bulbs, placed exactly where it appears in the reference",
+            "bedding": "white sheets, slight wrinkles creating realistic depth"
+        }
+    },
+    "lighting": {
+        "primary_light": "soft natural daylight entering from the right side, creating long gentle rays across the wall",
+        "secondary_light": "faint reflection from the lamp adding tiny highlights",
+        "shadows": "deep but soft shadows on the bed, walls, and subject, matching the mood of the reference",
+        "face_lighting": "soft flattering light that enhances facial features without harsh shadows"
+    },
+    "photography": {
+        "camera_angle": "mirror-reflected selfie angle identical to the reference",
+        "framing": "wide view capturing the whole scene from mid-bed to top wall trim",
+        "focus": "slightly soft overall, matching the moody low-light feel",
+        "color_profile": "warm-toned shadows with subtle cool daylight streaks",
+        "skin_rendering": "soft-focus on skin, minimizing texture while maintaining realism"
+    },
+    "vibe": {
+        "energy": "quiet, cozy, early-morning mood",
+        "tone": "soft, cinematic, minimalist aesthetic",
+        "beauty_aesthetic": "naturally beautiful, approachable, relatable despite being gorgeous"
+    },
+    "restrictions": {
+        "content": "strictly non-sexual; all curves and shadows interpreted as natural posture and lighting only",
+        "tattoos": "none",
+        "accuracy": "must match the reference composition and lighting with very high fidelity",
+        "avoid": [
+            "visible pores or skin texture",
+            "harsh or unflattering angles",
+            "overly glamorous or editorial looks",
+            "artificial or plastic appearance"
+        ]
+    }
+}

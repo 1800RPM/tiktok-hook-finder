@@ -1,0 +1,163 @@
+{
+    "project": "SaveYourPet",
+    "description": "Photography and visual guidelines for pet insurance content. The vibe is editorial, fashion-forward, and theatrically comedic.",
+    "subject": {
+        "beauty_level": "strikingly beautiful, model-tier attractiveness with approachable warmth",
+        "face": {
+            "structure": "perfectly symmetrical features, refined elegant bone structure, soft feminine jawline",
+            "eyes": "large captivating eyes with natural depth, bright and expressive, slightly cat-eye shape",
+            "lips": "naturally full lips with soft rose tint, perfectly shaped cupid's bow",
+            "brows": "well-groomed natural brows, slightly arched, frame the face beautifully"
+        },
+        "skin": {
+            "quality": "flawless luminous skin with healthy natural glow, porcelain-smooth",
+            "texture": "soft-focus skin with minimal visible pores, naturally radiant",
+            "tone": "even skin tone with subtle warmth, slight natural flush on cheeks",
+            "imperfections": "none - clear, blemish-free complexion"
+        },
+        "makeup": {
+            "style": "elevated 'Instagram baddie' meets editorial - polished but not overdone",
+            "details": [
+                "sharp elegant black winged eyeliner, cat-eye effect",
+                "perfectly defined lashes, full but natural-looking",
+                "soft nude or rose lip with satin finish",
+                "subtle bronzer for dimension",
+                "natural-looking highlight on cheekbones"
+            ]
+        },
+        "hair": {
+            "quality": "healthy, shiny, well-maintained with natural movement",
+            "styling": "effortlessly styled, trendy but not try-hard"
+        },
+        "expression": {
+            "mood": "confident, self-aware humor, playfully dramatic",
+            "eyes": "knowing, slightly mischievous, engaging the viewer"
+        }
+    },
+    "lighting": {
+        "primary_light": "soft natural daylight entering from the side, creating gentle rays across the scene",
+        "secondary_light": "warm ambient lamp glow adding small highlights and depth",
+        "shadows": "deep but soft shadows, cinematic mood without being dramatic",
+        "time_of_day_hints": {
+            "night": "soft dim bedside lighting, mixed ambient (room light + subtle laptop glow if saveyourpet.de slide), gentle shadows on face",
+            "morning": "golden hour warmth, soft window light, elevated cozy mood",
+            "neutral": "soft indoor lighting, warm-neutral tones, mixed ambient sources"
+        }
+    },
+    "photography": {
+        "camera_type": "smartphone mirror selfie (iPhone-like)",
+        "camera_angle": "mirror-reflected selfie angle, slightly elevated",
+        "framing": "wide view capturing subject and environment, fashion editorial composition",
+        "focus": "slightly soft overall, matching moody low-light feel but still sharp on subject",
+        "color_profile": "warm-toned shadows with subtle cool daylight streaks, muted but rich",
+        "characteristics": [
+            "slight wide-angle distortion from phone camera",
+            "handheld feel, not tripod-stable",
+            "natural lens reflections in mirror if mirror selfie"
+        ],
+        "critical_rules": [
+            "NEVER show a phone screen or hold a second phone in the subject's hands",
+            "The phone is being used to TAKE the selfie (front camera) - its screen cannot be visible",
+            "No second phone should be visible in the scene",
+            "Hands should be: gesturing, resting, petting the pet, touching face, etc. (one hand only for selfies)"
+        ],
+        "saveyourpet_slide_exception": {
+            "description": "EXCEPTION: When the slide mentions saveyourpet.de, show the person using the website on a LAPTOP",
+            "concept": "Show the person actively USING the saveyourpet.de website on their laptop - larger screen = better brand recognition",
+            "reference_image_path": "server/data/anchors/saveyourpet/website_screenshot_laptop.png",
+            "execution": {
+                "reference_image": "Use the screenshot at 'server/data/anchors/saveyourpet/website_screenshot_laptop.png' as reference image for the AI",
+                "laptop_placement": "The AI should place the screenshot onto a laptop screen in front of the person",
+                "pose": "Person looking at laptop screen, concentrated/browsing, pet nearby (behind laptop, next to them, sleeping on bed)",
+                "camera_angle": "Over-the-shoulder shot preferred - shows laptop screen clearly while maintaining intimate UGC vibe",
+                "setting_suggestions": [
+                    "On bed with laptop, dog sleeping behind the laptop - over-the-shoulder shot",
+                    "Cozy couch scene, laptop on lap or coffee table, pet curled up next to her",
+                    "At desk in minimalist apartment, pet visible in background or under desk",
+                    "On floor with blanket, laptop in front, pet lying nearby"
+                ]
+            },
+            "prompt_template": "Over-the-shoulder shot of woman on [LOCATION] looking at laptop screen showing saveyourpet.de [use reference image], [PET] sleeping/lying nearby, [LIGHTING], raw UGC aesthetic, laptop screen clearly visible with website UI",
+            "important_notes": [
+                "ALWAYS use laptop, NEVER phone for saveyourpet.de slides",
+                "Laptop screen should take up 25-40% of the image - clearly visible",
+                "Over-the-shoulder angle works best for showing screen content",
+                "Pet should be visible but not blocking the laptop screen",
+                "The screenshot doesn't need to be perfectly readable, just recognizable",
+                "Vibe: 'caught researching late at night' - authentic, not staged"
+            ]
+        }
+    },
+    "aesthetic": {
+        "style": "editorial fashion meets UGC authenticity",
+        "vibes": [
+            "fashion-forward German pet owner",
+            "modern Gen-Z aesthetic",
+            "quiet luxury minimalism",
+            "cinematic storytelling"
+        ],
+        "anti_patterns": [
+            "no ring lights",
+            "no professional studio setups",
+            "no overly staged compositions",
+            "no clinical veterinary vibes"
+        ]
+    },
+    "skin_and_makeup": {
+        "skin_texture": "ultra-realistic with visible micro-pores, natural oils, realistic highlights",
+        "makeup_style": "modern fashion aesthetic, elevated but not overdone",
+        "details": [
+            "sharp elegant black winged eyeliner",
+            "defined lashes",
+            "muted nude or rose lips with satin finish",
+            "subtle contouring acceptable"
+        ]
+    },
+    "environment": {
+        "primary_settings": [
+            "cozy_bedroom",
+            "fashion_mirror",
+            "minimalist_living_room"
+        ],
+        "vibe": "authentic German apartment aesthetic, minimalist, functional but stylish",
+        "elements": [
+            "clean white walls",
+            "functional furniture",
+            "soft neutral textiles",
+            "visible pet (cat or dog) in natural position"
+        ]
+    },
+    "expressions": {
+        "primary_mood": "theatrical comedy",
+        "preferred_expressions": [
+            "knowing smirk",
+            "subtle eye roll",
+            "deadpan stare",
+            "raised eyebrows",
+            "mischievous grin",
+            "exaggerated side-eye"
+        ],
+        "tone": "self-aware humor, even when text is dramatic"
+    },
+    "vibe": {
+        "energy": "confident, playful, self-aware comedy queen",
+        "tone": "editorial meets relatable, fashion-forward but approachable",
+        "beauty_aesthetic": "naturally gorgeous, the kind of girl who looks effortlessly beautiful even being dramatic about her pet"
+    },
+    "restrictions": {
+        "content": "strictly non-sexual; all curves and shadows interpreted as natural posture and lighting only",
+        "tattoos": "none",
+        "accuracy": "must match editorial fashion mood while feeling authentic",
+        "avoid": [
+            "phone/smartphone visible in hands or any phone screen showing (the phone is taking the photo!)",
+            "car interiors (not on-brand for German pet owner)",
+            "clinical/veterinary settings",
+            "sad or overly emotional expressions",
+            "cheap or unpolished environments",
+            "perfectly smooth/plastic 'AI' skin (ALWAYS use visible pores and skin texture)",
+            "unflattering angles",
+            "harsh lighting on face",
+            "couple shots or other people (only the girl + her pet)"
+        ]
+    }
+}

@@ -1,0 +1,90 @@
+{
+    "tiers": [
+        {
+            "tier": 1,
+            "name": "BPD Core Niche",
+            "topics": [
+                {
+                    "name": "Favorite Person (FP) Dynamics",
+                    "angles": [
+                        "Losing your FP",
+                        "Splitting on your FP",
+                        "FP dependency/addiction",
+                        "What it feels like when your FP pulls away",
+                        "The difference between love and FP attachment",
+                        "When your FP doesn't text back"
+                    ],
+                    "example_hooks": [
+                        "The truth about your 'favorite person' that no one talks about",
+                        "Why losing your FP feels like actual death",
+                        "FP attachment isn't love. Here's what it actually is."
+                    ]
+                },
+                {
+                    "name": "Splitting",
+                    "angles": [
+                        "What splitting looks like vs feels like",
+                        "Splitting on partners/friends",
+                        "The 'enemy of the state' moment",
+                        "Black-and-white thinking in relationships",
+                        "When you split on someone you love"
+                    ],
+                    "example_hooks": [
+                        "What a BPD split actually feels like inside",
+                        "The moment they go from soulmate to enemy",
+                        "Why you can't see the gray area (and what to do about it)"
+                    ]
+                },
+                {
+                    "name": "Fear of Abandonment",
+                    "angles": [
+                        "Pushing people away before they leave",
+                        "Can't abandon me if I abandon you first",
+                        "Relationship sabotage patterns",
+                        "Why calm feels like rejection",
+                        "Testing people to see if they'll stay",
+                        "Preemptive rejection"
+                    ],
+                    "example_hooks": [
+                        "Why you push away everyone who gets close",
+                        "The abandonment wound that controls all your relationships",
+                        "You're not scared of being alone. You're scared of being left."
+                    ]
+                },
+                {
+                    "name": "Relationship Cycles",
+                    "angles": [
+                        "Idealization \u2192 devaluation",
+                        "The breakup cycle (breaking up and going back)",
+                        "Why you keep choosing the same people",
+                        "Trauma bonding vs actual love",
+                        "When love feels like chaos"
+                    ],
+                    "example_hooks": [
+                        "The relationship cycle no one with BPD talks about",
+                        "Why you keep going back (it's not because you love them)",
+                        "That's not a connection. That's a trauma bond."
+                    ]
+                }
+            ]
+        }
+    ],
+    "formats": [
+        {
+            "name": "Translations",
+            "description": "Names the hidden feeling behind the behavior"
+        },
+        {
+            "name": "Things no one tells you about...",
+            "description": "Promises insider knowledge"
+        },
+        {
+            "name": "Signs you might...",
+            "description": "Specific, actionable, saveable"
+        },
+        {
+            "name": "POV scenarios",
+            "description": "Immersive, relatable, comment-bait"
+        }
+    ]
+}
