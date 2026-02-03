@@ -268,7 +268,8 @@ export async function generateCarouselImages(
  */
 const UGC_STYLE_OVERLAY = `
 
-Style: iPhone selfie, front-facing camera. Phone is NOT visible - it's taking the photo. No mirror. Natural indoor lighting, visible skin texture, no filters. Raw and authentic.`;
+Style: iPhone selfie, front-facing camera. Phone is NOT visible - it's taking the photo. No mirror. Natural indoor lighting, visible skin texture, no filters. Raw and authentic. 
+NEGATIVE: No pets on kitchen counters, no pets on tables, no pets on raised household surfaces. Pet must be on floor, bed, or couch.`;
 
 /**
  * Convert a structured JSON image prompt to a flat text prompt for Gemini

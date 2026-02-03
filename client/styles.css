@@ -816,17 +816,37 @@ body {
     box-shadow: var(--shadow-glow-cyan);
 }
 
-.prompt-content {
+.image-prompt-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: var(--spacing-sm);
+    transition: all 0.2s ease;
+}
+
+.image-prompt-card:focus-within {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 10px rgba(0, 242, 234, 0.1);
+}
+
+.prompt-textarea {
+    width: 100%;
+    min-height: 80px;
     padding: var(--spacing-md);
-    margin: 0;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    max-height: 200px;
-    overflow-y: auto;
-    font-family: 'Monaco', 'Consolas', monospace;
     background: var(--bg-card);
+    border: none;
+    color: var(--text-secondary);
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    resize: vertical;
+    outline: none;
+    display: block;
+}
+
+.prompt-textarea:focus {
+    color: var(--text-primary);
 }
 
 .editable-prompt {
@@ -1642,25 +1662,38 @@ input[type="color"]::-webkit-color-swatch {
 
 .notification {
     position: fixed;
-    bottom: var(--spacing-lg);
+    top: var(--spacing-lg);
     right: var(--spacing-lg);
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: 12px 24px;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
     color: var(--text-primary);
-    font-size: 0.9rem;
-    z-index: 1000;
-    animation: slideIn 0.3s ease;
+    font-size: 0.95rem;
+    font-weight: 500;
+    z-index: 2000;
+    animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 400px;
+    pointer-events: none;
 }
 
 .notification.success {
-    border-color: var(--success);
+    background: #22c55e;
+    border-color: #22c55e;
+    color: white;
 }
 
 .notification.error {
-    border-color: var(--error);
+    background: #ef4444;
+    border-color: #ef4444;
+    color: white;
+}
+
+.notification.info {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
 }
 
 @keyframes slideIn {

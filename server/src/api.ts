@@ -173,7 +173,7 @@ const server = Bun.serve({
         else if ((cleanPath === "/improve-hook" || cleanPath === "/improve-hooks") && method === "POST") {
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
-                const { slides, slides_text } = await req.json() as any;
+                const { slides, slides_text, service } = await req.json() as any;
 
                 const fullSlideText = slides && Array.isArray(slides) ? slides.join('\n') : (slides_text || "");
 
@@ -181,86 +181,54 @@ const server = Bun.serve({
                     return sendJSON({ error: "Slides text is required" }, 400);
                 }
 
-                console.log(`[Banger Hooks] Generating for: ${fullSlideText.substring(0, 50)}...`);
+                const isDbt = service === 'dbt';
+                console.log(`[Banger Hooks] Generating for: ${fullSlideText.substring(0, 50)}... (Service: ${service || 'unknown'})`);
 
-                const hookRequirementsPrompt = `You are writing TikTok slideshow hooks for a DBT/BPD mental health account targeting Gen-Z (ages 18-28). The account voice is a person with BPD who has been in therapy — not a therapist, not an influencer, not trying to sound smart.
+                let hookRequirementsPrompt = "";
+                let systemPrompt = "";
 
-HOOK REQUIREMENTS:
+                if (isDbt) {
+                    hookRequirementsPrompt = `For this slide post, create an ABSOLUTE VIRAL BANGER HOOK, which will replace the current cheap slide 1 hook. Give me three options. The post will be in the BPD niche on Tiktok. The hook must create ABSOLUTE curiosity within the first 3 seconds and must be like a cliffhanger is a good series. Use the best fitting option from this framework:
 
-1. SPECIFICITY OVER CLARITY
-Bad: "what to do when you're anxious about your relationship"
-Good: "when you've reread the same text 6 times trying to figure out what they actually meant"
+Here are the 4 hook frameworks that consistently trigger all 6 behaviors: 
 
-The hook should describe a behavior so specific it feels like you're calling the viewer out personally. Use numbers, timestamps, and tiny details.
+The Forbidden Knowledge Hook "Secrets I learned working at [company]" "What [industry] doesn't want you to know" "I got fired for sharing this" Why it works: Creates instant curiosity gap. Viewer HAS to know the secret. High completion rate because they're waiting for the reveal.
 
-2. EMOTIONAL TRUTH BEFORE VALUE PROMISE
-Bad: "3 tips for managing abandonment fear"
-Good: "nobody talks about how you can feel them leaving before anything even happened"
+The Specific Number Hook "5 ways to [outcome] that actually work" "I made $4,431 last week doing this" "3 things I wish I knew before [experience]" Why it works: Numbers create concrete expectations. Viewer knows exactly what they're getting. Easy to consume. High save rate.
 
-Don't lead with what the viewer will learn. Lead with what they already feel but haven't heard anyone say out loud.
+The Pattern Interrupt Hook "This is wrong but it works" "I shouldn't be telling you this" "Everyone does X but here's what actually happens" Why it works: Challenges existing beliefs. Creates cognitive dissonance that demands resolution. High comment rate because people want to argue or agree.
 
-3. TENSION OR CONTRADICTION
-Bad: "how i deal with splitting"
-Good: "knowing you're being irrational and not being able to stop"
+The Transformation Hook "How I went from [bad state] to [good state]" "6 months ago I was [struggle]. Now [success]" "The thing that changed everything for me"`;
 
-The hook should contain two forces pulling against each other — what you know vs what you feel, what you want vs what you do, how you look vs what's happening inside.
-
-4. INCOMPLETE LOOP
-Bad: "the skill that helped me stop spiraling"
-Good: "i stopped sending the 3am paragraph texts and it changed everything"
-
-The viewer should need to watch to understand HOW or WHY. Don't close the loop in the hook.
-
-5. FIRST 3 WORDS CARRY WEIGHT
-Bad: "here's what i do when..."
-Good: "that thing where you..."
-Good: "nobody warns you about..."
-Good: "when you're already crying before..."
-
-The scroll-stop happens in the first second. Front-load the emotional hit.
-
-6. INSIDER LANGUAGE (optional but powerful)
-Use community terms when they fit naturally: FP, splitting, masking, quiet BPD, dissociating, mirroring. This signals "this is for us, not for people who don't get it."
-
-HOOK FORMATS THAT WORK:
-
-- "nobody talks about [hyper-specific experience]"
-- "that thing where you [embarrassingly relatable behavior]"
-- "[specific behavior] and then wondering why you feel [emotion]"
-- "when you [internal experience] but [external appearance]"
-- "the [time period] between [event] and [response] is where i lose my mind"
-- "i stopped [specific behavior] and [unexpected result]"
-- "you can always tell when [subtle sign of symptom]"
-- "knowing [rational truth] and still [irrational behavior]"
-
-DO NOT:
-- Start with "how to" or "what to do when" (overused, no emotional charge)
-- Promise a number of tips in the hook (save that for description or slide 2)
-- Use generic emotional words without specificity ("anxious," "sad," "struggling")
-- Sound like a therapist or wellness influencer
-- Use exclamation points or emojis in hooks
-- End the hook with a question (breaks the tension)
-
-VOICE:
-- Lowercase
-- No filler words (literally, actually, just, really)
-- Dry, self-aware, slightly dark humor
-- Intimate, like a voice memo to a friend who gets it
-- Never performative or trying to go viral
-
-Generate hooks that make the viewer think: "how did they know that about me"`;
-
-                const systemPrompt = `You are a viral TikTok hook writer for the BPD/DBT mental health niche. Your task is to generate 3 hooks in JSON format.
+                    systemPrompt = `You are a viral TikTok hook writer for the BPD niche. Your task is to generate 3 viral banger hooks in JSON format.
 CRITICAL RULES:
 1. Return ONLY a JSON array of 3 strings: ["hook 1", "hook 2", "hook 3"].
 2. Use ONLY the slide content provided in the user message for context.
-3. DO NOT use the example text (like "47 minutes" or "reread 6 times") from the hook requirements; those are patterns only.
-4. Strictly follow the "NO FILLER WORDS" and "LOWERCASE" rules.`;
+3. Lowercase only. No exclamation points.
+4. Each hook must follow one of the 4 frameworks provided (Forbidden Knowledge, Specific Number, Pattern Interrupt, or Transformation).
+5. Max 15 words per hook.`;
+                } else {
+                    // Fallback or SYP prompt
+                    hookRequirementsPrompt = `You are generating TikTok hooks for a viral account. Your job is to create scroll-stopping hooks.
+                        
+THE GOAL: Make the viewer stop scrolling and immediately want to see the next slide.
 
-                const userPrompt = `This is the current slide text: 
+HOOK RULES:
+1. MAX 15 WORDS — shorter is almost always better
+2. NO QUESTIONS — statements hit harder than questions
+3. NO EMOJIS — breaks the tone
+4. LOWERCASE — feels intimate, not performative`;
+
+                    systemPrompt = `You are a viral TikTok hook writer. Your task is to generate 3 hooks in JSON format.
+CRITICAL RULES:
+1. Return ONLY a JSON array of 3 strings: ["hook 1", "hook 2", "hook 3"].
+2. Use ONLY the slide content provided in the user message for context.
+3. Strictly follow the "NO FILLER WORDS", "MAX 15 WORDS", and "LOWERCASE" rules.`;
+                }
+
+                const userPrompt = `Slide Content: 
 ${fullSlideText}
 
-For slide 1 create 3 different hooks based on this prompt: 
 ${hookRequirementsPrompt}`;
 
                 const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -422,7 +390,7 @@ ${hookRequirementsPrompt}`;
         else if (cleanPath === "/generate-image-prompts" && method === "POST") {
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
-                const { slides, character_id, setting_override, framing, theme, partner_anchor, service } = await req.json() as any;
+                const { slides, character_id, setting_override, framing, theme, partner_anchor, service, brandingMode } = await req.json() as any;
 
                 if (!slides || !Array.isArray(slides) || slides.length === 0) {
                     return sendJSON({ error: "Slides array is required" }, 400);
@@ -727,7 +695,7 @@ NO MAGICAL OR SYMBOLIC ELEMENTS:
                             }
                         });
 
-                        if (saveyourpetSlideIndices.length > 0) {
+                        if (saveyourpetSlideIndices.length > 0 && brandingMode === 'full') {
                             console.log(`[Image Prompts] Will apply LAPTOP/OVER-THE-SHOULDER prompt for slide(s): ${saveyourpetSlideIndices.join(', ')}`);
 
                             // Get pet name from profile
@@ -810,6 +778,7 @@ ${framingContextSection}${saveyourpetSlideInstruction}
 - Raw UGC aesthetic, not polished
 - ⚠️ SELFIE HAND LOGIC: ONE HAND MUST HOLD THE PHONE to take the photo!
 - ❌ NEVER: phone in hands showing something, both hands on face/mouth, hands together in prayer, any pose requiring BOTH hands
+- ❌ NEVER SHOW A PET ON A COUNTER: No pets on kitchen counters, tables, or raised surfaces. Pet must be on floor, bed, or couch.
 - ✅ VALID: One hand gesturing, touching face, petting pet, etc. (the other hand holds phone - never mention it)
 
 ## EXPRESSION OPTIONS (pick appropriate one for each slide's emotion):
@@ -1490,7 +1459,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
             } else {
                 try {
                     const body = await req.json() as any;
-                    const { imagePrompts, character_id, service } = body;
+                    const { imagePrompts, character_id, service, brandingMode } = body;
 
                     if (!imagePrompts) {
                         return sendJSON({ error: "imagePrompts object is required" }, 400);
@@ -1575,7 +1544,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
             } else {
                 try {
                     const body = await req.json() as any;
-                    const { prompt, referenceImages = [], slideIndex = 0, service, slideText = '' } = body;
+                    const { prompt, referenceImages = [], slideIndex = 0, service, slideText = '', brandingMode } = body;
 
                     if (!prompt) {
                         return sendJSON({ error: "Prompt is required" }, 400);
@@ -1607,7 +1576,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                             'laptop screen showing', 'laptop.*saveyourpet'
                         ];
                         const lowerPrompt = (flatPrompt + ' ' + slideText).toLowerCase();
-                        const needsWebsiteScreenshot = isSypProject && saveyourpetKeywords.some(kw =>
+                        const needsWebsiteScreenshot = isSypProject && brandingMode === 'full' && saveyourpetKeywords.some(kw =>
                             lowerPrompt.includes(kw.toLowerCase()) || new RegExp(kw, 'i').test(lowerPrompt)
                         );
 

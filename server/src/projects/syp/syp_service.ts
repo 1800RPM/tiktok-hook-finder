@@ -387,7 +387,11 @@ For slide(s) ${saveyourpetSlideIndices.join(', ')} (the saveyourpet.de / Absiche
 EXACT PROMPT FORMAT for saveyourpet.de slide:
 "Over-the-shoulder shot, same ${persona.subject.hair.color} girl on bed looking at laptop screen showing saveyourpet.de [reference image], ${selectedProfile.vars.NAME} sleeping behind laptop, soft lamp lighting, raw UGC aesthetic, laptop screen clearly visible"
 
-This is the ONLY slide where looking at a device is shown. All other slides should be iPhone selfie style.`;
+This is the ONLY slide where looking at a device is shown. All other slides should be iPhone selfie style.
+
+### ONLY EXCEPTION: 
+The saveyourpet.de / Absicherung slide uses a **LAPTOP** with an **OVER-THE-SHOULDER** shot (not a selfie). This is the ONLY time a device screen is shown.
+`;
     }
 
     const sypImageSystemPrompt = `You create ULTRA-REALISTIC image prompts for 'SaveYourPet'. Same identity as persona. Funny/Sarcastic tone.
@@ -410,13 +414,17 @@ The image is a SELFIE taken with an iPhone front-camera. ONE HAND MUST HOLD THE 
 - "both hands gesturing" - no hand to hold the phone
 - Any pose requiring BOTH hands to do something
 
+### ❌ NO PETS ON COUNTERS:
+- **NEGATIVE CONSTRAINT:** NEVER show a pet (dog/cat) on a kitchen counter, table, or any raised household surface. 
+- The pet must always be on the floor, on a bed, on a couch, or in the owner's arms.
+- "dog on counter" -> ❌ FORBIDDEN
+- "cat on kitchen island" -> ❌ FORBIDDEN
+
 ### ✅ VALID HAND POSITIONS (one hand only):
 - One hand touching face, resting, gesturing, petting pet, covering mouth, etc.
 - The other hand is IMPLIED to be holding the phone (never mention it)
 - OR: Mirror selfie where phone is visible but held naturally in one hand.
 
-### ONLY EXCEPTION: 
-The saveyourpet.de / Absicherung slide uses a **LAPTOP** with an **OVER-THE-SHOULDER** shot (not a selfie). This is the ONLY time a device screen is shown.
 ` + `
 Slide 1: ${ugcSlide1Prompt}
 Persona: ${persona.name} (${persona.subject.hair.color}, ${persona.subject.hair.style})

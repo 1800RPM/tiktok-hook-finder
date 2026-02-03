@@ -198,17 +198,6 @@ function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};
-        color: white;
-        border-radius: 8px;
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-    `;
     document.body.appendChild(notification);
     setTimeout(() => notification.remove(), 3000);
 }
@@ -233,7 +222,7 @@ function ensureSlidesParsed() {
             ...slide,
             id: Date.now() + index,
             position: { x: 50, y: 50 },
-            scale: 2.5,
+            scale: 1.5,
             image: (state.generatedImages && state.generatedImages[index]) || null
         }));
 
@@ -419,6 +408,12 @@ async function generateImagePromptsFromSlides(slidesToUse) {
     if (promptsLoadingEl) promptsLoadingEl.style.display = 'block';
     if (promptsSectionEl) promptsSectionEl.style.display = 'none';
 
+    let brandingMode = 'full';
+    if (isSyp) {
+        const selectedMode = document.querySelector('input[name="syp-branding-mode"]:checked');
+        if (selectedMode) brandingMode = selectedMode.value;
+    }
+
     try {
         const response = await fetch(`${API_BASE}/generate-image-prompts`, {
             method: 'POST',
@@ -430,7 +425,8 @@ async function generateImagePromptsFromSlides(slidesToUse) {
                 character,
                 format: state.currentFormat,
                 topic: state.currentTopic,
-                service: state.currentService
+                service: state.currentService,
+                brandingMode
             })
         });
 
@@ -471,9 +467,12 @@ function renderImagePrompts() {
         promptEl.innerHTML = `
             <div class="prompt-header">
                 <span class="prompt-number">Slide ${index + 1}</span>
-                <button class="btn btn-sm btn-secondary copy-prompt-btn" data-index="${index}">📋 Copy</button>
+                <div class="prompt-actions" style="display: flex; gap: 4px;">
+                    <button class="btn btn-sm btn-secondary copy-prompt-btn" data-index="${index}">📋 Copy</button>
+                    <button class="btn btn-sm btn-primary save-prompt-btn" data-index="${index}" style="display: none;">💾 Save</button>
+                </div>
             </div>
-            <div class="prompt-text">${prompt}</div>
+            <textarea class="prompt-textarea" data-index="${index}">${prompt}</textarea>
         `;
         container.appendChild(promptEl);
     });
@@ -483,9 +482,29 @@ function renderImagePrompts() {
     // Add copy handlers
     container.querySelectorAll('.copy-prompt-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const index = parseInt(e.target.dataset.index);
-            navigator.clipboard.writeText(state.imagePrompts[index]);
+            const index = parseInt(e.currentTarget.dataset.index);
+            const textarea = container.querySelector(`.prompt-textarea[data-index="${index}"]`);
+            navigator.clipboard.writeText(textarea.value);
             showNotification('Prompt copied!', 'success');
+        });
+    });
+
+    // Add save handlers and change detection
+    container.querySelectorAll('.prompt-textarea').forEach(textarea => {
+        textarea.addEventListener('input', (e) => {
+            const index = e.target.dataset.index;
+            const saveBtn = container.querySelector(`.save-prompt-btn[data-index="${index}"]`);
+            if (saveBtn) saveBtn.style.display = 'inline-block';
+        });
+    });
+
+    container.querySelectorAll('.save-prompt-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = parseInt(e.currentTarget.dataset.index);
+            const textarea = container.querySelector(`.prompt-textarea[data-index="${index}"]`);
+            state.imagePrompts[index] = textarea.value;
+            e.currentTarget.style.display = 'none';
+            showNotification(`Slide ${index + 1} prompt updated!`, 'success');
         });
     });
 }
@@ -516,10 +535,13 @@ async function generateAiImages() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                prompts: state.imagePrompts,
-                character: characterPresetEl?.value || 'luna',
+                imagePrompts: state.imagePrompts.reduce((acc, prompt, i) => {
+                    acc[`image${i + 1}`] = prompt;
+                    return acc;
+                }, {}),
+                character_id: characterPresetEl?.value || 'luna',
                 service: state.currentService,
-                anchorImage: isSyp ? state.characterAnchor : null
+                brandingMode: isSyp ? (document.querySelector('input[name="syp-branding-mode"]:checked')?.value || 'full') : 'none'
             })
         });
 
@@ -658,6 +680,8 @@ async function generateSingleImage(index, btnEl) {
             }
         });
 
+        const brandingMode = isSyp ? (document.querySelector('input[name="syp-branding-mode"]:checked')?.value || 'full') : 'none';
+
         const response = await fetch(`${API_BASE}/generate-image-with-refs`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -666,7 +690,8 @@ async function generateSingleImage(index, btnEl) {
                 referenceImages: referenceImages,
                 slideIndex: index,
                 service: state.currentService,
-                character_id: characterPresetEl?.value || 'luna'
+                character_id: characterPresetEl?.value || 'luna',
+                brandingMode: brandingMode
             })
         });
 
@@ -1116,6 +1141,18 @@ async function downloadAllSlides() {
         const dataUrl = canvas.toDataURL('image/png');
         const base64Data = dataUrl.split(',')[1];
         zip.file(`slide_${i + 1}.png`, base64Data, { base64: true });
+    }
+
+    // Include TikTok Title & Description if they exist
+    const isSyp = state.currentService === 'syp';
+    const title = isSyp ? elements.metadataTitleSyp?.textContent : elements.metadataTitle?.textContent;
+    const desc = isSyp ? elements.metadataDescSyp?.textContent : elements.metadataDesc?.textContent;
+
+    if (title || desc) {
+        let metadataText = "";
+        if (title) metadataText += `TITLE:\n${title}\n\n`;
+        if (desc) metadataText += `DESCRIPTION:\n${desc}\n`;
+        zip.file('tiktok_info.txt', metadataText);
     }
 
     const content = await zip.generateAsync({ type: 'blob' });
