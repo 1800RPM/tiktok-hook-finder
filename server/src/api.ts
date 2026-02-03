@@ -169,64 +169,99 @@ const server = Bun.serve({
                 return sendJSON({ error: "Generation failed", details: String(e) }, 500);
             }
         }
-        // POST /improve-hook - Banger Hooks Generator (Quick Hook Improver)
-        else if (cleanPath === "/improve-hook" && method === "POST") {
+        // POST /improve-hook or /improve-hooks - Banger Hooks Generator (Quick Hook Improver)
+        else if ((cleanPath === "/improve-hook" || cleanPath === "/improve-hooks") && method === "POST") {
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
-                const { slides_text } = await req.json() as any;
+                const { slides, slides_text } = await req.json() as any;
 
-                if (!slides_text || !slides_text.trim()) {
+                const fullSlideText = slides && Array.isArray(slides) ? slides.join('\n') : (slides_text || "");
+
+                if (!fullSlideText.trim()) {
                     return sendJSON({ error: "Slides text is required" }, 400);
                 }
 
-                console.log(`[Banger Hooks] Generating for: ${slides_text.substring(0, 50)}...`);
+                console.log(`[Banger Hooks] Generating for: ${fullSlideText.substring(0, 50)}...`);
 
-                const slidesArray = slides_text.split(/Slide \d+:/i).map((s: string) => s.trim()).filter(Boolean);
+                const hookRequirementsPrompt = `You are writing TikTok slideshow hooks for a DBT/BPD mental health account targeting Gen-Z (ages 18-28). The account voice is a person with BPD who has been in therapy — not a therapist, not an influencer, not trying to sound smart.
 
-                // Extract Draft Hook and remaining context
-                const draftHook = slidesArray.length > 0 ? slidesArray[0] : "";
-                const slides_context = slidesArray.length > 1
-                    ? slidesArray.slice(1).map((s: string, i: number) => `Slide ${i + 2}: ${s}`).join("\n")
-                    : slides_text;
+HOOK REQUIREMENTS:
 
-                const systemPrompt = `You are a viral TikTok hook writer for the BPD/DBT mental health niche. Your job is to write scroll-stopping slide 1 hooks.
+1. SPECIFICITY OVER CLARITY
+Bad: "what to do when you're anxious about your relationship"
+Good: "when you've reread the same text 6 times trying to figure out what they actually meant"
 
-## THE GOLDEN RULE (Mystery Gap)
-Slide 1 is the HOOK (The "Wait, what?").
-Slide 2 is the ESCALATION (The "Because" / The Trigger).
+The hook should describe a behavior so specific it feels like you're calling the viewer out personally. Use numbers, timestamps, and tiny details.
 
-CRITICAL: Slide 1 MUST NOT reveal the trigger from Slide 2. It must show a visceral action or strange situation that forces a swipe to find out "Why?".
+2. EMOTIONAL TRUTH BEFORE VALUE PROMISE
+Bad: "3 tips for managing abandonment fear"
+Good: "nobody talks about how you can feel them leaving before anything even happened"
 
-## THE NO-SPOILER RULE
-If Slide 2 mentions "punctuation", Slide 1 MUST NOT mention "punctuation".
-If Slide 2 mentions "a delayed text", Slide 1 MUST NOT mention "a delayed text".
-If Slide 1 explains the reason, you have FAILED.
+Don't lead with what the viewer will learn. Lead with what they already feel but haven't heard anyone say out loud.
 
-## HOOK FORMULAS:
-1. **The Action Hook**: "[Person] is [specific dramatic action] rn"
-2. **The Flip Hook**: "[Person] just went from [extreme A] to [extreme B]"
-3. **The Real-Time Hook**: "watching [person] [dramatic verb] in real time"
-4. **The Contradiction Hook**: "[Normal thing] + [BPD twist]" 
+3. TENSION OR CONTRADICTION
+Bad: "how i deal with splitting"
+Good: "knowing you're being irrational and not being able to stop"
 
-## YOUR TASK
-I will give you the USER'S DRAFT for Slide 1 and the CONTEXT for Slides 2-6.
-Write 3 BANGER hook options for Slide 1 that:
-- Fix the mystery gap (make it more intriguing)
-- Set up Slide 2 as the payoff/reveal
-- Fit the BPD/DBT niche tone (self-aware, comedic, not clinical)
+The hook should contain two forces pulling against each other — what you know vs what you feel, what you want vs what you do, how you look vs what's happening inside.
 
-OUTPUT: Return ONLY a JSON array with exactly 3 different hook options. No markdown, no explanation.`;
+4. INCOMPLETE LOOP
+Bad: "the skill that helped me stop spiraling"
+Good: "i stopped sending the 3am paragraph texts and it changed everything"
 
-                const userPrompt = `### USER'S DRAFT HOOK (Slide 1):
-"${draftHook}"
+The viewer should need to watch to understand HOW or WHY. Don't close the loop in the hook.
 
-### CONTEXT FOR SLIDES 2-6:
-${slides_context}`;
+5. FIRST 3 WORDS CARRY WEIGHT
+Bad: "here's what i do when..."
+Good: "that thing where you..."
+Good: "nobody warns you about..."
+Good: "when you're already crying before..."
 
-                console.log("--- [Banger Hooks] AI REQUEST ---");
-                console.log(`SYSTEM PROMPT:\n${systemPrompt}`);
-                console.log(`USER PROMPT:\n${userPrompt}`);
-                console.log("---------------------------------");
+The scroll-stop happens in the first second. Front-load the emotional hit.
+
+6. INSIDER LANGUAGE (optional but powerful)
+Use community terms when they fit naturally: FP, splitting, masking, quiet BPD, dissociating, mirroring. This signals "this is for us, not for people who don't get it."
+
+HOOK FORMATS THAT WORK:
+
+- "nobody talks about [hyper-specific experience]"
+- "that thing where you [embarrassingly relatable behavior]"
+- "[specific behavior] and then wondering why you feel [emotion]"
+- "when you [internal experience] but [external appearance]"
+- "the [time period] between [event] and [response] is where i lose my mind"
+- "i stopped [specific behavior] and [unexpected result]"
+- "you can always tell when [subtle sign of symptom]"
+- "knowing [rational truth] and still [irrational behavior]"
+
+DO NOT:
+- Start with "how to" or "what to do when" (overused, no emotional charge)
+- Promise a number of tips in the hook (save that for description or slide 2)
+- Use generic emotional words without specificity ("anxious," "sad," "struggling")
+- Sound like a therapist or wellness influencer
+- Use exclamation points or emojis in hooks
+- End the hook with a question (breaks the tension)
+
+VOICE:
+- Lowercase
+- No filler words (literally, actually, just, really)
+- Dry, self-aware, slightly dark humor
+- Intimate, like a voice memo to a friend who gets it
+- Never performative or trying to go viral
+
+Generate hooks that make the viewer think: "how did they know that about me"`;
+
+                const systemPrompt = `You are a viral TikTok hook writer for the BPD/DBT mental health niche. Your task is to generate 3 hooks in JSON format.
+CRITICAL RULES:
+1. Return ONLY a JSON array of 3 strings: ["hook 1", "hook 2", "hook 3"].
+2. Use ONLY the slide content provided in the user message for context.
+3. DO NOT use the example text (like "47 minutes" or "reread 6 times") from the hook requirements; those are patterns only.
+4. Strictly follow the "NO FILLER WORDS" and "LOWERCASE" rules.`;
+
+                const userPrompt = `This is the current slide text: 
+${fullSlideText}
+
+For slide 1 create 3 different hooks based on this prompt: 
+${hookRequirementsPrompt}`;
 
                 const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
@@ -256,9 +291,6 @@ ${slides_context}`;
                     return sendJSON({ error: "Empty AI response" }, 500);
                 }
 
-                console.log("--- [Banger Hooks] AI RESPONSE ---");
-                console.log(resultText);
-                console.log("----------------------------------");
                 // Extract JSON array
                 let hooks: string[] = [];
                 try {
@@ -266,12 +298,9 @@ ${slides_context}`;
                     if (jsonMatch) {
                         hooks = JSON.parse(jsonMatch[0]);
                     } else {
-                        // Try parsing the whole response
                         hooks = JSON.parse(resultText);
                     }
                 } catch (parseErr) {
-                    console.error("[Banger Hooks] Parse error, extracting manually");
-                    // Extract quoted strings as fallback
                     const matches = resultText.match(/"([^"]+)"/g);
                     if (matches) {
                         hooks = matches.slice(0, 3).map((m: string) => m.replace(/"/g, ''));
@@ -283,11 +312,7 @@ ${slides_context}`;
                 }
 
                 return sendJSON({
-                    hooks: hooks.slice(0, 3),
-                    debug: {
-                        system_prompt: systemPrompt,
-                        user_prompt: userPrompt
-                    }
+                    hooks: hooks.map(h => h.toLowerCase()).slice(0, 3)
                 });
             } catch (e) {
                 console.error("[Banger Hooks] Error:", e);
@@ -490,32 +515,101 @@ ${slides_context}`;
                 if (isDbtProject) {
                     console.log(`[Image Prompts] Generating CLASSICAL PAINTING prompts for DBT-Mind with ${slides.length} slides`);
 
-                    const dbtSystemPrompt = `You are the DBT-Mind Image Prompt Generator. Your goal is to generate 6 image prompts for a TikTok carousel using **Classical Oil Painting** styles.
+                    const dbtSystemPrompt = `You are generating image prompts for TikTok slideshow art. The images will be contemporary oil paintings with a painterly, emotional quality. Your job is to translate slide text into a visual scene — NOT to illustrate metaphors literally.
 
-## VISUAL STRATEGY:
-Classical paintings provide timeless emotional resonance and differentiate from boring stock selfie aesthetics. Use rich textures, dramatic lighting (chiaroscuro), and expressive brushwork.
+CORE PRINCIPLE:
+Every image is "a woman in a moment" — never "a woman with a concept."
 
-## PAINTING STYLE MAPPING (Choose based on slide content):
-1. **Splitting/Contrast**: Baroque (Intense chiaroscuro, light/dark contrast). Artists: Caravaggio, Artemisia Gentileschi. Visual metaphor for black/white thinking.
-2. **Fear/Longing/Nature**: Romantic Era (Emotional intensity, dramatic landscapes, profound loss). Artists: Caspar David Friedrich, J.M.W. Turner.
-3. **Internal/Hidden Emotion**: Pre-Raphaelite (Women in contemplation, beauty masking melancholy). Artists: John Everett Millais, Dante Gabriel Rossetti.
-4. **Fragmented Identity**: Surrealist (Fragmented reality, multiple reflections, dreamlike confusion). Artists: Salvador Dalí, René Magritte (adapted to oil painting texture).
-5. **Intimate Emotion/FP**: Renaissance or Baroque portraits (Dramatic facial expressions, intimate focus). Artists: Rembrandt, Vermeer.
+TRANSLATION RULES:
 
-## GENERAL PROMPT STRUCTURE:
-"[Art style] painting of [subject description], [emotional state], [lighting/atmosphere], [composition details], classical oil painting style, museum quality, dramatic lighting, visible brushstrokes, rich oil texture"
+1. IGNORE METAPHORS IN THE TEXT
+The slide text will contain metaphors like "spiral," "filling in the blanks," "the urge is loud," "feeding the fear." 
+DO NOT visualize these literally.
+Instead, ask: what is the PHYSICAL SITUATION this person is in?
 
-## YOUR TASK:
-Generate 6 descriptive image prompts (image1 to image6) that follow the emotional arc of the slides.
-- Subject: A timeless young woman with expressive eyes (Classical Art Subject).
-- NO MODERN CLOTHING. NO MODERN TECHNOLOGY. NO SELFIES.
-- Dress the character strictly in timeless, classical attire (draped fabrics, simple gowns, or period-appropriate clothing) suitable for an oil painting.
-- The goal is NOT to look like a modern person. The goal is to look like a MUSEUM PAINTING.
-- Match the art style to the BPD topic being discussed on that specific slide.
-- EACH SLIDE MUST HAVE A UNIQUE PROMPT (do not repeat image1 prompt for other slides).
-- Slide 1 should be the most dramatic "Hook" image.
-- Slide 6 should be the most "Peaceful/Wise" image if it's a tips post.
-- Each prompt should be a single detailed string.
+Examples:
+- Text mentions "checking the facts" → woman writing in a journal, or sitting with pen and paper
+- Text mentions "spiral" → woman with head in hands, or pacing, or hunched posture
+- Text mentions "opposite action" → woman mid-movement, walking away, or doing a simple task
+- Text mentions "self-soothing" → woman holding a mug, wrapped in blanket, or in a bath
+- Text mentions "testing people" → woman hesitating at a doorway, or looking at a letter unsent
+
+2. BODY LANGUAGE CARRIES EMOTION
+Don't describe the emotion. Describe what the body is doing.
+
+❌ "expression of inner turmoil and anxiety"
+✅ "shoulders hunched, arms wrapped around herself"
+
+❌ "contemplating her fragmented identity"
+✅ "looking down at her hands, still and uncertain"
+
+❌ "feeling the weight of abandonment fear"
+✅ "standing at a window, one hand on the glass"
+
+3. SETTINGS ARE SIMPLE AND UNIVERSAL
+Every scene happens in one of these places:
+- A room with a window
+- A doorway or threshold
+- By candlelight
+- In nature (field, path, shoreline) — but NOT fantasy nature
+- An empty/sparse interior
+
+NO: ruins, enchanted forests, cosmic spaces, libraries full of floating books, magical gardens
+
+4. NO SYMBOLIC OBJECTS
+The woman can interact with:
+✅ Paper, pen, journal
+✅ A letter (sealed or unsealed)
+✅ A candle
+✅ A cup/mug
+✅ A blanket or fabric
+✅ A door or window
+✅ Her own body (hands, hair, face)
+
+The woman should NOT interact with:
+❌ Floating orbs, spheres, bubbles
+❌ Mirrors (unless it's a simple reflection, not "fragmented")
+❌ Glowing objects
+❌ Prisms, crystals
+❌ Chains, threads, strings (unless very subtle)
+❌ Any object that "represents" an emotion
+
+5. PROMPT STRUCTURE
+
+Use this format for each prompt:
+
+"Contemporary oil painting. Subject: [physical description of woman + what she's doing + body language]. Setting: [simple location + lighting]. Atmosphere: [1-2 words for mood]. Composition: [where figure is in frame, what draws the eye]."
+
+Then add this exact style suffix to every prompt:
+
+NO BORDERS, NO FRAMES, FULL BLEED.
+Style: contemporary oil painting, painterly brushstrokes visible, warm amber and golden tones, museum lighting, emotional and conceptual, NOT photorealistic, NOT digital illustration, NOT storybook aesthetic.
+FACE RULES:
+- Subject should NOT look directly at viewer
+- Eyes closed, looking down, looking away, or in profile
+- If face is visible, it should be partially in shadow, turned away, or the figure should be distant in the frame
+- Emotional truth comes from body language and atmosphere, not facial expression
+CLOTHING/SETTING:
+- Timeless, not period-specific
+- NO bonnets, corsets, ruffs, or obviously historical garments
+- Simple dresses, draped fabric, loose hair
+- Settings should be universal: window, candlelight, nature, empty room
+NO MAGICAL OR SYMBOLIC ELEMENTS:
+- NO floating objects, orbs, glowing elements, prisms, crystals
+- NO literal visualization of metaphors
+- NO fantasy settings (ruins, enchanted forests, cosmic backgrounds)
+- If it could appear on a spiritual healer's Instagram — regenerate
+
+6. EXAMPLES
+
+Slide text: "when i catch myself setting little traps like not texting first to see if they'll reach out i have to stop and name what i'm actually doing"
+Resulting prompt: "Contemporary oil painting. Subject: A young woman in simple draped clothing, seated at a wooden table, her hand resting on an unsent letter, gaze lowered, posture hesitant. Setting: sparse room with single window, soft diffused daylight. Atmosphere: quiet tension. Composition: figure centered, the letter creating a focal point beneath her hand." [plus style suffix]
+
+Slide text: "the urge to demand reassurance is LOUD but self-soothing gives me somewhere else to put that energy"
+Resulting prompt: "Contemporary oil painting. Subject: A young woman curled in a chair, wrapped in a soft blanket, holding a cup of tea close to her chest, eyes closed, tension releasing from her shoulders. Setting: dim room lit by a single candle, warm amber tones. Atmosphere: fragile comfort. Composition: intimate close framing, the cup and her hands as focal point." [plus style suffix]
+
+Slide text: "building a self when you've been borrowing someone else's takes practice"
+Resulting prompt: "Contemporary oil painting. Subject: A young woman walking alone on a path through an open field, seen from behind, her posture neither confident nor defeated — just walking. Setting: late afternoon light, golden hour, wide sky. Atmosphere: quiet becoming. Composition: figure small in lower third, vast sky and field emphasizing solitude and possibility." [plus style suffix]
 
 Return JSON:
 {
@@ -527,8 +621,12 @@ Return JSON:
   "image6": "..."
 }`;
 
-                    const userPrompt = `Generate 6 Classical Painting image prompts for these slides:
-\n${slides.map((s: string, i: number) => `Slide ${i + 1}: ${s}`).join('\n')}`;
+
+                    const userPrompt = `Follow the Translation Rules to generate 6 image prompts based on these specific slide texts:
+
+${slides.map((s: string, i: number) => `Image ${i + 1} (Context from Slide ${i + 1} text): "${s}"`).join('\n')}
+
+Return a JSON object with keys "image1" through "image6". Ensure each prompt translates the physical situation of that specific slide's text as per the rules.`;
 
                     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
                         method: 'POST',
@@ -561,6 +659,33 @@ Return JSON:
                         console.error("[DBT Image Prompts] JSON Parse Error:", parseErr);
                         return sendJSON({ error: "Failed to parse image prompts" }, 500);
                     }
+
+                    // Append the global style to all generated image prompts
+                    const styleOverlay = `
+
+NO BORDERS, NO FRAMES, FULL BLEED.
+Style: contemporary oil painting, painterly brushstrokes visible, warm amber and golden tones, museum lighting, emotional and conceptual, NOT photorealistic, NOT digital illustration, NOT storybook aesthetic.
+FACE RULES:
+- Subject should NOT look directly at viewer
+- Eyes closed, looking down, looking away, or in profile
+- If face is visible, it should be partially in shadow, turned away, or the figure should be distant in the frame
+- Emotional truth comes from body language and atmosphere, not facial expression
+CLOTHING/SETTING:
+- Timeless, not period-specific
+- NO bonnets, corsets, ruffs, or obviously historical garments
+- Simple dresses, draped fabric, loose hair
+- Settings should be universal: window, candlelight, nature, empty room
+NO MAGICAL OR SYMBOLIC ELEMENTS:
+- NO floating objects, orbs, glowing elements, prisms, crystals
+- NO literal visualization of metaphors
+- NO fantasy settings (ruins, enchanted forests, cosmic backgrounds)
+- If it could appear on a spiritual healer's Instagram — regenerate`;
+
+                    Object.keys(parsed).forEach(key => {
+                        if (key.startsWith('image') && typeof parsed[key] === 'string' && !parsed[key].includes("FACE RULES:")) {
+                            parsed[key] += styleOverlay;
+                        }
+                    });
 
                     // Convert object to array for frontend
                     const prompts = Object.keys(parsed)
@@ -764,8 +889,9 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
                 if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
                 const { format, topic, profile, service, includeBranding, brandingMode } = await req.json() as any;
 
+                let result;
                 if (service === 'syp' || profile) {
-                    const result = await generateSypSlides({
+                    result = await generateSypSlides({
                         profile: profile || "lisa_milo",
                         topic: topic || "lifestyle_random",
                         ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!,
@@ -774,16 +900,21 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
                         ugcBasePrompts: ugcBasePrompts,
                         brandingMode: brandingMode || (includeBranding !== false ? 'full' : 'none')
                     });
-                    return sendJSON(result);
                 } else {
-                    const result = await generateDbtSlides({
+                    result = await generateDbtSlides({
                         format: format || 'relatable',
                         topic: topic || 'favorite_person',
                         ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!,
                         includeBranding: includeBranding !== false
                     });
-                    return sendJSON(result);
                 }
+
+                // Format response with Slide numbers for the front-end textarea
+                if (result.slides && Array.isArray(result.slides)) {
+                    result.slides = result.slides.map((text: string, i: number) => `Slide ${i + 1}: ${text}`);
+                }
+
+                return sendJSON(result);
             } catch (e) {
                 console.error("Native Slides API Error:", e);
                 return sendJSON({ error: "Native generation failed", details: String(e) }, 500);

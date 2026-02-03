@@ -18,10 +18,22 @@ const state = {
     resizeStartScale: 1.5,
     resizeStartDistance: 0,
     resizeStartWidth: 120,
-    isResizingLeft: false
+    isResizingLeft: false,
+    selectedRefIndices: []
 };
 
 const API_BASE = 'http://localhost:3001';
+
+const parseDataUrl = (dataUrl) => {
+    if (!dataUrl) return null;
+    if (typeof dataUrl === 'object') return dataUrl; // Already parsed
+    const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!matches) return { data: dataUrl }; // Assume raw base64 if not data URL
+    return {
+        mimeType: matches[1],
+        data: matches[2]
+    };
+};
 
 // ==========================================
 // ELEMENTS CACHE
@@ -102,6 +114,17 @@ const elements = {
     bgColorInputSyp: document.getElementById('bg-color_syp'),
     textWidthInput: document.getElementById('text-width'),
     textWidthInputSyp: document.getElementById('text-width_syp'),
+    imagePromptsContainerSyp: document.getElementById('image-prompts-container_syp'),
+    imagePromptsSectionSyp: document.getElementById('image-prompts-section_syp'),
+    promptsLoadingSyp: document.getElementById('prompts-loading_syp'),
+    hookOptionsSyp: document.getElementById('hook-options_syp'),
+    hookListSyp: document.getElementById('hook-list_syp'),
+    hookContextStatusSyp: document.getElementById('hook-context-status_syp'),
+    anchorReferenceDisplaySyp: document.getElementById('anchor-reference-display_syp'),
+    anchorReferenceImgSyp: document.getElementById('anchor-reference-img_syp'),
+    clearAnchorRefBtnSyp: document.getElementById('clear-anchor-ref-btn_syp'),
+    downloadAllBtnSyp: document.getElementById('download-all_syp'),
+    downloadCurrentBtnSyp: document.getElementById('download-current_syp'),
 };
 
 // ==========================================
@@ -348,11 +371,10 @@ async function generateNativeSlides() {
         const data = await response.json();
 
         if (data.slides && Array.isArray(data.slides)) {
-            // Just update the textarea, do NOT update state.slides or renderPreview
-            const formattedSlides = data.slides.map((slide) => slide.text || slide);
-            elements.slideTextInput.value = formattedSlides.map((s, i) => `Slide ${i + 1}: ${s}`).join('\n');
+            // Updated to use server-provided formatting (Slide X: text)
+            elements.slideTextInput.value = data.slides.join('\n');
 
-            showNotification(`Generated ${formattedSlides.length} slides! Click 'Parse & Apply' to preview.`, 'success');
+            showNotification(`Generated ${data.slides.length} slides! Click 'Parse & Apply' to preview.`, 'success');
 
             // Update context status
             if (elements.hookContextStatus) {
@@ -390,7 +412,7 @@ async function generateImagePromptsFromSlides(slidesToUse) {
     // For DBT, explicitly send NULL for character to avoid persona injection
     const character = isSyp ? (characterPresetEl?.value || 'luna') : null;
     const promptsLoadingEl = isSyp ? elements.promptsLoadingSyp || elements.promptsLoading : elements.promptsLoading;
-    const promptsSectionEl = isSyp ? elements.imagePromptsSection_syp || elements.imagePromptsSection : elements.imagePromptsSection;
+    const promptsSectionEl = isSyp ? elements.imagePromptsSectionSyp || elements.imagePromptsSection : elements.imagePromptsSection;
     const genBtn = isSyp ? elements.generateImagePromptsBtnSyp : elements.generateImagePromptsBtn;
 
     if (genBtn) genBtn.disabled = true;
@@ -437,8 +459,8 @@ async function generateImagePromptsFromSlides(slidesToUse) {
 
 function renderImagePrompts() {
     const isSyp = state.currentService === 'syp';
-    const container = isSyp ? elements.imagePromptsContainer_syp || elements.imagePromptsContainer : elements.imagePromptsContainer;
-    const section = isSyp ? elements.imagePromptsSection_syp || elements.imagePromptsSection : elements.imagePromptsSection;
+    const container = isSyp ? elements.imagePromptsContainerSyp || elements.imagePromptsContainer : elements.imagePromptsContainer;
+    const section = isSyp ? elements.imagePromptsSectionSyp || elements.imagePromptsSection : elements.imagePromptsSection;
 
     if (!container) return;
     container.innerHTML = '';
@@ -560,8 +582,27 @@ function initializeImageGenerationGrid() {
                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Prompt Ready</p>
                 <button class="btn-gen-slide generate-single-btn" data-index="${index}">✨ Generate Image</button>
             </div>
+            <div class="ref-selection">
+                <input type="checkbox" class="ref-checkbox" data-index="${index}" id="ref-check-${index}" ${state.selectedRefIndices.includes(index) ? 'checked' : ''}>
+                <label for="ref-check-${index}" class="ref-label">Use as Ref</label>
+            </div>
         `;
         container.appendChild(item);
+    });
+
+    // Add ref checkbox handlers
+    container.querySelectorAll('.ref-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            if (e.target.checked) {
+                if (!state.selectedRefIndices.includes(index)) {
+                    state.selectedRefIndices.push(index);
+                }
+            } else {
+                state.selectedRefIndices = state.selectedRefIndices.filter(i => i !== index);
+            }
+            console.log("Selected reference indices:", state.selectedRefIndices);
+        });
     });
 
     // Add handlers for individual generation
@@ -600,12 +641,29 @@ async function generateSingleImage(index, btnEl) {
         const isSyp = state.currentService === 'syp';
         const characterPresetEl = isSyp ? elements.characterPresetSyp : elements.characterPreset;
 
+        // Collect all selected reference images
+        const referenceImages = [];
+
+        // Always include global character anchor if exists for SYP
+        if (isSyp && state.characterAnchor) {
+            const parsed = parseDataUrl(state.characterAnchor);
+            if (parsed) referenceImages.push(parsed);
+        }
+
+        // Add user-ticked reference images from the grid
+        state.selectedRefIndices.forEach(refIdx => {
+            if (state.generatedImages[refIdx]) {
+                const parsed = parseDataUrl(state.generatedImages[refIdx]);
+                if (parsed) referenceImages.push(parsed);
+            }
+        });
+
         const response = await fetch(`${API_BASE}/generate-image-with-refs`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 prompt: prompt,
-                referenceImages: isSyp && state.characterAnchor ? [state.characterAnchor] : [],
+                referenceImages: referenceImages,
                 slideIndex: index,
                 service: state.currentService,
                 character_id: characterPresetEl?.value || 'luna'
@@ -633,7 +691,24 @@ async function generateSingleImage(index, btnEl) {
                     <button class="btn btn-sm btn-secondary use-image-btn added" data-index="${index}">✓ Added</button>
                     <button class="btn btn-sm btn-fire regen-btn" data-index="${index}">🔄 Regen</button>
                 </div>
+                <div class="ref-selection">
+                    <input type="checkbox" class="ref-checkbox" data-index="${index}" id="ref-check-${index}" ${state.selectedRefIndices.includes(index) ? 'checked' : ''}>
+                    <label for="ref-check-${index}" class="ref-label">Use as Ref</label>
+                </div>
             `;
+
+            // Add handler for ref checkbox
+            const refCheck = cardEl.querySelector('.ref-checkbox');
+            refCheck.addEventListener('change', (e) => {
+                const idx = parseInt(e.target.dataset.index);
+                if (e.target.checked) {
+                    if (!state.selectedRefIndices.includes(idx)) {
+                        state.selectedRefIndices.push(idx);
+                    }
+                } else {
+                    state.selectedRefIndices = state.selectedRefIndices.filter(i => i !== idx);
+                }
+            });
 
             // Re-add handlers for the new content
             const useBtn = cardEl.querySelector('.use-image-btn');
@@ -689,6 +764,10 @@ function renderGeneratedImages() {
                     <button class="btn btn-sm btn-secondary use-image-btn" data-index="${index}">Use</button>
                     <button class="btn btn-sm btn-fire regen-btn" data-index="${index}">🔄 Regen</button>
                 </div>
+                <div class="ref-selection">
+                    <input type="checkbox" class="ref-checkbox" data-index="${index}" id="ref-check-${index}" ${state.selectedRefIndices.includes(index) ? 'checked' : ''}>
+                    <label for="ref-check-${index}" class="ref-label">Use as Ref</label>
+                </div>
             `;
         } else {
             item.classList.add('generated-image-pending');
@@ -698,12 +777,31 @@ function renderGeneratedImages() {
                     <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Prompt Ready</p>
                     <button class="btn-gen-slide generate-single-btn" data-index="${index}">✨ Generate Image</button>
                 </div>
+                <div class="ref-selection">
+                    <input type="checkbox" class="ref-checkbox" data-index="${index}" id="ref-check-${index}" ${state.selectedRefIndices.includes(index) ? 'checked' : ''}>
+                    <label for="ref-check-${index}" class="ref-label">Use as Ref</label>
+                </div>
             `;
         }
         container.appendChild(item);
     });
 
     container.style.display = 'grid';
+
+    // Add ref checkbox handlers
+    container.querySelectorAll('.ref-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            if (e.target.checked) {
+                if (!state.selectedRefIndices.includes(index)) {
+                    state.selectedRefIndices.push(index);
+                }
+            } else {
+                state.selectedRefIndices = state.selectedRefIndices.filter(i => i !== index);
+            }
+            console.log("Selected reference indices:", state.selectedRefIndices);
+        });
+    });
 
     // Add use image handlers
     container.querySelectorAll('.use-image-btn').forEach(btn => {
@@ -863,8 +961,13 @@ function drawTextOverlay(ctx, text, width, height, position = { x: 50, y: 50 }, 
     // So for 1080px canvas, we need to scale it accordingly (approx 3.6x)
     // Also apply the slide-specific scale factor (Capped at 1.5 as requested)
     const baseFontSize = parseInt(elements.fontSizeInput.value) || 28;
-    const scaleFactor = Math.min(1.5, scale || 1.5);
-    const canvasFontSize = baseFontSize * 3.6 * scaleFactor;
+    const scaleFactor = scale || 1.5;
+
+    // The font size in the final canvas must match the visual proportion in the preview.
+    // Preview font size = base * 0.35 * scale. 
+    // Canvas is 3.6x larger than preview (1080 / 300).
+    // So canvasFontSize = base * 3.6 * 0.35 * scale = base * 1.26 * scale.
+    const canvasFontSize = baseFontSize * 1.26 * scaleFactor;
 
     ctx.font = `bold ${canvasFontSize}px "TikTok Sans", Arial, sans-serif`;
     ctx.textAlign = 'center';
@@ -873,9 +976,8 @@ function drawTextOverlay(ctx, text, width, height, position = { x: 50, y: 50 }, 
     const textX = (position.x / 100) * width;
     const textY = (position.y / 100) * height;
 
-    // The maxWidthPercent in the preview represents width relative to the overlay.
-    // In the preview, physical coverage = (maxWidthPercent/100) * 0.35 * scale.
-    // We replicate this exact ratio for the final canvas render.
+    // Width logic: Match the preview's visual coverage.
+    // Preview physical coverage = (maxWidthPercent/100) * 0.35 * scale.
     const visualCoverageRatio = (maxWidthPercent / 100) * 0.35 * scaleFactor;
     const maxWidth = width * visualCoverageRatio;
     const words = text.split(' ');
@@ -908,9 +1010,15 @@ function drawTextOverlay(ctx, text, width, height, position = { x: 50, y: 50 }, 
     lines.forEach((line) => {
         const metrics = ctx.measureText(line);
         const lineWidth = metrics.width;
+
+        // Correct Y positioning: the text is drawn at the center of the line.
+        // startYForText for line i is: top + (i * lineHeight) + (lineHeight / 2)
+        // So the rect should be centered around: currentYForRect + (lineHeight / 2)
+        const centerY = currentYForRect + (lineHeight / 2);
+
         rects.push({
             x: textX - (lineWidth / 2) - paddingX,
-            y: currentYForRect - (canvasFontSize / 2) - paddingY,
+            y: centerY - (canvasFontSize / 2) - paddingY,
             w: lineWidth + (paddingX * 2),
             h: canvasFontSize + (paddingY * 2)
         });
@@ -1236,16 +1344,24 @@ async function generateMetadata() {
     }
 
     try {
+        let brandingMode = 'full';
+        if (isSyp) {
+            const selectedMode = document.querySelector('input[name="syp-branding-mode"]:checked');
+            if (selectedMode) brandingMode = selectedMode.value;
+        }
+
         const response = await fetch(`${API_BASE}/generate-metadata`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                slides: state.slides.map(s => s.text),
+                slides_text: state.slides.map(s => s.text).join('\n'),
                 format: state.currentFormat,
                 topic: state.currentTopic,
-                service: state.currentService
+                service: state.currentService,
+                includeBranding: state.includeBranding,
+                brandingMode: brandingMode
             })
         });
 
@@ -1643,6 +1759,18 @@ function initEventListeners() {
         elements.copyMetadataBtnSyp.addEventListener('click', copyMetadata);
     }
 
+    if (elements.downloadAllBtnSyp) {
+        elements.downloadAllBtnSyp.addEventListener('click', downloadAllSlides);
+    }
+
+    if (elements.downloadCurrentBtnSyp) {
+        elements.downloadCurrentBtnSyp.addEventListener('click', downloadCurrentSlide);
+    }
+
+    if (elements.clearAnchorRefBtnSyp) {
+        elements.clearAnchorRefBtnSyp.addEventListener('click', clearCharacterAnchor);
+    }
+
     if (elements.parseImagesToSlidesBtn) {
         elements.parseImagesToSlidesBtn.addEventListener('click', parseImagesToSlides);
     }
@@ -1902,11 +2030,10 @@ async function generateNativeSlidesSyp() {
         const data = await response.json();
 
         if (data.slides && Array.isArray(data.slides)) {
-            // Just update the textarea, do NOT update state.slides or renderPreview
-            const formattedSlides = data.slides.map((slide) => slide.text || slide);
-            elements.slideTextInputSyp.value = formattedSlides.map((s, i) => `Slide ${i + 1}: ${s}`).join('\n');
+            // Updated to use server-provided formatting (Slide X: text)
+            elements.slideTextInputSyp.value = data.slides.join('\n');
 
-            showNotification(`Generated ${formattedSlides.length} SYP slides! Click 'Parse & Apply' to preview.`, 'success');
+            showNotification(`Generated ${data.slides.length} SYP slides! Click 'Parse & Apply' to preview.`, 'success');
         }
     } catch (error) {
         console.error('Error generating SYP slides:', error);

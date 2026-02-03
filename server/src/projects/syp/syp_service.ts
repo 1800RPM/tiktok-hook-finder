@@ -292,12 +292,13 @@ MANDATORY INSTRUCTION:
         .map((line: string) => line.replace(/\*\*/g, '').trim());
 
     const cleanedSlides = rawSlides.map((s: string) => {
-        let clean = s.replace(/Slide (\d+) \([^)]+\):/, 'Slide $1:');
-        if (!clean.match(/^Slide \d+:/i)) {
-            const numMatch = clean.match(/Slide\s+(\d+)/i);
-            if (numMatch) clean = `Slide ${numMatch[1]}: ${clean.replace(/Slide\s+\d+.?:?\s*/i, '')}`;
+        // Correctly extract just the content after "Slide X:" to avoid double prefixing
+        // Regex handles "Slide 1: content", "Slide 1 (context): content", "**Slide 1**: content", etc.
+        const contentMatch = s.match(/^Slide\s*\d+\s*(?:\([^)]+\))?[:\-]?\s*(.*)/i);
+        if (contentMatch && contentMatch[1]) {
+            return contentMatch[1].trim();
         }
-        return clean;
+        return s.replace(/^Slide\s*\d+[:\-]?\s*/i, '').trim();
     });
 
     if (cleanedSlides.length === 0) return { slides: [resultText], profile: selectedProfile };

@@ -2,20 +2,20 @@
     "personas": [
         {
             "id": "lisa",
-            "name": "Lisa (Curvy / Dog / SYP)",
+            "name": "Lisa (Voluptuous / Dog / SYP)",
             "supported_projects": [
                 "syp"
             ],
             "subject": {
-                "description": "young woman, mid 20s, dark blonde hair, voluptuous figure with very large breasts, deep visible cleavage, hourglass body",
+                "description": "young woman, mid 20s, dark blonde hair, voluptuous hourglass figure, very curvy body, accentuated feminine features",
                 "age": "mid 20s",
                 "hair": {
                     "color": "dark blonde",
                     "style": "loose beachy waves, natural volume, soft layers framing face"
                 },
                 "body": {
-                    "figure": "voluptuous with very large full breasts, busty hourglass figure, prominent bust",
-                    "details": "deep visible cleavage line between large breasts, breasts pushed together, chest prominently displayed"
+                    "figure": "voluptuous hourglass build, very curvy physique, prominent and healthy feminine curves",
+                    "details": "accentuated bust, fitted clothing, healthy and curvy natural presence"
                 }
             },
             "face": {
@@ -24,14 +24,14 @@
             },
             "accessories": {
                 "earrings": "small gold hoops",
-                "jewelry": "delicate gold chain necklace resting on chest above cleavage, dainty gold rings",
+                "jewelry": "delicate gold chain necklace, dainty gold rings",
                 "phone_case": "clear case with gold accents"
             },
             "pet": {
                 "type": "dog",
                 "description": "fluffy golden retriever named Milo looking curious and playful"
             },
-            "clothing_style": "very tight fitted top with deep plunging V-neckline showing significant cleavage, fabric stretched tight across large bust, breasts clearly visible"
+            "clothing_style": "tightly-fitted contemporary bodysuit with a deep V-neckline, form-fitting fabric emphasizing a very curvy and voluptuous silhouette with visible cleavage"
         },
         {
             "id": "luna",

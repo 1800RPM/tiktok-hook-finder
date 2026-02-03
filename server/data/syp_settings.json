@@ -163,6 +163,76 @@
             ],
             "lighting": "natural light from entrance, transitional space",
             "vibe": "ready to go out, quick mirror check"
+        },
+        {
+            "id": "laundry_room_casual",
+            "name": "Laundry Room Casual",
+            "description": "casual apartment laundry area, sitting on top of white washing machine, laundry baskets",
+            "elements": [
+                "white front-load washing machine",
+                "laundry baskets with folded clothes",
+                "detergent bottles",
+                "tiled floor",
+                "bright fluorescent light"
+            ],
+            "lighting": "bright clean overhead light with slight cool tones",
+            "vibe": "everyday chores, casual home life"
+        },
+        {
+            "id": "floor_to_ceiling_bookshelf",
+            "name": "Library / Bookshelf Wall",
+            "description": "standing in front of a floor-to-ceiling bookshelf packed with colorful books, scholarly but aesthetic",
+            "elements": [
+                "tall wooden bookshelves",
+                "thousands of books",
+                "rolling library ladder",
+                "reading lamp",
+                "comfortable armchair nearby"
+            ],
+            "lighting": "warm directional library lighting, cozy and focused",
+            "vibe": "intellectual, cozy, curious"
+        },
+        {
+            "id": "creative_art_studio",
+            "name": "Creative Art Corner",
+            "description": "a small art studio space in the apartment, easels, canvases, paint supplies visible",
+            "elements": [
+                "easel with canvas",
+                "palettes and brushes",
+                "paint splatters on floor",
+                "bright studio light",
+                "unfinished sketches on wall"
+            ],
+            "lighting": "bright daylight from side window, creative atmosphere",
+            "vibe": "artistic, messy-cute, passionate"
+        },
+        {
+            "id": "luxury_bathroom_tub",
+            "name": "Luxury Bathtub Area",
+            "description": "modern luxury bathroom with a large freestanding bathtub, spa-like atmosphere",
+            "elements": [
+                "freestanding white bathtub",
+                "scented candles",
+                "bath tray with book and glass of wine",
+                "fluffy white robe nearby",
+                "large plants"
+            ],
+            "lighting": "soft candlelight and warm ambient glow",
+            "vibe": "self-care, luxury, relaxation"
+        },
+        {
+            "id": "night_terrace_lights",
+            "name": "Night Terrace with String Lights",
+            "description": "apartment terrace at night, many glowing string lights, cozy blankets",
+            "elements": [
+                "twinkling string lights",
+                "outdoor cushions",
+                "wooden deck",
+                "distant city lights",
+                "night sky"
+            ],
+            "lighting": "magical night lighting from many small bulbs, low key",
+            "vibe": "romanticized night, cozy, magical"
         }
     ]
 }

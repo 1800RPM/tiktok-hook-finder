@@ -589,6 +589,33 @@ Return a JSON object with a "slides" key containing an array of 6 strings. Outpu
         }
     }
 
+    // Append the global style to all generated image prompts (v2)
+    const styleOverlay = `
+
+NO BORDERS, NO FRAMES, FULL BLEED.
+Style: contemporary oil painting, painterly brushstrokes visible, warm amber and golden tones, museum lighting, emotional and conceptual, NOT photorealistic, NOT digital illustration, NOT storybook aesthetic.
+FACE RULES:
+- Subject should NOT look directly at viewer
+- Eyes closed, looking down, looking away, or in profile
+- If face is visible, it should be partially in shadow, turned away, or the figure should be distant in the frame
+- Emotional truth comes from body language and atmosphere, not facial expression
+CLOTHING/SETTING:
+- Timeless, not period-specific
+- NO bonnets, corsets, ruffs, or obviously historical garments
+- Simple dresses, draped fabric, loose hair
+- Settings should be universal: window, candlelight, nature, empty room
+NO MAGICAL OR SYMBOLIC ELEMENTS:
+- NO floating objects, orbs, glowing elements, prisms, crystals
+- NO literal visualization of metaphors
+- NO fantasy settings (ruins, enchanted forests, cosmic backgrounds)
+- If it could appear on a spiritual healer's Instagram — regenerate`;
+
+    Object.keys(imagePrompts).forEach(key => {
+        if (typeof imagePrompts[key] === 'string' && !imagePrompts[key].includes("FACE RULES:")) {
+            imagePrompts[key] += styleOverlay;
+        }
+    });
+
     return {
         slides: slides,
         image_prompts: imagePrompts,
@@ -657,16 +684,55 @@ export function getDbtSkills(topicId?: string) {
 }
 
 export function getVisualPrompts(topicId: string, format: string) {
+    const styleOverlay = `
+
+NO BORDERS, NO FRAMES, FULL BLEED.
+Style: contemporary oil painting, painterly brushstrokes visible, warm amber and golden tones, museum lighting, emotional and conceptual, NOT photorealistic, NOT digital illustration, NOT storybook aesthetic.
+FACE RULES:
+- Subject should NOT look directly at viewer
+- Eyes closed, looking down, looking away, or in profile
+- If face is visible, it should be partially in shadow, turned away, or the figure should be distant in the frame
+- Emotional truth comes from body language and atmosphere, not facial expression
+CLOTHING/SETTING:
+- Timeless, not period-specific
+- NO bonnets, corsets, ruffs, or obviously historical garments
+- Simple dresses, draped fabric, loose hair
+- Settings should be universal: window, candlelight, nature, empty room
+NO MAGICAL OR SYMBOLIC ELEMENTS:
+- NO floating objects, orbs, glowing elements, prisms, crystals
+- NO literal visualization of metaphors
+- NO fantasy settings (ruins, enchanted forests, cosmic backgrounds)
+- If it could appear on a spiritual healer's Instagram — regenerate`;
+
     if (format === 'tips') {
+        // Create a styled copy of tips prompts
+        const styledTips: Record<string, string> = {};
+        Object.keys(tipsVisualPrompts).forEach(key => {
+            styledTips[key] = (tipsVisualPrompts as any)[key] + styleOverlay;
+        });
+
         return {
             format: 'tips',
-            prompts: tipsVisualPrompts
+            prompts: styledTips
         };
     }
+
+    const prompts = visualPromptsByTopic[topicId] || {};
+    // Create a styled copy of the prompts
+    const styledPrompts: Record<string, string[]> = {};
+    Object.keys(prompts).forEach(key => {
+        styledPrompts[key] = (prompts[key] as string[]).map(p => {
+            if (!p.includes("FACE RULES:")) {
+                return p + styleOverlay;
+            }
+            return p;
+        });
+    });
+
     return {
         topic: topicId,
         format: format,
-        prompts: visualPromptsByTopic[topicId] || {}
+        prompts: styledPrompts
     };
 }
 
