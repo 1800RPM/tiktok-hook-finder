@@ -581,7 +581,7 @@ Based on the context above, generate three options for the integrated app mentio
 
 CORE PRINCIPLE:
 ${isSymbolic
-                            ? 'Every image is a found moment in mundane daily life. NO CONCEPTUAL MAGIC. STRICTLY NO PEOPLE, NO HANDS, NO FACES.'
+                            ? 'Every image is a candid, spontaneous snapshot. Point-and-shoot iPhone realism focused on quiet intimacy. NO STAGING. NO PINTEREST SYMBOLS. NO rocks with words. STRICTLY NO PEOPLE, NO HANDS, NO FACES.'
                             : 'Every image is "a person in a moment of quiet introspection" — never "a woman with a concept." Even in surreal styles like James Jean or Remedios Varo, the core must be a human figure engaged in a specific physical act or posture.'}
 
 ${isWeirdHackFlow ? `NARRATIVE FLOW: WEIRD THERAPIST HACKS
@@ -595,12 +595,12 @@ TRANSLATION RULES:
 1. IGNORE METAPHORS IN THE TEXT
 The slide text will contain metaphors like "spiral," "filling in the blanks," "the urge is loud." 
 DO NOT visualize these literally (e.g., no literal spirals).
-Instead, ask: what is the PHYSICAL SITUATION or LIVED-IN SPACE${isSymbolic ? ' (using ordinary objects)' : ''} this person is in?
+Instead, ask: what is the PHYSICAL SETTING or INTIMATE SPACE${isSymbolic ? ' (using zero-staging real world objects)' : ''} this person is in?
 
 Examples:
-- "checking the facts" → ${isSymbolic ? 'a messy kitchen counter with a scrawled grocery list' : 'person writing at a desk, or staring at a single object in their hands.'}
-- "spiral" → ${isSymbolic ? 'a pile of tangled charging cables on a dusty floor' : 'person with head in hands, or looking out a window at a complex landscape.'}
-- "opposite action" → ${isSymbolic ? 'a pair of sneakers left by the door, hit by a streak of sunlight' : 'person walking away from something, or methodically tidying a space.'}
+- "checking the facts / naming the emotion" → ${isSymbolic ? 'a candid, spontaneous snapshot of a simple closed journal with a textured leather cover resting casually on a wooden bedside table, soft morning light filtering through a window' : 'person writing at a desk, or staring at a single object in their hands.'}
+- "spiral / emptiness / void" → ${isSymbolic ? 'a candid, spontaneous snapshot of a half-empty glass of water on a dusty wooden shelf, low natural light casting a long shadow across the grain' : 'person with head in hands, or looking out a window at a complex landscape.'}
+- "opposite action / skill use" → ${isSymbolic ? 'a candid, spontaneous snapshot of a single metallic pen lying next to a pair of glasses on a sun-drenched wooden surface, natural highlights and reflections' : 'person walking away from something, or methodically tidying a space.'}
 
 2. STYLE PRINCIPLES FOR ${selectedArtStyle.name.toUpperCase()}:
 ${selectedArtStyle.systemPromptPrinciples}

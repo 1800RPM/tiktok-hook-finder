@@ -110,25 +110,25 @@ FIGURES & MOOD:
     symbolic: {
         id: "symbolic",
         name: "Symbolic (No People)",
-        prefix: "A candid, person-free snapshot of a quiet moment in daily life",
+        prefix: "A candid, spontaneous snapshot",
         systemPromptPrinciples: `
-- Style: Candid daily life photography, snapshot aesthetic, found moments.
-- Visuals: Focus on ordinary objects in lived-in environments. Avoid "clean" or "staged" looks.
-- Texture: Authentic and tactile textures (scratched wood, wrinkled linen, dust motes in light, a half-empty glass).
-- Composition: Natural, slightly imperfect framing. Not perfectly centered.
-- Lighting: Natural lighting—harsh morning sun, dim bedside lamps, or gray overcast sky through a window.
-- Rule: STRICTLY NO PEOPLE. No human figures, no hands, no faces.
-- Settings: Ordinary, messy, lived-in spaces (a cluttered kitchen counter, a bed with unmade sheets, a rainy street corner, a plant on a windowsill).
+- Style: Candid, spontaneous iPhone 12 photography. Point-and-shoot realism.
+- Visuals: Quiet, intimate moments in a real home. Intentionally unposed.
+- Texture: Natural wood grain, textured paper or leather, soft fabric, natural light refraction.
+- Composition: Casual, slightly tilted angles. Authentic and un-orchestrated.
+- Lighting: Soft natural light (morning sun filtering through windows, warm natural shadows).
+- Rule: STRICTLY NO PEOPLE. No human figures, no hands, no faces. Not even silhouettes.
+- Anti-Staging: Avoid "stock photo" tropes. No arranged zen stones, no staged old keys. Use items actually found in a bedroom or daily life (journals, pens, glasses of water, bedside tables).
 `,
         suffix: `
 NO BORDERS, NO FRAMES, FULL BLEED.
 STRICT RULE: ABSOLUTELY NO PEOPLE, NO HUMAN FIGURES, NO FACES, NO BODY PARTS.
-Style: Candid snapshot, daily life aesthetic, authentic textures, no stock-photo polish.
+Style: Candid, spontaneous snapshot, genuine iPhone photography, natural light, warm shadows, quiet intimacy.
 COMPOSITION & MOOD:
-- Focus on "found moments" and mundane beauty
-- Lived-in environments with subtle signs of life (but no people)
-- Natural, organic lighting and slightly imperfect framing
-- Sense of quiet, everyday realism
+- Focus on the unposed feel of a real moment caught on a phone.
+- Use natural textures (wood, leather, textiles) and soft ambient detail.
+- Capture themes of reflection, memory, and introspection through ordinary objects.
+- Slightly tilted or off-center framing to enhance the authentic point-and-shoot feel.
 `
     }
 };
