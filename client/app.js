@@ -19,7 +19,9 @@ const state = {
     resizeStartDistance: 0,
     resizeStartWidth: 120,
     isResizingLeft: false,
-    selectedRefIndices: []
+    selectedRefIndices: [],
+    customImages: [],
+    useStaticSlide1: false
 };
 
 const API_BASE = 'http://localhost:3001';
@@ -41,6 +43,7 @@ const parseDataUrl = (dataUrl) => {
 const elements = {
     nativeGenFormat: document.getElementById('native-gen-format'),
     nativeGenTopic: document.getElementById('native-gen-topic'),
+    artStyleSelect: document.getElementById('art-style-select'),
     includeBrandingDbt: document.getElementById('include-branding_dbt'),
     generateNativeSlidesBtn: document.getElementById('generate-native-slides-btn'),
     compatibilityWarning: document.getElementById('compatibility-warning'),
@@ -125,6 +128,12 @@ const elements = {
     clearAnchorRefBtnSyp: document.getElementById('clear-anchor-ref-btn_syp'),
     downloadAllBtnSyp: document.getElementById('download-all_syp'),
     downloadCurrentBtnSyp: document.getElementById('download-current_syp'),
+    quickImproveAppMentionBtn: document.getElementById('quick-improve-app-mention'),
+    appMentionOptions: document.getElementById('app-mention-options'),
+    appMentionList: document.getElementById('app-mention-list'),
+    customPromptInput: document.getElementById('custom-prompt-input'),
+    generateCustomImageBtn: document.getElementById('generate-custom-image-btn'),
+    flowSelect: document.getElementById('flow-select')
 };
 
 // ==========================================
@@ -314,7 +323,8 @@ function checkFormatTopicCompatibility() {
     warningDiv.className = 'compatibility-warning success';
     warningDiv.querySelector('.warning-icon').textContent = '✨';
     warningText.textContent = `${formatInfo.name} + ${topicInfo.name}`;
-    warningSuggestion.innerHTML = `${formatInfo.purpose} | Art: ${topicInfo.artStyle} | ${formatInfo.appMention}`;
+    const selectedArtStyleName = elements.artStyleSelect ? elements.artStyleSelect.options[elements.artStyleSelect.selectedIndex].text : topicInfo.artStyle;
+    warningSuggestion.innerHTML = `${formatInfo.purpose} | Art: ${selectedArtStyleName} | ${formatInfo.appMention}`;
 
     // Auto-hide after 4 seconds
     setTimeout(() => {
@@ -328,12 +338,8 @@ function checkFormatTopicCompatibility() {
 // NATIVE SLIDES GENERATION
 // ==========================================
 async function generateNativeSlides() {
-    const format = elements.nativeGenFormat.value;
-    const topic = elements.nativeGenTopic.value;
     const includeBranding = elements.includeBrandingDbt.checked;
 
-    state.currentFormat = format;
-    state.currentTopic = topic;
     state.includeBranding = includeBranding;
 
     elements.generateNativeSlidesBtn.disabled = true;
@@ -346,10 +352,9 @@ async function generateNativeSlides() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                format,
-                topic,
                 service: 'dbt',
-                includeBranding
+                includeBranding,
+                artStyle: elements.artStyleSelect?.value || 'hopper'
             })
         });
 
@@ -379,7 +384,7 @@ async function generateNativeSlides() {
         showNotification('Failed to generate slides. Please try again.', 'error');
     } finally {
         elements.generateNativeSlidesBtn.disabled = false;
-        elements.generateNativeSlidesBtn.innerHTML = '<span>🔥 Generate Story Dump (Opus)</span>';
+        elements.generateNativeSlidesBtn.innerHTML = '<span>🔥 Generate Weird Therapist Hacks (Opus)</span>';
     }
 }
 
@@ -426,7 +431,9 @@ async function generateImagePromptsFromSlides(slidesToUse) {
                 format: state.currentFormat,
                 topic: state.currentTopic,
                 service: state.currentService,
-                brandingMode
+                brandingMode,
+                artStyle: elements.artStyleSelect?.value || 'hopper',
+                flow: elements.flowSelect?.value || 'standard'
             })
         });
 
@@ -438,8 +445,16 @@ async function generateImagePromptsFromSlides(slidesToUse) {
 
         if (data.prompts && Array.isArray(data.prompts)) {
             state.imagePrompts = data.prompts;
+            state.useStaticSlide1 = data.useStaticSlide1 || false;
+
+            if (state.useStaticSlide1) {
+                state.generatedImages[0] = 'slide1.png';
+                if (state.slides[0]) state.slides[0].image = 'slide1.png';
+            }
+
             renderImagePrompts();
             initializeImageGenerationGrid(); // Initialize the slots in Step 3
+            renderSlidesPreview(); // Update preview immediately
             showNotification('Image prompts generated!', 'success');
         } else {
             throw new Error('Invalid response format');
@@ -461,12 +476,28 @@ function renderImagePrompts() {
     if (!container) return;
     container.innerHTML = '';
 
+    // If Slide 1 is static, we show it but disable editing
+    if (state.useStaticSlide1) {
+        const staticEl = document.createElement('div');
+        staticEl.className = 'image-prompt-card static-prompt';
+        staticEl.innerHTML = `
+            <div class="prompt-header">
+                <span class="prompt-number">Slide 1 (Static)</span>
+            </div>
+            <div class="static-image-notice" style="padding: 10px; color: var(--text-muted); font-style: italic;">
+                Slide 1 uses a static image (slide1.png). No AI prompt needed.
+            </div>
+        `;
+        container.appendChild(staticEl);
+    }
+
     state.imagePrompts.forEach((prompt, index) => {
+        const slideIndex = state.useStaticSlide1 ? index + 1 : index;
         const promptEl = document.createElement('div');
         promptEl.className = 'image-prompt-card';
         promptEl.innerHTML = `
             <div class="prompt-header">
-                <span class="prompt-number">Slide ${index + 1}</span>
+                <span class="prompt-number">Slide ${slideIndex + 1}</span>
                 <div class="prompt-actions" style="display: flex; gap: 4px;">
                     <button class="btn btn-sm btn-secondary copy-prompt-btn" data-index="${index}">📋 Copy</button>
                     <button class="btn btn-sm btn-primary save-prompt-btn" data-index="${index}" style="display: none;">💾 Save</button>
@@ -536,7 +567,8 @@ async function generateAiImages() {
             },
             body: JSON.stringify({
                 imagePrompts: state.imagePrompts.reduce((acc, prompt, i) => {
-                    acc[`image${i + 1}`] = prompt;
+                    const slideIndex = state.useStaticSlide1 ? i + 2 : i + 1;
+                    acc[`image${slideIndex}`] = prompt;
                     return acc;
                 }, {}),
                 character_id: characterPresetEl?.value || 'luna',
@@ -552,22 +584,23 @@ async function generateAiImages() {
         const data = await response.json();
 
         if (data.images && Array.isArray(data.images)) {
-            // Unify state.generatedImages format to URLs
-            state.generatedImages = data.images.map(item => {
-                if (typeof item === 'string') return item;
-                if (item.result && item.result.images && item.result.images[0]) {
-                    const img = item.result.images[0];
-                    return `data:${img.mimeType || 'image/png'};base64,${img.data}`;
+            // Assign images to slides based on slideIndex
+            data.images.forEach(item => {
+                if (item.success && item.image) {
+                    const imageUrl = `data:${item.image.mime_type || 'image/png'};base64,${item.image.data}`;
+                    const idx = item.slideIndex;
+                    state.generatedImages[idx] = imageUrl;
+                    if (state.slides[idx]) {
+                        state.slides[idx].image = imageUrl;
+                    }
                 }
-                return null;
             });
 
-            // Assign images to slides
-            state.slides.forEach((slide, index) => {
-                if (state.generatedImages[index]) {
-                    slide.image = state.generatedImages[index];
-                }
-            });
+            // Handle static Slide 1 if applicable
+            if (state.useStaticSlide1) {
+                state.generatedImages[0] = 'slide1.png';
+                if (state.slides[0]) state.slides[0].image = 'slide1.png';
+            }
 
             renderGeneratedImages();
             renderSlidesPreview();
@@ -584,6 +617,52 @@ async function generateAiImages() {
     }
 }
 
+async function generateCustomImage() {
+    const prompt = elements.customPromptInput.value.trim();
+    if (!prompt) {
+        showNotification('Please enter a custom prompt first!', 'error');
+        return;
+    }
+
+    const originalBtnContent = elements.generateCustomImageBtn.innerHTML;
+    elements.generateCustomImageBtn.disabled = true;
+    elements.generateCustomImageBtn.innerHTML = '<span>⏳ Generating...</span>';
+
+    try {
+        const response = await fetch(`${API_BASE}/generate-custom-image`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: prompt, aspectRatio: "9:16" })
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+
+        if (data.success && data.image) {
+            const imageUrl = `data:${data.image.mime_type || 'image/png'};base64,${data.image.data}`;
+
+            // Store in state so it persists across re-renders
+            state.customImages.unshift({
+                id: Date.now(),
+                url: imageUrl,
+                timestamp: new Date().toLocaleTimeString()
+            });
+
+            renderGeneratedImages();
+            showNotification('Custom image generated!', 'success');
+            elements.customPromptInput.value = ''; // Clear input if successful
+        } else {
+            throw new Error(data.error || 'Generation failed');
+        }
+    } catch (error) {
+        console.error('Error generating custom image:', error);
+        showNotification('Failed to generate custom image: ' + error.message, 'error');
+    } finally {
+        elements.generateCustomImageBtn.disabled = false;
+        elements.generateCustomImageBtn.innerHTML = originalBtnContent;
+    }
+}
+
 function initializeImageGenerationGrid() {
     const isSyp = state.currentService === 'syp';
     const container = isSyp ? elements.generatedImagesContainerSyp : elements.generatedImagesContainer;
@@ -592,6 +671,20 @@ function initializeImageGenerationGrid() {
     if (!container) return;
     container.innerHTML = '';
     container.style.display = 'grid';
+
+    // If Slide 1 is static, show it first as "ready"
+    if (state.useStaticSlide1) {
+        const item = document.createElement('div');
+        item.className = 'generated-image-item';
+        item.innerHTML = `
+            <span class="slide-label">Slide 1 (Static)</span>
+            <img src="slide1.png" alt="Slide 1 Static">
+            <div class="static-notice" style="padding: 5px; font-size: 0.7rem; color: var(--text-muted);">
+                Static asset used for Slide 1
+            </div>
+        `;
+        container.appendChild(item);
+    }
 
     state.imagePrompts.forEach((prompt, index) => {
         const item = document.createElement('div');
@@ -647,13 +740,13 @@ async function generateSingleImage(index, btnEl) {
     const prompt = state.imagePrompts[index];
     if (!prompt) return;
 
+    const slideIndexToUse = state.useStaticSlide1 ? index + 1 : index;
     const originalText = btnEl.innerHTML;
 
     try {
         btnEl.disabled = true;
         btnEl.innerHTML = '<span>⏳...</span>';
 
-        // Fix: Use correct selector .generated-image-item (as used in initializeImageGenerationGrid)
         const cardEl = btnEl.closest('.generated-image-item');
         if (!cardEl) {
             console.error("Card element not found for index", index);
@@ -663,16 +756,12 @@ async function generateSingleImage(index, btnEl) {
         const isSyp = state.currentService === 'syp';
         const characterPresetEl = isSyp ? elements.characterPresetSyp : elements.characterPreset;
 
-        // Collect all selected reference images
         const referenceImages = [];
-
-        // Always include global character anchor if exists for SYP
         if (isSyp && state.characterAnchor) {
             const parsed = parseDataUrl(state.characterAnchor);
             if (parsed) referenceImages.push(parsed);
         }
 
-        // Add user-ticked reference images from the grid
         state.selectedRefIndices.forEach(refIdx => {
             if (state.generatedImages[refIdx]) {
                 const parsed = parseDataUrl(state.generatedImages[refIdx]);
@@ -688,7 +777,7 @@ async function generateSingleImage(index, btnEl) {
             body: JSON.stringify({
                 prompt: prompt,
                 referenceImages: referenceImages,
-                slideIndex: index,
+                slideIndex: slideIndexToUse,
                 service: state.currentService,
                 character_id: characterPresetEl?.value || 'luna',
                 brandingMode: brandingMode
@@ -700,18 +789,18 @@ async function generateSingleImage(index, btnEl) {
 
         if (data.success && data.image) {
             const imageUrl = `data:${data.image.mime_type || data.image.mimeType || 'image/png'};base64,${data.image.data}`;
-            state.generatedImages[index] = imageUrl;
+            state.generatedImages[slideIndexToUse] = imageUrl;
 
             // Assign to state.slides
-            if (state.slides[index]) {
-                state.slides[index].image = imageUrl;
+            if (state.slides[slideIndexToUse]) {
+                state.slides[slideIndexToUse].image = imageUrl;
             }
 
             // Replace card content with image
             cardEl.classList.remove('generated-image-pending');
             cardEl.innerHTML = `
-                <span class="slide-label">Slide ${index + 1}</span>
-                <img src="${imageUrl}" alt="Generated image ${index + 1}">
+                <span class="slide-label">Slide ${slideIndexToUse + 1}</span>
+                <img src="${imageUrl}" alt="Generated image ${slideIndexToUse + 1}">
                 <div class="image-actions">
                     <button class="btn btn-sm btn-secondary use-image-btn added" data-index="${index}">✓ Added</button>
                     <button class="btn btn-sm btn-fire regen-btn" data-index="${index}">🔄 Regen</button>
@@ -770,44 +859,102 @@ async function generateSingleImage(index, btnEl) {
 function renderGeneratedImages() {
     const isSyp = state.currentService === 'syp';
     const container = isSyp ? elements.generatedImagesContainerSyp : elements.generatedImagesContainer;
+    const stepId = isSyp ? 'step-generate-images-syp' : 'step-generate-images';
 
     if (!container) return;
     container.innerHTML = '';
 
-    updateParsingToolsVisibility();
+    // If Slide 1 is static, show it first
+    if (state.useStaticSlide1) {
+        const item = document.createElement('div');
+        item.className = 'generated-image-item';
+        item.innerHTML = `
+            <span class="slide-label">Slide 1 (Static)</span>
+            <img src="slide1.png" alt="Slide 1 Static">
+            <div class="static-notice" style="padding: 5px; font-size: 0.7rem; color: var(--text-muted);">
+                Static asset used for Slide 1
+            </div>
+        `;
+        container.appendChild(item);
+    }
 
+    // 1. Render Custom Images first
+    state.customImages.forEach((imgObj) => {
+        const item = document.createElement('div');
+        item.className = 'generated-image-item custom-image-item';
+        item.dataset.customId = imgObj.id;
+
+        item.innerHTML = `
+            <span class="slide-label">Custom - ${imgObj.timestamp}</span>
+            <img src="${imgObj.url}" alt="Custom image">
+            <div class="image-actions">
+                <button class="btn btn-sm btn-secondary use-custom-btn">Use</button>
+                <button class="btn btn-sm btn-fire download-custom-btn">💾</button>
+                <button class="btn btn-sm btn-fire delete-custom-btn">🗑️</button>
+            </div>
+        `;
+
+        // Add custom handlers
+        item.querySelector('.use-custom-btn').addEventListener('click', () => {
+            if (state.slides[state.currentSlideIndex]) {
+                state.slides[state.currentSlideIndex].image = imgObj.url;
+                renderSlidesPreview();
+                showNotification(`Image assigned to slide ${state.currentSlideIndex + 1}`, 'success');
+            } else {
+                showNotification('No active slide to assign image to.', 'error');
+            }
+        });
+
+        item.querySelector('.download-custom-btn').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.href = imgObj.url;
+            link.download = `custom-image-${imgObj.id}.png`;
+            link.click();
+        });
+
+        item.querySelector('.delete-custom-btn').addEventListener('click', () => {
+            state.customImages = state.customImages.filter(ci => ci.id !== imgObj.id);
+            renderGeneratedImages();
+            showNotification('Custom image deleted', 'success');
+        });
+
+        container.appendChild(item);
+    });
+
+    // 2. Render Carousel Images
     state.imagePrompts.forEach((prompt, index) => {
-        const image = state.generatedImages[index];
+        const slideIndex = state.useStaticSlide1 ? index + 1 : index;
+        const imgUrl = state.generatedImages[slideIndex];
+
         const item = document.createElement('div');
         item.className = 'generated-image-item';
 
-        if (image) {
-            item.innerHTML = `
-                <span class="slide-label">Slide ${index + 1}</span>
-                <img src="${image}" alt="Generated image ${index + 1}">
-                <div class="image-actions">
-                    <button class="btn btn-sm btn-secondary use-image-btn" data-index="${index}">Use</button>
-                    <button class="btn btn-sm btn-fire regen-btn" data-index="${index}">🔄 Regen</button>
-                </div>
-                <div class="ref-selection">
-                    <input type="checkbox" class="ref-checkbox" data-index="${index}" id="ref-check-${index}" ${state.selectedRefIndices.includes(index) ? 'checked' : ''}>
-                    <label for="ref-check-${index}" class="ref-label">Use as Ref</label>
-                </div>
-            `;
-        } else {
+        if (!imgUrl) {
             item.classList.add('generated-image-pending');
             item.innerHTML = `
-                <span class="slide-label">Slide ${index + 1}</span>
+                <span class="slide-label">Slide ${slideIndex + 1}</span>
                 <div style="text-align: center; padding: 20px;">
                     <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Prompt Ready</p>
                     <button class="btn-gen-slide generate-single-btn" data-index="${index}">✨ Generate Image</button>
                 </div>
-                <div class="ref-selection">
-                    <input type="checkbox" class="ref-checkbox" data-index="${index}" id="ref-check-${index}" ${state.selectedRefIndices.includes(index) ? 'checked' : ''}>
-                    <label for="ref-check-${index}" class="ref-label">Use as Ref</label>
+            `;
+        } else {
+            item.innerHTML = `
+                <span class="slide-label">Slide ${slideIndex + 1}</span>
+                <img src="${imgUrl}" alt="Generated image ${slideIndex + 1}">
+                <div class="image-actions">
+                    <button class="btn btn-sm btn-secondary use-image-btn added" data-index="${index}">✓ Added</button>
+                    <button class="btn btn-sm btn-fire regen-btn" data-index="${index}">🔄 Regen</button>
                 </div>
             `;
         }
+
+        item.innerHTML += `
+            <div class="ref-selection">
+                <input type="checkbox" class="ref-checkbox" data-index="${slideIndex}" id="ref-check-${slideIndex}" ${state.selectedRefIndices.includes(slideIndex) ? 'checked' : ''}>
+                <label for="ref-check-${slideIndex}" class="ref-label">Use as Ref</label>
+            </div>
+        `;
         container.appendChild(item);
     });
 
@@ -824,7 +971,6 @@ function renderGeneratedImages() {
             } else {
                 state.selectedRefIndices = state.selectedRefIndices.filter(i => i !== index);
             }
-            console.log("Selected reference indices:", state.selectedRefIndices);
         });
     });
 
@@ -833,17 +979,17 @@ function renderGeneratedImages() {
         btn.addEventListener('click', (e) => {
             const btnEl = e.target.closest('.use-image-btn');
             const index = parseInt(btnEl.dataset.index);
+            const slideIndex = state.useStaticSlide1 ? index + 1 : index;
 
             // Always provide visual feedback
             btnEl.classList.add('added');
             btnEl.textContent = '✓ Added';
 
-            if (state.slides[index]) {
-                state.slides[index].image = state.generatedImages[index];
+            if (state.slides[slideIndex]) {
+                state.slides[slideIndex].image = state.generatedImages[slideIndex];
                 renderSlidesPreview();
-                showNotification(`Image assigned to slide ${index + 1}`, 'success');
+                showNotification(`Image assigned to slide ${slideIndex + 1}`, 'success');
             } else {
-                // Slides don't exist yet
                 showNotification(`Image selected! Click 'Parse & Apply' to create slides.`, 'info');
             }
         });
@@ -866,6 +1012,12 @@ function renderGeneratedImages() {
             generateSingleImage(index, btnEl);
         });
     });
+
+    // Ensure section is visible
+    const section = document.getElementById(stepId);
+    if (section) section.style.display = 'block';
+
+    updateParsingToolsVisibility();
 }
 
 function updateParsingToolsVisibility() {
@@ -919,7 +1071,7 @@ function renderSlidesPreview() {
         slideEl.innerHTML = `
             <div class="slide-number">${index + 1}</div>
             <div class="slide-preview" style="position: relative; width: 100%; height: 100%;">
-                ${slide.image ? `<img src="${slide.image}" alt="Slide ${index + 1}">` : '<div class="no-image">No Image</div>'}
+                ${(index === 0 && state.useStaticSlide1) ? '<img src="slide1.png" alt="Slide 1 Static">' : (slide.image ? `<img src="${slide.image}" alt="Slide ${index + 1}">` : '<div class="no-image">No Image</div>')}
                 <div class="text-overlay ${state.currentSlideIndex === index ? 'selected' : ''}" style="left: ${slide.position.x}%; top: ${slide.position.y}%; width: ${slideMaxWidth}%; transform: translate(-50%, -50%) scale(${previewScaleFactor}); transform-origin: center center;" data-scale="${slideScale}">
                     <div class="text-box" style="font-size: ${baseFontSize}px; width: 100%;" data-base-font-size="${baseFontSize}">
                         <span class="text-content-span">${slide.text || ''}</span>
@@ -962,7 +1114,12 @@ function renderSlideToCanvas(slide, canvas) {
     ctx.fillRect(0, 0, width, height);
 
     // Draw image if exists
-    if (slide.image) {
+    let imgToDraw = slide.image;
+    if (state.slides.indexOf(slide) === 0 && state.useStaticSlide1) {
+        imgToDraw = 'slide1.png';
+    }
+
+    if (imgToDraw) {
         return new Promise((resolve) => {
             const img = new Image();
             img.onload = () => {
@@ -970,7 +1127,7 @@ function renderSlideToCanvas(slide, canvas) {
                 drawTextOverlay(ctx, slide.text, width, height, slide.position, slide.scale, slide.maxWidth);
                 resolve();
             };
-            img.src = slide.image;
+            img.src = imgToDraw;
         });
     } else {
         drawTextOverlay(ctx, slide.text, width, height, slide.position, slide.scale, slide.maxWidth);
@@ -1361,6 +1518,141 @@ async function improveHooksFromSlides(slidesToUse) {
 }
 
 // ==========================================
+// APP MENTION IMPROVEMENT
+// ==========================================
+async function improveAppMention() {
+    const isSyp = state.currentService === 'syp';
+    if (isSyp) {
+        showNotification('App mention improvement is currently only for DBT-Mind', 'info');
+        return;
+    }
+
+    if (state.slides.length === 0) {
+        const textInput = elements.slideTextInput;
+        if (textInput && textInput.value.trim()) {
+            const tempSlides = parseSlidesFromText(textInput.value).map((slide, index) => ({
+                ...slide,
+                id: Date.now() + index
+            }));
+            improveAppMentionFromSlides(tempSlides);
+            return;
+        }
+    }
+
+    if (state.slides.length === 0) {
+        showNotification('Please generate or parse slides first!', 'error');
+        return;
+    }
+
+    improveAppMentionFromSlides(state.slides);
+}
+
+async function improveAppMentionFromSlides(slidesToUse) {
+    const genBtn = elements.quickImproveAppMentionBtn;
+    const listEl = elements.appMentionList;
+    const optionsEl = elements.appMentionOptions;
+
+    if (genBtn) {
+        genBtn.disabled = true;
+        genBtn.textContent = '⏳ Improving...';
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/improve-app-mention`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                slides: slidesToUse.map(s => s.text),
+                service: state.currentService
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.mentions && Array.isArray(data.mentions)) {
+            listEl.innerHTML = '';
+            data.mentions.forEach((mention, index) => {
+                const mentionEl = document.createElement('div');
+                mentionEl.className = 'hook-option';
+                mentionEl.innerHTML = `
+                    <div class="hook-text">${mention}</div>
+                    <button class="btn btn-sm btn-primary use-mention-btn" data-index="${index}">Use</button>
+                `;
+                listEl.appendChild(mentionEl);
+            });
+
+            optionsEl.style.display = 'block';
+
+            // Add click handlers
+            listEl.querySelectorAll('.use-mention-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    const selectedMention = data.mentions[index];
+
+                    // Update text area directly
+                    const textInput = elements.slideTextInput;
+                    if (textInput) {
+                        const lines = textInput.value.split('\n');
+                        // Smart replacement for "dbt app" or Slide 6
+                        let replaced = false;
+
+                        // Try to find a line that already mentions "dbt app" or is Slide 6
+                        for (let i = 0; i < lines.length; i++) {
+                            const lowerLine = lines[i].toLowerCase();
+                            if (lowerLine.includes('dbt app') || lowerLine.startsWith('slide 6')) {
+                                // Keep the Slide X: prefix if it exists
+                                const prefixMatch = lines[i].match(/^(Slide\s*\d+\s*[:\-]\s*)/i);
+                                const prefix = prefixMatch ? prefixMatch[1] : `Slide ${i + 1}: `;
+                                lines[i] = `${prefix}${selectedMention}`;
+                                replaced = true;
+
+                                // Update state if slides are parsed
+                                if (state.slides[i]) {
+                                    state.slides[i].text = selectedMention;
+                                }
+                                break;
+                            }
+                        }
+
+                        // If no clear target found, append or replace last slide
+                        if (!replaced && lines.length > 0) {
+                            const lastIdx = lines.length - 1;
+                            const prefixMatch = lines[lastIdx].match(/^(Slide\s*\d+\s*[:\-]\s*)/i);
+                            const prefix = prefixMatch ? prefixMatch[1] : `Slide ${lines.length}: `;
+                            lines[lastIdx] = `${prefix}${selectedMention}`;
+
+                            if (state.slides[lastIdx]) {
+                                state.slides[lastIdx].text = selectedMention;
+                            }
+                        }
+
+                        textInput.value = lines.join('\n');
+                        renderSlidesPreview();
+                    }
+
+                    optionsEl.style.display = 'none';
+                    showNotification('App mention updated!', 'success');
+                });
+            });
+        }
+    } catch (error) {
+        console.error('Error improving app mention:', error);
+        showNotification('Failed to improve app mention. Please try again.', 'error');
+    } finally {
+        if (genBtn) {
+            genBtn.disabled = false;
+            genBtn.textContent = '🧠 Better App Mention';
+        }
+    }
+}
+
+// ==========================================
 // METADATA GENERATION
 // ==========================================
 async function generateMetadata() {
@@ -1485,25 +1777,27 @@ function initEventListeners() {
     }
 
     // Viral combo buttons
-    elements.viralComboBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const format = btn.dataset.format;
-            const topic = btn.dataset.topic;
+    if (elements.viralComboBtns) {
+        elements.viralComboBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const format = btn.dataset.format;
+                const topic = btn.dataset.topic;
 
-            if (elements.nativeGenFormat) {
-                elements.nativeGenFormat.value = format;
-                state.currentFormat = format;
-            }
+                if (elements.nativeGenFormat) {
+                    elements.nativeGenFormat.value = format;
+                    state.currentFormat = format;
+                }
 
-            if (elements.nativeGenTopic) {
-                elements.nativeGenTopic.value = topic;
-                state.currentTopic = topic;
-            }
+                if (elements.nativeGenTopic) {
+                    elements.nativeGenTopic.value = topic;
+                    state.currentTopic = topic;
+                }
 
-            checkFormatTopicCompatibility();
-            showNotification(`Selected: ${dbtFramework.formats[format].name} + ${dbtFramework.topics[topic].name}`, 'success');
+                checkFormatTopicCompatibility();
+                showNotification(`Selected: ${dbtFramework.formats[format].name} + ${dbtFramework.topics[topic].name}`, 'success');
+            });
         });
-    });
+    }
 
     // Generate native slides
     if (elements.generateNativeSlidesBtn) {
@@ -1679,6 +1973,10 @@ function initEventListeners() {
         elements.quickImproveHookBtn.addEventListener('click', improveHooks);
     }
 
+    if (elements.quickImproveAppMentionBtn) {
+        elements.quickImproveAppMentionBtn.addEventListener('click', improveAppMention);
+    }
+
     // Metadata
     if (elements.generateMetadataBtn) {
         elements.generateMetadataBtn.addEventListener('click', generateMetadata);
@@ -1814,6 +2112,10 @@ function initEventListeners() {
 
     if (elements.parseImagesToSlidesBtnSyp) {
         elements.parseImagesToSlidesBtnSyp.addEventListener('click', parseImagesToSlides);
+    }
+
+    if (elements.generateCustomImageBtn) {
+        elements.generateCustomImageBtn.addEventListener('click', generateCustomImage);
     }
 }
 

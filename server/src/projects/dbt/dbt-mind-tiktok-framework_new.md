@@ -342,29 +342,28 @@ Tips content has built-in solution structure. The app mention answers the natura
 
 ## Visual Strategy Overview
 
-**Why Classical Paintings:**
-- Proven viral (amanda.growth account: 100K-200K+ views using this format)
-- Timeless emotional expressions that resonate
-- Differentiates from boring stock selfie aesthetic
-- The "dark academia" crossover appeals to same demographic
-- High-quality art = perception of high-quality content
+**Why Edward Hopper Style:**
+- **Cinematic Solitude:** Hopper's work perfectly captures the "alone in a room" feeling that defines much of the BPD experience.
+- **Dramatic Lighting:** His use of harsh light and deep shadows (chiaroscuro) serves as a visual metaphor for splitting and emotional extremes.
+- **Urban Realism:** The mid-century American aesthetic feels grounded and "real," making the emotional content feel more personal and less like a historical museum piece.
+- **Geometric Isolation:** His compositions use windows and doorways to frame solitary figures, mirroring the feeling of being "trapped" in one's own mind.
 
 ## Painting Style Mapping
 
 | BPD Topic | Art Style | Why It Works |
 |-----------|-----------|--------------|
-| **Splitting** | Baroque | Intense chiaroscuro (light/dark contrast) = perfect visual metaphor for black/white thinking |
-| **Fear of Abandonment** | Romantic Era | Emotional intensity, nature as emotional mirror, dramatic longing |
-| **Quiet BPD** | Pre-Raphaelite | Women in contemplation, hidden emotion beneath beautiful surface, melancholic beauty |
-| **Identity Disturbance** | Surrealist | Fragmented reality, multiple selves, dreamlike confusion |
-| **FP/Emotional Intensity** | Renaissance/Baroque portraits | Dramatic emotional expressions, intimate focus on single figures |
+| **Splitting** | Edward Hopper - High Contrast | Strong angular shadows and stark lighting = perfect visual metaphor for black/white thinking |
+| **Fear of Abandonment** | Edward Hopper - Thresholds | Figures at doorways or windows, looking out toward an empty horizon, dramatic longing and uncertainty |
+| **Quiet BPD** | Edward Hopper - Interior Solitude | Figures in contemplation, hidden emotion beneath a still surface, the melancholy of being alone in a room |
+| **Identity Disturbance** | Edward Hopper - Cinematic Ambiguity | Uncanny stillness, figures that feel like they're playing a role in a stage-like setting |
+| **FP/Emotional Intensity** | Edward Hopper - Night Windows | Intimate focus on single figures in urban settings, capturing the solitude of obsession |
 
 ## Higgsfield Nano Banana Pro Prompts
 
 ### General Prompt Structure:
 
 ```
-[Art style] painting of [subject description], [emotional state], [lighting/atmosphere], [composition details], classical oil painting style, museum quality, dramatic lighting
+Edward Hopper style painting of [subject description], [emotional state], [lighting/atmosphere], [composition details using architectural lines], cinematic realism, dramatic shadows
 ```
 
 ### Prompts by Topic
@@ -373,127 +372,127 @@ Tips content has built-in solution structure. The app mention answers the natura
 
 **Slide 1 (Hook):**
 ```
-Baroque oil painting of a young woman in a dark room, illuminated only by candlelight, staring intensely at a letter in her hands, expression of desperate hope mixed with anxiety, dramatic chiaroscuro lighting, rich dark background
+Edward Hopper style painting of a solitary woman in a dimly lit city apartment at night, seen through a window, staring at a phone in her hands, intense focus, dramatic artificial light from a streetlamp hitting the wall, long shadows
 ```
 
 **Slide 2 (Waiting):**
 ```
-Pre-Raphaelite painting of a woman at a window, twilight, watching the road outside, body language of restless anticipation, muted colors with emphasis on her pale face, melancholic atmosphere
+Edward Hopper style scene of a woman sitting alone at a diner counter, late night, staring into her cup, empty stools around her, cinematic lighting from above, reflecting in the large window, profound solitude
 ```
 
 **Slide 3 (Relief/Joy):**
 ```
-Romantic era painting of a woman's face transforming with joy, soft golden light flooding in from one side, the darkness receding, eyes bright with tears of relief, intimate portrait composition
+Edward Hopper style painting of a woman's silhouette against a brightly lit window, morning sun casting a long rectangular beam across the floor, her posture showing a mix of relief and exhaustion
 ```
 
 **Slide 4 (Spiral):**
 ```
-Surrealist painting of a woman surrounded by floating clock fragments and swirling letters, her expression of obsessive focus, time distortion visual, dreamlike anxiety atmosphere
+Edward Hopper style composition of a woman in a sparsely furnished hotel room, staring at a closed door, geometric shadows on the wall, sense of waiting and obsessive anticipation
 ```
 
 #### Splitting
 
 **Slide 1 (Hook):**
 ```
-Baroque painting of two versions of the same woman facing each other, one bathed in warm golden light looking loving, one in cold blue shadow looking hateful, dramatic split lighting down the center, museum quality oil painting
+Edward Hopper style painting of a woman sitting at a table, half her face in harsh white light, half in deep blue shadow, stark divide, cinematic contrast, clinical yet emotional atmosphere
 ```
 
 **Slide 2 (The shift):**
 ```
-Classical painting of a woman's face half in shadow half in light, expression transitioning from love to contempt, Caravaggio-style dramatic lighting, intense emotional contrast
+Edward Hopper style scene of a woman looking out a window at a desolate street, stark midday sun creating aggressive shadows, her expression unreadable and cold, geometric architectural framing
 ```
 
 **Slide 3 (Aftermath):**
 ```
-Dark romantic painting of a woman alone in a shadowy room, surrounded by torn letters and broken objects, expression of hollow regret, dramatic single light source from above
+Edward Hopper style painting of a woman alone in a dark hallway, a single bright light coming from a cracked door at the end, sense of internal conflict and binary choice
 ```
 
 **Slide 4 (Recognition):**
 ```
-Painting of a woman looking at her reflection in a cracked mirror, each fragment showing a different emotion, soft Pre-Raphaelite style, melancholic self-awareness
+Edward Hopper style scene of a woman looking at her own reflection in a darkened windowpane at night, the reflection appearing like a different person, mood of eerie self-confrontation
 ```
 
 #### Quiet BPD
 
 **Slide 1 (Hook):**
 ```
-Pre-Raphaelite painting of a woman at a social gathering, perfectly composed smile, but eyes revealing deep sadness, surrounded by blurred figures who don't notice, shallow depth of field effect
+Edward Hopper style painting of a woman at a crowded lunch counter, but she is utterly alone in her own space, looking down, others are blurred or turned away, the isolation of being in a crowd
 ```
 
 **Slide 2 (The mask):**
 ```
-Dual-layer painting effect: serene woman's portrait with translucent overlay showing chaotic storm imagery, the contrast between surface and interior, ethereal technique
+Edward Hopper style interior of a sun-drenched room, a woman sitting perfectly still in a chair, hands folded, looking at a patch of light on the floor, hidden internal turmoil beneath total stillness
 ```
 
 **Slide 3 (Internal chaos):**
 ```
-Surrealist painting of a woman's silhouette filled with turbulent ocean waves and storm clouds, while her outline remains perfectly still, contained chaos visual metaphor
+Edward Hopper style scene of a woman standing on a porch at dusk, the house behind her is glowing with warm light but she is facing the dark garden, the contrast between external safety and internal shadows
 ```
 
 **Slide 4 (Alone with it):**
 ```
-Intimate Pre-Raphaelite painting of a woman sitting alone in a beautiful room, head bowed, weight of invisible burden visible in her posture, late afternoon light, profound solitude
+Edward Hopper style painting of a woman in an office late at night, solitary figure under a desk lamp, the rest of the building is dark, weight of an invisible burden in her posture
 ```
 
 #### Fear of Abandonment
 
 **Slide 1 (Hook):**
 ```
-Romantic era painting of a woman at a doorway, half-turned away, looking back with conflicted expression, one hand reaching back while body moves forward, dramatic threshold composition
+Edward Hopper style painting of a woman standing at an open door, looking out at an empty road, the threshold creating a strong vertical frame, posture of hesitation and longing
 ```
 
 **Slide 2 (Testing):**
 ```
-Baroque painting of two figures, woman pushing away a reaching hand while her eyes desperately want them to stay, complex emotional body language, dramatic lighting
+Edward Hopper style scene of two figures in a room, the woman is looking away toward a window while the man is in the background, a palpable sense of emotional distance and the fear of the space between them
 ```
 
 **Slide 3 (The fear realized):**
 ```
-Painting of a woman watching a figure walk away into fog, her arm outstretched too late, muted colors, romantic era lonely landscape, profound loss atmosphere
+Edward Hopper style painting of a woman on a train, looking out at a passing landscape, muted colors, sense of being in transit and the fear of leaving or being left behind
 ```
 
 **Slide 4 (Pattern recognition):**
 ```
-Surrealist painting of a woman surrounded by fading ghostly figures, each representing people she pushed away, melancholic acceptance, soft ethereal lighting
+Edward Hopper style composition of a woman sitting on a park bench as the sun sets, long shadows stretching toward her, empty benches receding into the distance, profound stillness
 ```
 
 #### Identity Disturbance
 
 **Slide 1 (Hook):**
 ```
-Surrealist painting of a woman looking into a mirror that shows multiple different reflections, each a different personality, fragmented identity visual, dreamlike museum quality
+Edward Hopper style painting of a woman looking into a dressing room mirror, several other mirrors in the background showing different angles of her, but none feel like the 'real' one, stage-like lighting
 ```
 
 **Slide 2 (The mirroring):**
 ```
-Painting of two women facing each other, one clearly copying the other's posture and expression, chameleon-like transformation, subtle uncanny valley effect
+Edward Hopper style scene of a woman in a cafe, copying the exact posture of a woman at the next table, the subtle uncanny feeling of mirroring, cinematic realism
 ```
 
 **Slide 3 (The void):**
 ```
-Abstract-influenced painting of a woman's figure dissolving at the edges, uncertain boundaries, sense of formlessness, who am I visual metaphor
+Edward Hopper style painting of a woman's shadow on a bare wall, the shadow looking more substantial than the figure herself, geometric light from an unseen window
 ```
 
 **Slide 4 (Searching):**
 ```
-Pre-Raphaelite woman holding up different theatrical masks, each beautiful but none quite right, soft melancholic lighting, identity quest composition
+Edward Hopper style composition of a woman standing before a row of identical houses, looking confused about which one is hers, urban anonymity and the search for self
 ```
 
 ### Prompts for Tips/Hacks Format
 
 **Opening slide (establishing authority):**
 ```
-Warm-toned classical painting of a woman in peaceful contemplation, soft morning light, sense of hard-won wisdom, gentle strength in her expression, hopeful atmosphere
+Edward Hopper style painting of a woman sitting in a sun-filled room, morning light, peaceful but solitary contemplation, clear geometric lines, sense of quiet resolve
 ```
 
 **Skill demonstration slides:**
 ```
-Painting of hands in gentle self-soothing gesture, soft lighting, comfort and self-care visual, intimate close-up composition, warm tones
+Edward Hopper style close-up of hands resting on a wooden table, strong directional light casting a long shadow, intimate and grounded composition
 ```
 
 **Closing slide (hope/resolution):**
 ```
-Romantic era painting of a woman looking toward a brightening horizon, storm clouds parting behind her, expression of quiet determination, transformative journey visual
+Edward Hopper style painting of a woman looking toward a bright horizon from a porch, long evening shadows, expression of quiet determination and hope
 ```
 
 ## Animation Notes
@@ -514,27 +513,27 @@ Higgsfield Nano Banana Pro can add subtle movement to generated images:
 
 **Slide 1 (Hook):**
 - Text: "nobody talks about how fast you can go from 'soulmate' to 'enemy' in your head"
-- Image prompt: `Baroque painting of two versions of the same woman facing each other, one bathed in warm golden light looking loving, one in cold blue shadow looking hateful, dramatic split lighting down the center`
+- Image prompt: `Edward Hopper style painting of a woman sitting at a table, half her face in harsh white light, half in deep blue shadow, stark divide, cinematic contrast`
 
 **Slide 2:**
 - Text: "one wrong word and suddenly I'm rewriting our entire history"
-- Image prompt: `Classical painting of a woman's face half in shadow half in light, expression transitioning from love to contempt, Caravaggio-style dramatic lighting`
+- Image prompt: `Edward Hopper style scene of a woman looking out a window at a desolate street, stark midday sun creating aggressive shadows, her expression unreadable and cold`
 
 **Slide 3:**
 - Text: "3 years of good memories just... gone"
-- Image prompt: `Dark romantic painting of a woman alone in a shadowy room, surrounded by torn letters and fading photographs, expression of hollow emptiness`
+- Image prompt: `Edward Hopper style painting of a woman alone in a dark hallway, a single bright light coming from a cracked door at the end, sense of internal conflict`
 
 **Slide 4:**
 - Text: "and the worst part is knowing it's not rational but feeling it anyway"
-- Image prompt: `Painting of a woman looking at her reflection in a cracked mirror, each fragment showing a different emotion, Pre-Raphaelite style`
+- Image prompt: `Edward Hopper style scene of a woman looking at her own reflection in a darkened windowpane at night, the reflection appearing like a different person`
 
 **Slide 5:**
 - Text: "finding out this has a name and there's actually something you can do about it"
-- Image prompt: `Softer lighting, woman's expression shifting to recognition and hope, first light of dawn entering a dark room`
+- Image prompt: `Edward Hopper style interior of a sun-drenched room, a woman sitting perfectly still in a chair, hands folded, looking at a patch of light on the floor`
 
 **Slide 6 (App mention - use on 1 in 5 posts):**
 - Text: "my DBT app calls this 'wise mind' and it's the first thing that actually helped"
-- Image prompt: `Peaceful classical painting of woman in balanced, centered pose, soft golden light, sense of integration and calm`
+- Image prompt: `Edward Hopper style painting of a woman sitting in a sun-filled room, morning light, peaceful but solitary contemplation, sense of quiet resolve`
 
 ---
 

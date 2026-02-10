@@ -33,78 +33,6 @@
                         <p class="section-hint">Generate viral POV-style slides based on the V2 framework.</p>
 
                         <div class="native-gen-controls">
-                            <!-- Content Format Selection -->
-                            <div class="input-row">
-                                <div class="input-group">
-                                    <label for="native-gen-format">Content Format</label>
-                                    <select id="native-gen-format">
-                                        <option value="relatable">Relatable/Emotional (50%)</option>
-                                        <option value="pov">POV (20%)</option>
-                                        <option value="tips">Tips/Hacks (30%)</option>
-                                    </select>
-                                </div>
-                                <div class="input-group">
-                                    <label for="native-gen-topic">BPD Topic</label>
-                                    <select id="native-gen-topic">
-                                        <option value="favorite_person">Favorite Person (FP)</option>
-                                        <option value="splitting">Splitting</option>
-                                        <option value="quiet_bpd">Quiet BPD</option>
-                                        <option value="fear_of_abandonment">Fear of Abandonment</option>
-                                        <option value="identity_disturbance">Identity Disturbance</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Quick Select Combos -->
-                            <div class="viral-combos-section">
-                                <label class="viral-combos-label">🔥 Quick Combos <span class="tier-badge tier-1">High
-                                        Engagement</span></label>
-                                <div class="viral-combos-grid">
-                                    <button class="viral-combo-btn tier-1" data-format="relatable"
-                                        data-topic="favorite_person"
-                                        title="Nobody talks about how having an FP is basically emotional hostage syndrome">
-                                        <span class="combo-name">Relatable + FP</span>
-                                    </button>
-                                    <button class="viral-combo-btn tier-1" data-format="tips"
-                                        data-topic="favorite_person"
-                                        title="3 things that actually help when your FP hasn't texted back">
-                                        <span class="combo-name">Tips + FP</span>
-                                    </button>
-                                    <button class="viral-combo-btn tier-1" data-format="relatable"
-                                        data-topic="splitting"
-                                        title="Nobody talks about how fast you can go from 'soulmate' to 'enemy' in your head">
-                                        <span class="combo-name">Relatable + Splitting</span>
-                                    </button>
-                                    <button class="viral-combo-btn tier-1" data-format="pov" data-topic="splitting"
-                                        title="POV: they used the wrong tone and now you're rewriting your entire relationship">
-                                        <span class="combo-name">POV + Splitting</span>
-                                    </button>
-                                </div>
-                                <label class="viral-combos-label" style="margin-top: 8px;"><span
-                                        class="tier-badge tier-2">More Topics</span></label>
-                                <div class="viral-combos-grid">
-                                    <button class="viral-combo-btn tier-2" data-format="relatable"
-                                        data-topic="quiet_bpd"
-                                        title="Nobody talks about the version of BPD where you implode instead of explode">
-                                        <span class="combo-name">Relatable + Quiet BPD</span>
-                                    </button>
-                                    <button class="viral-combo-btn tier-2" data-format="pov" data-topic="quiet_bpd"
-                                        title="POV: you're having a complete breakdown and no one around you notices">
-                                        <span class="combo-name">POV + Quiet BPD</span>
-                                    </button>
-                                    <button class="viral-combo-btn tier-2" data-format="tips"
-                                        data-topic="fear_of_abandonment"
-                                        title="What to do when abandonment fear takes over">
-                                        <span class="combo-name">Tips + Abandonment</span>
-                                    </button>
-                                    <button class="viral-combo-btn tier-2" data-format="relatable"
-                                        data-topic="identity_disturbance"
-                                        title="Nobody talks about not knowing which version of yourself is the real one">
-                                        <span class="combo-name">Relatable + Identity</span>
-                                    </button>
-                                </div>
-                            </div>
-
                             <!-- Branding Toggle for DBT-Mind -->
                             <div class="branding-toggle-container"
                                 style="margin: 12px 0; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border: 1px solid var(--border-color);">
@@ -120,16 +48,8 @@
                                 </label>
                             </div>
 
-                            <!-- Compatibility Warning -->
-                            <div id="compatibility-warning" class="compatibility-warning" style="display: none;">
-                                <div class="warning-icon">⚠️</div>
-                                <div class="warning-content">
-                                    <div class="warning-text"></div>
-                                    <div class="warning-suggestion"></div>
-                                </div>
-                            </div>
                             <button class="btn btn-fire full-width" id="generate-native-slides-btn">
-                                <span>🔥 Generate Story Dump (Opus)</span>
+                                <span>🔥 Generate Weird Therapist Hacks (Opus)</span>
                             </button>
                         </div>
 
@@ -141,6 +61,8 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                             <div class="hook-tools" style="margin-top: 12px;">
                                 <button class="btn btn-fire btn-sm full-width" id="quick-improve-hook">🔥 Better
                                     Hooks</button>
+                                <button class="btn btn-fire btn-sm full-width" id="quick-improve-app-mention"
+                                    style="margin-top: 8px;">🧠 Better App Mention</button>
                             </div>
 
                             <button class="btn btn-primary full-width" id="parse-slides" style="margin-top: 8px;">
@@ -156,6 +78,11 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                         <div id="hook-options" class="hook-options" style="display: none;">
                             <h3>Select a Hook:</h3>
                             <div id="hook-list" class="hook-list"></div>
+                        </div>
+
+                        <div id="app-mention-options" class="hook-options" style="display: none;">
+                            <h3>Select an App Mention:</h3>
+                            <div id="app-mention-list" class="hook-list"></div>
                         </div>
 
                         <!-- TikTok Metadata Section -->
@@ -192,10 +119,26 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                         <p class="section-hint">Select a character and generate tailored AI prompts.</p>
 
                         <div class="character-controls">
-                            <!-- Character selection removed for DBT to enforce Classical Art style -->
+                            <!-- Art Style Selection for DBT -->
+                            <div class="input-group" style="margin-bottom: 12px;">
+                                <label for="art-style-select">Art Style</label>
+                                <select id="art-style-select" class="select-input" style="width: 100%;">
+                                    <option value="hopper">Edward Hopper (Solitude, Urban)</option>
+                                    <option value="varo">Remedios Varo (Surrealist, Mystical)</option>
+                                    <option value="jean">James Jean (Ethereal, Floral)</option>
+                                    <option value="symbolic">Symbolic (Person-Free, Atmospheric)</option>
+                                </select>
+                            </div>
+                            <div class="input-group" style="margin-bottom: 12px;">
+                                <label for="flow-select">Flow</label>
+                                <select id="flow-select" class="select-input" style="width: 100%;">
+                                    <option value="standard">Standard Flow</option>
+                                    <option value="weird_hack">Weird Hack Flow</option>
+                                </select>
+                            </div>
                             <div class="character-action-row" style="display: flex; gap: 8px; margin-bottom: 12px;">
                                 <button class="btn btn-accent" id="generate-image-prompts-btn" style="flex: 1;">
-                                    <span>✨ Create Classical Art Prompts</span>
+                                    <span>✨ Create Art Prompts</span>
                                 </button>
                             </div>
                         </div>
@@ -242,6 +185,22 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                             id="parsing-tools-container">
                             <button class="btn btn-primary full-width" id="parse-images-to-slides">
                                 <span>🎨 Parse to Slide Preview</span>
+                            </button>
+                        </div>
+
+                        <!-- Custom Image Generator -->
+                        <div class="sub-section"
+                            style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                            <h3 style="display: flex; align-items: center; gap: 8px;">🎨 Custom Prompt (Nano)</h3>
+                            <p class="section-hint">Raw prompt generation. No styles or guidance applied.</p>
+                            <div class="input-group">
+                                <textarea id="custom-prompt-input" class="text-input"
+                                    style="height: 80px; width: 100%; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); padding: 8px; font-family: var(--font-family);"
+                                    placeholder="e.g. A cyberpunk cat..."></textarea>
+                            </div>
+                            <button class="btn btn-secondary full-width" id="generate-custom-image-btn"
+                                style="margin-top: 8px;">
+                                <span>✨ Generate Custom Image</span>
                             </button>
                         </div>
                     </section>

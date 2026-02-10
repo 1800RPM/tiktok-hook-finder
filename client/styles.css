@@ -1013,9 +1013,41 @@ body {
     object-fit: cover;
 }
 
-/* ========================================
-   Form Elements
-   ======================================== */
+/* Standardized Select Input */
+.select-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23a1a1aa' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C2.185 5.355 2.408 5 2.811 5h9.752a.23.23 0 0 1 .197.396l-4.849 5.48a.25.25 0 0 1-.364 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+}
+
+.select-input:hover {
+    border-color: var(--border-hover);
+    background-color: var(--bg-hover);
+}
+
+.select-input:focus {
+    outline: none;
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 3px rgba(0, 242, 234, 0.1);
+}
+
+.select-input option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    padding: 10px;
+}
 
 .input-group {
     display: flex;

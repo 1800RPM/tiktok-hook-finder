@@ -7,6 +7,7 @@ import type { ReferenceImage } from "./image_generator";
 import { generateSypSlides } from "./projects/syp/syp_service";
 import { generateDbtSlides } from "./projects/dbt/dbt_service";
 import { getAnchorImage, buildUGCSlide1Prompt } from "./common/prompt_utils";
+import { ART_STYLES } from "./projects/dbt/art_styles";
 
 const DATA_DIR = existsSync(path.join(process.cwd(), "server", "data"))
     ? path.join(process.cwd(), "server", "data")
@@ -239,7 +240,7 @@ ${hookRequirementsPrompt}`;
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'claude-opus-4-5-20251101',
+                        model: 'claude-opus-4-6',
                         max_tokens: 500,
                         system: systemPrompt,
                         messages: [{ role: 'user', content: userPrompt }]
@@ -285,6 +286,96 @@ ${hookRequirementsPrompt}`;
             } catch (e) {
                 console.error("[Banger Hooks] Error:", e);
                 return sendJSON({ error: "Hook generation failed", details: String(e) }, 500);
+            }
+        }
+        // POST /improve-app-mention - Improve the app mention slide
+        else if (cleanPath === "/improve-app-mention" && method === "POST") {
+            try {
+                if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
+                const { slides, service } = await req.json() as any;
+                const fullSlideText = Array.isArray(slides) ? slides.join('\n') : "";
+
+                if (!fullSlideText.trim()) {
+                    return sendJSON({ error: "Slides text is required" }, 400);
+                }
+
+                console.log(`[App Mention] Improving for: ${fullSlideText.substring(0, 50)}...`);
+
+                const systemPrompt = `You are an expert in viral TikTok content for the mental health niche, specifically BPD/DBT communities. Your task is to seamlessly integrate a DBT app mention into an emotional slideshow post without breaking the raw, confessional tone that makes these posts resonate.
+Context:
+- The slide post is marketing a DBT app, but should never feel like marketing
+- The goal is to make viewers curious enough to comment "what app?"
+- The target audience is people with BPD or emotional regulation struggles who scroll TikTok for relatable content
+
+The Problem You're Solving:
+The final slide often breaks the emotional flow by shifting into "solution mode" or "recommendation mode." This kills the authenticity that made the earlier slides hit. Your job is to fix this.
+
+Rules for the Integrated Slide:
+1. Maintain first-person confessional voice — The slide must sound like a whispered admission, not advice
+2. Use "my dbt app" — Never "a dbt app" or "this dbt app I found." "My" signals personal ownership, like mentioning "my therapist" or "my journal"
+3. Connect to earlier slide language — Reference a feeling, behavior, or phrase from the previous slides to create continuity
+4. Show the action, don't explain the skill — Instead of "it has this skill called opposite action," say what you actually do: "do the opposite of what my brain wants"
+5. Keep it imperfect — Avoid toxic positivity. Words like "sometimes," "trying to," or "it's hard but" maintain honesty
+6. No CTA energy — Never "you should try" or "it really helps." The slide is about you, not them
+7. Preserve the rhythm — Match the sentence length and cadence of the other slides. Short lines. Breath between thoughts.
+8. Lowercase only. No exclamation points.
+9. Return ONLY a JSON array of 3 strings: ["option 1", "option 2", "option 3"].`;
+
+                const userPrompt = `Slide Content: 
+${fullSlideText}
+
+Based on the context above, generate three options for the integrated app mention slide.`;
+
+                const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'x-api-key': ANTHROPIC_API_KEY!,
+                        'anthropic-version': '2023-06-01',
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-opus-4-6',
+                        max_tokens: 500,
+                        system: systemPrompt,
+                        messages: [{ role: 'user', content: userPrompt }]
+                    })
+                });
+
+                if (!claudeResponse.ok) {
+                    const errorText = await claudeResponse.text();
+                    console.error("[App Mention] Anthropic API Error:", errorText);
+                    return sendJSON({ error: "Anthropic API Error", details: errorText }, claudeResponse.status);
+                }
+
+                const rawData = await claudeResponse.json() as any;
+                const resultText = rawData.content?.[0]?.text || '';
+
+                if (!resultText) {
+                    return sendJSON({ error: "Empty AI response" }, 500);
+                }
+
+                // Extract JSON array
+                let mentions: string[] = [];
+                try {
+                    const jsonMatch = resultText.match(/\[[\s\S]*\]/);
+                    if (jsonMatch) {
+                        mentions = JSON.parse(jsonMatch[0]);
+                    } else {
+                        mentions = JSON.parse(resultText);
+                    }
+                } catch (parseErr) {
+                    const matches = resultText.match(/"([^"]+)"/g);
+                    if (matches) {
+                        mentions = matches.slice(0, 3).map((m: string) => m.replace(/"/g, ''));
+                    }
+                }
+
+                return sendJSON({
+                    mentions: mentions.map(m => m.toLowerCase()).slice(0, 3)
+                });
+            } catch (e) {
+                console.error("[App Mention] Error:", e);
+                return sendJSON({ error: "App mention improvement failed", details: String(e) }, 500);
             }
         }
         // GET /personas - Get available character personas with anchor status
@@ -390,7 +481,7 @@ ${hookRequirementsPrompt}`;
         else if (cleanPath === "/generate-image-prompts" && method === "POST") {
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
-                const { slides, character_id, setting_override, framing, theme, partner_anchor, service, brandingMode } = await req.json() as any;
+                const { slides, character_id, setting_override, framing, theme, partner_anchor, service, brandingMode, artStyle, flow } = await req.json() as any;
 
                 if (!slides || !Array.isArray(slides) || slides.length === 0) {
                     return sendJSON({ error: "Slides array is required" }, 400);
@@ -481,120 +572,79 @@ ${hookRequirementsPrompt}`;
 
                 // If DBT project, we use a completely different system prompt (Classical Paintings)
                 if (isDbtProject) {
-                    console.log(`[Image Prompts] Generating CLASSICAL PAINTING prompts for DBT-Mind with ${slides.length} slides`);
+                    const selectedArtStyle = (ART_STYLES[artStyle] || ART_STYLES.hopper) as any;
+                    const isSymbolic = selectedArtStyle.id === 'symbolic';
+                    const isWeirdHackFlow = flow === 'weird_hack';
+                    console.log(`[Image Prompts] Generating ${selectedArtStyle.name} prompts for DBT-Mind with ${slides.length} slides${isSymbolic ? ' (Symbolic Mode)' : ''}${isWeirdHackFlow ? ' (Weird Hack Flow)' : ''}`);
 
-                    const dbtSystemPrompt = `You are generating image prompts for TikTok slideshow art. The images will be contemporary oil paintings with a painterly, emotional quality. Your job is to translate slide text into a visual scene — NOT to illustrate metaphors literally.
+                    const dbtSystemPrompt = `You are generating image prompts for TikTok slideshow art in the style of ${selectedArtStyle.name}. Your job is to translate slide text into a visual scene — NOT to illustrate metaphors literally.
 
 CORE PRINCIPLE:
-Every image is "a woman in a moment" — never "a woman with a concept."
+${isSymbolic
+                            ? 'Every image is a found moment in mundane daily life. NO CONCEPTUAL MAGIC. STRICTLY NO PEOPLE, NO HANDS, NO FACES.'
+                            : 'Every image is "a person in a moment of quiet introspection" — never "a woman with a concept." Even in surreal styles like James Jean or Remedios Varo, the core must be a human figure engaged in a specific physical act or posture.'}
+
+${isWeirdHackFlow ? `NARRATIVE FLOW: WEIRD THERAPIST HACKS
+The slides describe "weird" or unconventional therapist advice. 
+Visual focus: The scenes should feel like "insider secrets" or "hidden knowledge." 
+Incorporate objects that suggest a clinical but unconventional setting (e.g., a therapeutic sandbox, a complex mechanical watch, an unusual botanical specimen, a stack of handwritten journals). 
+The lighting should feel slightly more mysterious or "revelatory."` : ''}
 
 TRANSLATION RULES:
 
 1. IGNORE METAPHORS IN THE TEXT
-The slide text will contain metaphors like "spiral," "filling in the blanks," "the urge is loud," "feeding the fear." 
-DO NOT visualize these literally.
-Instead, ask: what is the PHYSICAL SITUATION this person is in?
+The slide text will contain metaphors like "spiral," "filling in the blanks," "the urge is loud." 
+DO NOT visualize these literally (e.g., no literal spirals).
+Instead, ask: what is the PHYSICAL SITUATION or LIVED-IN SPACE${isSymbolic ? ' (using ordinary objects)' : ''} this person is in?
 
 Examples:
-- Text mentions "checking the facts" → woman writing in a journal, or sitting with pen and paper
-- Text mentions "spiral" → woman with head in hands, or pacing, or hunched posture
-- Text mentions "opposite action" → woman mid-movement, walking away, or doing a simple task
-- Text mentions "self-soothing" → woman holding a mug, wrapped in blanket, or in a bath
-- Text mentions "testing people" → woman hesitating at a doorway, or looking at a letter unsent
+- "checking the facts" → ${isSymbolic ? 'a messy kitchen counter with a scrawled grocery list' : 'person writing at a desk, or staring at a single object in their hands.'}
+- "spiral" → ${isSymbolic ? 'a pile of tangled charging cables on a dusty floor' : 'person with head in hands, or looking out a window at a complex landscape.'}
+- "opposite action" → ${isSymbolic ? 'a pair of sneakers left by the door, hit by a streak of sunlight' : 'person walking away from something, or methodically tidying a space.'}
 
-2. BODY LANGUAGE CARRIES EMOTION
-Don't describe the emotion. Describe what the body is doing.
+2. STYLE PRINCIPLES FOR ${selectedArtStyle.name.toUpperCase()}:
+${selectedArtStyle.systemPromptPrinciples}
 
-❌ "expression of inner turmoil and anxiety"
-✅ "shoulders hunched, arms wrapped around herself"
+3. AVOID THE "AI LOOK":
+- **NO 3D RENDERING**: For ${selectedArtStyle.name}, ensure the prompt describes it as a ${selectedArtStyle.id === 'hopper' ? 'painting' : 'drawing/illustration'}.
+- **NO VOLUMETRIC LIGHT**: Unless it's Hopper, avoid ray-tracing or cinematic fog. Use "flat light" or "illustrative shading".
+- **NO CGI FACES**: Describe faces as "drawn", "painterly", or "stylized".
 
-❌ "contemplating her fragmented identity"
-✅ "looking down at her hands, still and uncertain"
-
-❌ "feeling the weight of abandonment fear"
-✅ "standing at a window, one hand on the glass"
-
-3. SETTINGS ARE SIMPLE AND UNIVERSAL
-Every scene happens in one of these places:
-- A room with a window
-- A doorway or threshold
-- By candlelight
-- In nature (field, path, shoreline) — but NOT fantasy nature
-- An empty/sparse interior
-
-NO: ruins, enchanted forests, cosmic spaces, libraries full of floating books, magical gardens
-
-4. NO SYMBOLIC OBJECTS
-The woman can interact with:
-✅ Paper, pen, journal
-✅ A letter (sealed or unsealed)
-✅ A candle
-✅ A cup/mug
-✅ A blanket or fabric
-✅ A door or window
-✅ Her own body (hands, hair, face)
-
-The woman should NOT interact with:
-❌ Floating orbs, spheres, bubbles
-❌ Mirrors (unless it's a simple reflection, not "fragmented")
-❌ Glowing objects
-❌ Prisms, crystals
-❌ Chains, threads, strings (unless very subtle)
-❌ Any object that "represents" an emotion
-
-5. PROMPT STRUCTURE
+4. PROMPT STRUCTURE
 
 Use this format for each prompt:
 
-"Contemporary oil painting. Subject: [physical description of woman + what she's doing + body language]. Setting: [simple location + lighting]. Atmosphere: [1-2 words for mood]. Composition: [where figure is in frame, what draws the eye]."
+"${selectedArtStyle.name} style. Subject: [physical description${isSymbolic ? ' of objects or nature' : ' of woman + what she\'s doing + body language'}]. Setting: [location based on style principles + dramatic lighting]. Atmosphere: [1-2 words for mood]. Composition: [geometric or organic framing details]."
 
 Then add this exact style suffix to every prompt:
 
-NO BORDERS, NO FRAMES, FULL BLEED.
-Style: contemporary oil painting, painterly brushstrokes visible, warm amber and golden tones, museum lighting, emotional and conceptual, NOT photorealistic, NOT digital illustration, NOT storybook aesthetic.
-FACE RULES:
-- Subject should NOT look directly at viewer
-- Eyes closed, looking down, looking away, or in profile
-- If face is visible, it should be partially in shadow, turned away, or the figure should be distant in the frame
-- Emotional truth comes from body language and atmosphere, not facial expression
-CLOTHING/SETTING:
-- Timeless, not period-specific
-- NO bonnets, corsets, ruffs, or obviously historical garments
-- Simple dresses, draped fabric, loose hair
-- Settings should be universal: window, candlelight, nature, empty room
-NO MAGICAL OR SYMBOLIC ELEMENTS:
-- NO floating objects, orbs, glowing elements, prisms, crystals
-- NO literal visualization of metaphors
-- NO fantasy settings (ruins, enchanted forests, cosmic backgrounds)
-- If it could appear on a spiritual healer's Instagram — regenerate
+${selectedArtStyle.suffix}
 
-6. EXAMPLES
+4. EXAMPLES
 
 Slide text: "when i catch myself setting little traps like not texting first to see if they'll reach out i have to stop and name what i'm actually doing"
-Resulting prompt: "Contemporary oil painting. Subject: A young woman in simple draped clothing, seated at a wooden table, her hand resting on an unsent letter, gaze lowered, posture hesitant. Setting: sparse room with single window, soft diffused daylight. Atmosphere: quiet tension. Composition: figure centered, the letter creating a focal point beneath her hand." [plus style suffix]
-
-Slide text: "the urge to demand reassurance is LOUD but self-soothing gives me somewhere else to put that energy"
-Resulting prompt: "Contemporary oil painting. Subject: A young woman curled in a chair, wrapped in a soft blanket, holding a cup of tea close to her chest, eyes closed, tension releasing from her shoulders. Setting: dim room lit by a single candle, warm amber tones. Atmosphere: fragile comfort. Composition: intimate close framing, the cup and her hands as focal point." [plus style suffix]
-
-Slide text: "building a self when you've been borrowing someone else's takes practice"
-Resulting prompt: "Contemporary oil painting. Subject: A young woman walking alone on a path through an open field, seen from behind, her posture neither confident nor defeated — just walking. Setting: late afternoon light, golden hour, wide sky. Atmosphere: quiet becoming. Composition: figure small in lower third, vast sky and field emphasizing solitude and possibility." [plus style suffix]
+Resulting prompt: "${selectedArtStyle.name} style. Subject: ${isSymbolic ? 'An unlit candle sitting on an empty wooden table, a single matchstick lying next to it' : `A young woman ${selectedArtStyle.id === 'jean' ? 'dissolving into a swirling mass of petals and vines, her posture showing lonely hesitation' : 'seated at a table at night, staring at her phone, posture of lonely hesitation'}`}. Setting: ${selectedArtStyle.id === 'hopper' ? 'empty room, harsh overhead light, large window' : 'a luminous, dreamlike space where architecture flows into nature'}. Atmosphere: quiet tension. Composition: ${isSymbolic ? 'close-up shot on the table surface' : `figure ${selectedArtStyle.id === 'jean' ? 'merged with a dense, fractal organic background' : 'framed by the vertical line of a doorway'}`}." [plus style suffix]
 
 Return JSON:
 {
-  "image1": "...",
+  ${isSymbolic ? '' : '"image1": "...",'}
   "image2": "...",
   "image3": "...",
   "image4": "...",
   "image5": "...",
-  "image6": "..."
-}`;
+  "image6": "...",
+  "image7": "..."
+} (If symbolic mode, skip image1 entirely)`;
 
 
-                    const userPrompt = `Follow the Translation Rules to generate 6 image prompts based on these specific slide texts:
+                    const targetSlides = isSymbolic ? slides.slice(1) : slides;
+                    const startIndex = isSymbolic ? 1 : 0;
 
-${slides.map((s: string, i: number) => `Image ${i + 1} (Context from Slide ${i + 1} text): "${s}"`).join('\n')}
+                    const userPrompt = `Follow the Translation Rules to generate ${targetSlides.length} image prompts based on these specific slide texts:
 
-Return a JSON object with keys "image1" through "image6". Ensure each prompt translates the physical situation of that specific slide's text as per the rules.`;
+${targetSlides.map((s: string, i: number) => `Image ${startIndex + i + 1} (Context from Slide ${startIndex + i + 1} text): "${s}"`).join('\n')}
+
+Return a JSON object with keys ${targetSlides.map((_, i) => `"image${startIndex + i + 1}"`).join(', ')}. Ensure each prompt translates the physical situation of that specific slide's text as per the rules.`;
 
                     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
                         method: 'POST',
@@ -604,7 +654,7 @@ Return a JSON object with keys "image1" through "image6". Ensure each prompt tra
                             'content-type': 'application/json'
                         },
                         body: JSON.stringify({
-                            model: 'claude-opus-4-5-20251101',
+                            model: 'claude-opus-4-6',
                             max_tokens: 2500,
                             system: dbtSystemPrompt,
                             messages: [{ role: 'user', content: userPrompt }]
@@ -629,25 +679,7 @@ Return a JSON object with keys "image1" through "image6". Ensure each prompt tra
                     }
 
                     // Append the global style to all generated image prompts
-                    const styleOverlay = `
-
-NO BORDERS, NO FRAMES, FULL BLEED.
-Style: contemporary oil painting, painterly brushstrokes visible, warm amber and golden tones, museum lighting, emotional and conceptual, NOT photorealistic, NOT digital illustration, NOT storybook aesthetic.
-FACE RULES:
-- Subject should NOT look directly at viewer
-- Eyes closed, looking down, looking away, or in profile
-- If face is visible, it should be partially in shadow, turned away, or the figure should be distant in the frame
-- Emotional truth comes from body language and atmosphere, not facial expression
-CLOTHING/SETTING:
-- Timeless, not period-specific
-- NO bonnets, corsets, ruffs, or obviously historical garments
-- Simple dresses, draped fabric, loose hair
-- Settings should be universal: window, candlelight, nature, empty room
-NO MAGICAL OR SYMBOLIC ELEMENTS:
-- NO floating objects, orbs, glowing elements, prisms, crystals
-- NO literal visualization of metaphors
-- NO fantasy settings (ruins, enchanted forests, cosmic backgrounds)
-- If it could appear on a spiritual healer's Instagram — regenerate`;
+                    const styleOverlay = selectedArtStyle.suffix;
 
                     Object.keys(parsed).forEach(key => {
                         if (key.startsWith('image') && typeof parsed[key] === 'string' && !parsed[key].includes("FACE RULES:")) {
@@ -658,17 +690,14 @@ NO MAGICAL OR SYMBOLIC ELEMENTS:
                     // Convert object to array for frontend
                     const prompts = Object.keys(parsed)
                         .filter(key => key.startsWith('image'))
-                        .sort((a, b) => {
-                            const numA = parseInt(a.replace('image', '')) || 0;
-                            const numB = parseInt(b.replace('image', '')) || 0;
-                            return numA - numB;
-                        })
+                        .sort((a, b) => (parseInt(a.replace('image', '')) || 0) - (parseInt(b.replace('image', '')) || 0))
                         .map(key => parsed[key]);
 
                     return sendJSON({
                         prompts: prompts,
                         image_prompts: parsed,
-                        is_painting_style: true
+                        is_painting_style: true,
+                        useStaticSlide1: isSymbolic
                     });
                 } else {
                     // UGC Style (SYP and regular DBT if ever used)
@@ -816,7 +845,7 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
                             'content-type': 'application/json'
                         },
                         body: JSON.stringify({
-                            model: 'claude-opus-4-5-20251101',
+                            model: 'claude-opus-4-6',
                             max_tokens: 2500,
                             system: systemPrompt,
                             messages: [{ role: 'user', content: userPrompt }]
@@ -903,24 +932,25 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
                 const isDbt = service === 'dbt';
                 const isSyp = service === 'syp';
 
-                // DBT-Mind: branding in description when includeBranding is false
-                const needsDbtBrandingInDescription = isDbt && includeBranding === false;
+                // DBT-Mind: Use the new branding openers
+                const needsDbtBrandingInDescription = isDbt;
 
                 // SYP: branding in description when brandingMode is 'soft'
                 const needsSypBrandingInDescription = isSyp && brandingMode === 'soft';
 
-                console.log(`[Metadata Gen] Generating for: ${slides_text.substring(0, 50)}... (service: ${service || 'unknown'}, dbt branding: ${needsDbtBrandingInDescription}, syp brandingMode: ${brandingMode || 'n/a'})`);
+                console.log(`[Metadata Gen] Generating for: ${slides_text.substring(0, 50)}... (service: ${service || 'unknown'}, dbt: ${isDbt}, syp brandingMode: ${brandingMode || 'n/a'})`);
 
-                // Build branding instruction for DBT-Mind when branding is OFF in slides
+                // Build branding instruction
                 let brandingInstruction = '';
-                if (needsDbtBrandingInDescription) {
+                if (isDbt) {
                     brandingInstruction = `
-## ⚠️ CRITICAL: INCLUDE DBT-MIND IN DESCRIPTION
-Since the slides don't mention DBT-Mind, you MUST include it in the description!
-- Add a natural mention like: "DBT-Mind app helps with this 💜" or "more skills in the DBT-Mind app 🧠" or "DBT-Mind app → real DBT skills"
-- The mention should feel like a helpful tip, not an ad
-- Place it naturally within or at the end of the description
-- Keep it subtle but present
+## ⚠️ CRITICAL: DBT-MIND DESCRIPTION FORMAT
+The description MUST start with exactly one of these three openers (choose one at random):
+1. "@dbtmind is the app I use every single day to navigate my BPD recovery. ❤️🩹"
+2. "@dbtmind app makes practicing DBT skills actually doable outside of the therapy room. 📱"
+3. "@dbtmind app helps me stay consistent with my mental health goals even on the hard days."
+
+After the opener, add one or two sentences related to the specific slide content.
 `;
                 } else if (needsSypBrandingInDescription) {
                     brandingInstruction = `
@@ -952,26 +982,26 @@ Du MUSST saveyourpet.de in der Description erwähnen - und zwar **AM ANFANG**, n
 ### FORMAT:
 "saveyourpet.de [kreatives Statement]. [1-2 Sätze zur Story/Emotion] [2-3 Emojis] [3-5 Hashtags]"
 `;
+                } else if (isSyp && brandingMode === 'none') {
+                    brandingInstruction = `
+## ⚠️ WICHTIG: KEIN BRANDING (KEIN saveyourpet.de)
+- ❌ Erwähne saveyourpet.de NIEMALS in der Description!
+- ✅ Aber: Nutze Begriffe wie "Tierkrankenversicherung", "Absicherung" oder "OP-Schutz" in der Caption, um das Thema der Slides aufzugreifen.
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.
+- ✅ Beispiel: "Bin so froh, dass ich das Thema Tierkrankenversicherung endlich angegangen bin 🐕🙏"
+`;
                 }
 
                 // Language-specific instructions
                 const languageInstructions = isDbt ? `
 ## LANGUAGE: ENGLISH
 - Write everything in English
-- Natural, authentic, conversational tone
-- Relatable and warm, not overly trendy or slang-heavy
-- Avoid excessive Gen-Z slang (no "hits different", "no cap", "slay", "lowkey", "highkey", "fr fr")
+- Natural, authentic, helpful, and supportive tone
+- Relatable and warm, with a slight Gen-Z touch (e.g., "bestie", "vibes", "real", "lowkey")
 - Simple, clear language that anyone can understand
-- Slightly humorous or self-aware is okay, but keep it grounded
+- Focus on delivering value and making the viewer feel seen
 
-## STYLE EXAMPLES:
-❌ BAD: "when your therapist is lowkey tired of you fr" (too slang-heavy)
-✅ GOOD: "things my therapist is tired of hearing" (simple, relatable)
-
-❌ BAD: "the way my fp not texting back hits different" (too Gen-Z)
-✅ GOOD: "waiting for a text that's probably not coming" (natural, authentic)
-
-Example output: {"title": "when they go from soulmate to enemy in 5 minutes", "description": "the split was so fast I got whiplash 🙃💜 #bpd #bpdawareness #mentalhealth #dbt #splitting"}` : `
+Example output: {"title": "when they go from soulmate to enemy in 5 minutes", "description": "@dbtmind is the app I use every single day to navigate my BPD recovery. ❤️🩹 the split was so fast I got whiplash. it's so real. #bpd #bpdawareness #mentalhealth #dbt #splitting"}` : `
 ## LANGUAGE: GERMAN
 - Write everything in German
 - Natural, authentic, conversational tone
@@ -992,7 +1022,7 @@ Example output: {"title": "wenn dein hund besser schläft als du", "description"
 
                 // Reminder for description branding
                 const brandingReminder = needsDbtBrandingInDescription
-                    ? ' Remember to include DBT-Mind mention!'
+                    ? ' Remember to start the description with one of the @dbtmind openers!'
                     : needsSypBrandingInDescription
                         ? ' KRITISCH: saveyourpet.de MUSS AM ANFANG der Description stehen (z.B. "saveyourpet.de hat mir den A*sch gerettet 😂") - kreativ, nicht werblich!'
                         : '';
@@ -1018,7 +1048,7 @@ OUTPUT: Return ONLY a JSON object with "title" and "description" fields. No mark
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'claude-opus-4-5-20251101',
+                        model: 'claude-opus-4-6',
                         max_tokens: 1000,
                         system: systemPrompt,
                         messages: [{ role: 'user', content: userPrompt }]
@@ -1090,7 +1120,7 @@ OUTPUT: Return ONLY a JSON object with "title" and "description" fields. No mark
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'claude-opus-4-5-20251101',
+                        model: 'claude-opus-4-6',
                         max_tokens: 1200,
                         messages: [{
                             role: 'user',
@@ -1189,7 +1219,7 @@ Output format: JSON array of 5 strings ONLY.No markdown, no explanation.`
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'claude-opus-4-5-20251101',
+                        model: 'claude-opus-4-6',
                         max_tokens: 500,
                         messages: [{
                             role: 'user',
@@ -1263,7 +1293,7 @@ ${slidesText.map((s: string, i: number) => `Slide ${i + 2}: ${s}`).join('\n')}
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'claude-opus-4-5-20251101',
+                        model: 'claude-opus-4-6',
                         max_tokens: 2500,
                         messages: [{
                             role: 'user',
@@ -1471,14 +1501,18 @@ Output ONLY the JSON object.No markdown, no explanation.`
 
                         console.log(`[Carousel Images] Generating ${imageKeys.length} carousel images for character: ${character_id || 'unspecified'}...`);
 
-                        const prompts: string[] = [];
+                        const promptsWithIndices: { prompt: string, index: number }[] = [];
                         for (const key of imageKeys) {
                             if (imagePrompts[key]) {
-                                prompts.push(flattenImagePrompt(imagePrompts[key], { includeUgcStyle: service !== 'dbt' }));
+                                const index = parseInt(key.replace('image', '')) - 1; // 0-indexed
+                                promptsWithIndices.push({
+                                    prompt: flattenImagePrompt(imagePrompts[key], { includeUgcStyle: service !== 'dbt' }),
+                                    index: index
+                                });
                             }
                         }
 
-                        if (prompts.length === 0) {
+                        if (promptsWithIndices.length === 0) {
                             return sendJSON({ error: "No valid image prompts found" }, 400);
                         } else {
                             // ONLY load anchor if this is the SYP service
@@ -1496,10 +1530,28 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                 console.log(`[Carousel Images] Skipping anchor load for service: ${service || 'unknown'} (DBT uses pure prompting)`);
                             }
 
-                            const results = await generateCarouselImages(prompts, GEMINI_API_KEY, {
-                                aspectRatio: "9:16",
-                                imageSize: "2K"
-                            }, anchor ? [anchor] : []);
+                            // Generate images one by one or using the batch logic
+                            // To preserve indices correctly, we'll map them back
+                            const results = [];
+                            for (const item of promptsWithIndices) {
+                                console.log(`[Carousel Images] Generating slide ${item.index + 1}/${imageKeys.length}...`);
+
+                                let anchorToUse = anchor;
+                                // DBT uses pure prompting, no anchor
+                                if (service === 'dbt') anchorToUse = null;
+
+                                const result = anchorToUse
+                                    ? await generateImageWithReferences(item.prompt, [anchorToUse], GEMINI_API_KEY, { aspectRatio: "9:16", imageSize: "2K" })
+                                    : await generateImage(item.prompt, GEMINI_API_KEY, { aspectRatio: "9:16", imageSize: "2K" });
+
+                                results.push({
+                                    slideIndex: item.index,
+                                    result: result
+                                });
+
+                                // Small delay between requests to be nice to the API
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            }
 
                             const images = results.map(r => {
                                 const firstImage = r.result.images?.[0];
@@ -1515,15 +1567,15 @@ Output ONLY the JSON object.No markdown, no explanation.`
                             });
 
                             const successCount = images.filter(i => i.success).length;
-                            console.log(`[Carousel Images] Generated ${successCount}/${prompts.length} images`);
+                            console.log(`[Carousel Images] Generated ${successCount}/${promptsWithIndices.length} images`);
 
                             return sendJSON({
                                 success: successCount > 0,
                                 images: images,
                                 stats: {
-                                    total: prompts.length,
+                                    total: promptsWithIndices.length,
                                     successful: successCount,
-                                    failed: prompts.length - successCount
+                                    failed: promptsWithIndices.length - successCount
                                 }
                             });
                         }
@@ -1534,6 +1586,44 @@ Output ONLY the JSON object.No markdown, no explanation.`
                         error: "Carousel image generation failed",
                         details: err instanceof Error ? err.message : String(err)
                     }, 500);
+                }
+            }
+        }
+        // POST /generate-custom-image - Generate a single image from a raw prompt
+        else if (cleanPath === "/generate-custom-image" && method === "POST") {
+            if (!GEMINI_API_KEY) {
+                return sendJSON({ error: "Gemini API Key not configured" }, 500);
+            } else {
+                try {
+                    const { prompt, aspectRatio = "9:16" } = await req.json() as any;
+                    if (!prompt) {
+                        return sendJSON({ error: "Prompt is required" }, 400);
+                    } else {
+                        console.log(`[Custom Image] Generating with raw prompt: ${prompt.substring(0, 50)}...`);
+
+                        const result = await generateImage(prompt, GEMINI_API_KEY, {
+                            aspectRatio: aspectRatio,
+                            imageSize: "2K"
+                        });
+
+                        if (result.success && result.images && result.images.length > 0) {
+                            const firstImage = result.images[0];
+                            if (!firstImage) return sendJSON({ error: "Image generation returned empty data" }, 500);
+
+                            return sendJSON({
+                                success: true,
+                                image: {
+                                    data: firstImage.data,
+                                    mime_type: firstImage.mimeType
+                                }
+                            });
+                        } else {
+                            return sendJSON({ success: false, error: result.error || "Generation failed" }, 500);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Custom Image Generation Error:", err);
+                    return sendJSON({ error: "Custom generation failed", details: String(err) }, 500);
                 }
             }
         }

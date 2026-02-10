@@ -74,38 +74,46 @@ export async function generateSypSlides(params: SypGenerateParams) {
             const lifestyleReplacements: { [key: string]: string } = {
                 'A': `## ⚠️ WICHTIG: KEINE WERBUNG / NO BRANDING MODE (Browser-Tabs)
 - ❌ ERWÄHNE saveyourpet.de NICHT! Kein "saveyourpet.de" in irgendeiner Slide!
-- ✅ Ersetze die saveyourpet.de-Slide durch EINE WEITERE LUSTIGE GOOGLE-SUCHE!
-  - Beispiel: "Tierarzt Kosten nachts teuer?" oder "Hund OP Kosten Deutschland" oder "Wie viel kostet Tierarzt Notdienst"
-  - Die Suche sollte subtil auf Kosten/Vorsorge hinweisen aber authentisch klingen
+- ✅ EINE der Google-Suchen MUSS das Thema Tierkrankenversicherung oder OP-Schutz erwähnen (ohne Markennamen!).
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.
+- ✅ Beispiel-Suche für Absicherung: "Tierkrankenversicherung sinnvoll?", "Hund OP Kosten absichern", "Katze versichern Kosten"
+- ✅ Die anderen Suchen bleiben lustig und authentisch: "Tierarzt Kosten nachts teuer?", "Hund hat Socke gefressen"
 - ✅ ALLE Slides müssen als Browser-Tabs/Google-Suchen formatiert sein (außer Hook und Closer)`,
 
                 'B': `## ⚠️ WICHTIG: KEINE WERBUNG / NO BRANDING MODE (Checkliste)
 - ❌ ERWÄHNE saveyourpet.de NICHT!
-- ✅ Ersetze die saveyourpet.de-Slide durch einen weiteren Checklisten-Punkt der zum Thema passt`,
+- ✅ Ein Checklisten-Punkt MUSS mit Absicherung/Tierkrankenversicherung zu tun haben (ohne Markennamen)!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`,
 
                 'C': `## ⚠️ WICHTIG: KEINE WERBUNG / NO BRANDING MODE (Zwei Typen)
 - ❌ ERWÄHNE saveyourpet.de NICHT!
-- ✅ Lass die saveyourpet.de-Slide komplett weg oder ersetze sie durch einen weiteren Vergleichspunkt`,
+- ✅ Ein Vergleichspunkt bei Typ 2 MUSS mit Absicherung/Tierkrankenversicherung zu tun haben!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`,
 
                 'D': `## ⚠️ WICHTIG: KEINE WERBUNG / NO BRANDING MODE (Nacht/Overthinking)
 - ❌ ERWÄHNE saveyourpet.de NICHT!
-- ✅ Ersetze die saveyourpet.de-Slide durch einen weiteren nächtlichen Gedanken`,
+- ✅ Ein nächtlicher Gedanke MUSS mit Absicherung/Tierkrankenversicherung zu tun haben!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`,
 
                 'E': `## ⚠️ WICHTIG: KEINE WERBUNG / NO BRANDING MODE (Starter Pack)
 - ❌ ERWÄHNE saveyourpet.de NICHT!
-- ✅ Ersetze die saveyourpet.de-Slide durch ein weiteres Starter-Pack-Item`,
+- ✅ Ein Starter-Pack-Item MUSS die Tierkrankenversicherung oder Absicherung sein!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`,
 
                 'F': `## ⚠️ WICHTIG: KEINE WERBUNG / NO BRANDING MODE (Apps/Handy)
 - ❌ ERWÄHNE saveyourpet.de NICHT!
-- ✅ Ersetze die saveyourpet.de-Slide durch eine weitere App oder Handy-Benachrichtigung`,
+- ✅ Eine App/Notification MUSS mit Tierkrankenversicherung/Vorsorge zu tun haben!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`,
 
                 'G': `## ⚠️ WICHTIG: KEINE WERBUNG / NO BRANDING MODE (Lessons Learned)
 - ❌ ERWÄHNE saveyourpet.de NICHT!
-- ✅ Ersetze die saveyourpet.de-Slide durch eine weitere gelernte Lektion`,
+- ✅ Eine Lektion MUSS mit Vorsorge/Tierkrankenversicherung zu tun haben!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`,
 
                 'H': `## ⚠️ WICHTIG: KEINE WERBUNG / NO BRANDING MODE (POV Main Character)
 - ❌ ERWÄHNE saveyourpet.de NICHT!
-- ✅ Ersetze die saveyourpet.de-Slide durch einen weiteren POV-Moment`
+- ✅ Ein POV-Moment MUSS mit Absicherung/Tierkrankenversicherung zu tun haben!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`
             };
 
             brandingInstruction = lifestyleReplacements[forcedStructure] ?? lifestyleReplacements['A'] ?? '';
@@ -116,12 +124,13 @@ export async function generateSypSlides(params: SypGenerateParams) {
 Da der Benutzer "SaveYourPet erwähnen" DEAKTIVIERT hat:
 - ❌ ERWÄHNE saveyourpet.de NICHT! Kein "saveyourpet.de" in irgendeiner Slide!
 - ❌ Keine Webseiten, keine Links, keine Produktempfehlungen
-- ✅ Ersetze die SaveYourPet-Slide durch etwas Relatables zum Thema KOSTEN:
-  - "Ich hätte das früher wissen müssen"
-  - "Lesson learned. Teuer gelernt."
-  - "Tja. Jetzt weiß ich's."
-  - "Die teuerste Lektion bisher"
-  - "Nächstes Mal besser vorbereitet"
+- ✅ Ersetze die SaveYourPet-Slide durch etwas Relatables zum Thema ABSICHERUNG:
+  - "Hätte ich mal 'ne Tierkrankenversicherung abgeschlossen"
+  - "Lesson learned: Absicherung ist wichtig."
+  - "Nächstes Mal mit OP-Schutz."
+  - "Tierkrankenversicherung wäre billiger gewesen"
+  - "Die teuerste Lektion bisher (Vorsorge fehlt)"
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.
 - ✅ Der Ton bleibt trocken, resigniert, authentisch - aber KEINE Werbung!`;
         }
     } else if (brandingMode === 'soft') {
@@ -133,42 +142,43 @@ Da der Benutzer "SaveYourPet erwähnen" DEAKTIVIERT hat:
 - ❌ ERWÄHNE saveyourpet.de NICHT direkt in den Slides!
 - ✅ ABER: Eine der Google-Suchen MUSS mit Tierkrankenversicherung/Absicherung zu tun haben!
   - Beispiele: "Tierkrankenversicherung sinnvoll?", "Hund absichern wie?", "Katze versichern Kosten", "Tierarztkosten absichern"
-  - Das macht die Description mit saveyourpet.de-Erwähnung authentisch!`,
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.
+- ✅ Das macht die Description mit saveyourpet.de-Erwähnung authentisch!`,
 
                 'B': `## ⚠️ WICHTIG: SOFT BRANDING MODE (Checkliste)
-- ❌ ERWÄHNE saveyourpet.de NICHT direkt!
-- ✅ Ein Checklisten-Punkt MUSS mit Absicherung/Versicherung zu tun haben!
-  - Beispiele: "Hat den Liebling abgesichert ✓", "Tierkrankenversicherung ✓", "Für Notfälle vorgesorgt ✓"`,
+- ❌ ERWÄHNE saveyourpet.de NICHT direkt in den Slides!
+- ✅ ABER: Ein Checklisten-Punkt MUSS mit Absicherung/Tierkrankenversicherung zu tun haben!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`,
 
                 'C': `## ⚠️ WICHTIG: SOFT BRANDING MODE (Zwei Typen)
-- ❌ ERWÄHNE saveyourpet.de NICHT direkt!
-- ✅ Ein Vergleichspunkt bei Typ 2 MUSS mit Absicherung zu tun haben!
-  - Beispiele: Typ 1 "Hofft einfach, dass nichts passiert" vs Typ 2 "Hat seinen Liebling abgesichert"`,
+- ❌ ERWÄHNE saveyourpet.de NICHT direkt in den Slides!
+- ✅ ABER: Ein Vergleichspunkt bei Typ 2 MUSS mit Absicherung/Tierkrankenversicherung zu tun haben!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`,
 
                 'D': `## ⚠️ WICHTIG: SOFT BRANDING MODE (Nacht/Overthinking)
-- ❌ ERWÄHNE saveyourpet.de NICHT direkt!
-- ✅ Ein nächtlicher Gedanke MUSS mit Absicherung/Vorsorge zu tun haben!
-  - Beispiele: "Was wenn ${selectedProfile.vars.NAME} mal krank wird?", "Bin ich auf einen Notfall vorbereitet?"`,
+- ❌ ERWÄHNE saveyourpet.de NICHT direkt in den Slides!
+- ✅ ABER: Ein nächtlicher Gedanke MUSS mit Absicherung/Tierkrankenversicherung zu tun haben!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`,
 
                 'E': `## ⚠️ WICHTIG: SOFT BRANDING MODE (Starter Pack)
-- ❌ ERWÄHNE saveyourpet.de NICHT direkt!
-- ✅ Ein Starter-Pack-Item MUSS mit Absicherung zu tun haben!
-  - Beispiele: "Die Tierkrankenversicherung", "Für alle Fälle vorgesorgt"`,
+- ❌ ERWÄHNE saveyourpet.de NICHT direkt in den Slides!
+- ✅ ABER: Ein Starter-Pack-Item MUSS die Tierkrankenversicherung oder Absicherung sein!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`,
 
                 'F': `## ⚠️ WICHTIG: SOFT BRANDING MODE (Apps/Handy)
-- ❌ ERWÄHNE saveyourpet.de NICHT direkt!
-- ✅ Eine App/Notification MUSS mit Versicherung/Absicherung zu tun haben!
-  - Beispiele: "Reminder: Tierkrankenversicherung abschließen", "Absicherung-Check erledigt"`,
+- ❌ ERWÄHNE saveyourpet.de NICHT direkt in den Slides!
+- ✅ ABER: Eine App/Notification MUSS mit Tierkrankenversicherung/Vorsorge zu tun haben!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`,
 
                 'G': `## ⚠️ WICHTIG: SOFT BRANDING MODE (Lessons Learned)
-- ❌ ERWÄHNE saveyourpet.de NICHT direkt!
-- ✅ Eine Lektion MUSS mit Vorsorge/Absicherung zu tun haben!
-  - Beispiele: "Früher vorsorgen als ich", "Tierkrankenversicherung ist kein Luxus"`,
+- ❌ ERWÄHNE saveyourpet.de NICHT direkt in den Slides!
+- ✅ ABER: Eine Lektion MUSS mit Vorsorge/Tierkrankenversicherung zu tun haben!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`,
 
                 'H': `## ⚠️ WICHTIG: SOFT BRANDING MODE (POV Main Character)
-- ❌ ERWÄHNE saveyourpet.de NICHT direkt!
-- ✅ Ein POV-Moment MUSS mit Absicherung zu tun haben!
-  - Beispiele: "POV: Du hast deinen Liebling endlich abgesichert"`
+- ❌ ERWÄHNE saveyourpet.de NICHT direkt in den Slides!
+- ✅ ABER: Ein POV-Moment MUSS mit Absicherung/Tierkrankenversicherung zu tun haben!
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.`
             };
 
             brandingInstruction = lifestyleSoftBranding[forcedStructure] ?? lifestyleSoftBranding['A'] ?? '';
@@ -183,8 +193,9 @@ Da der Benutzer "SaveYourPet erwähnen" DEAKTIVIERT hat:
     - "Für sowas bin ich jetzt vorbereitet"
     - "Tierkrankenversicherung: beste Entscheidung"
     - "Wenigstens ist ${selectedProfile.vars.NAME} jetzt abgesichert"
-  - Das ermöglicht, dass saveyourpet.de in der Description erwähnt werden kann
-  - Der Hinweis soll sich natürlich anfühlen, nicht wie Werbung`;
+- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.
+- ✅ Das ermöglicht, dass saveyourpet.de in der Description erwähnt werden kann
+- ✅ Der Hinweis soll sich natürlich anfühlen, nicht wie Werbung`;
         }
     }
     // MODE: FULL - brandingInstruction stays empty, framework uses saveyourpet.de naturally
@@ -271,7 +282,7 @@ MANDATORY INSTRUCTION:
             'content-type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'claude-opus-4-5-20251101',
+            model: 'claude-opus-4-6',
             max_tokens: 2000,
             system: systemPrompt,
             messages: [{ role: 'user', content: userPrompt }]
@@ -438,7 +449,7 @@ Pet: ${selectedProfile.vars.NAME} (${persona.pet.description})${saveyourpetImage
             'content-type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'claude-opus-4-5-20251101',
+            model: 'claude-opus-4-6',
             max_tokens: 2000,
             system: sypImageSystemPrompt,
             messages: [{ role: 'user', content: `Generate JSON prompts image2 to image${cleanedSlides.length}:\n${cleanedSlides.join('\n')}` }]
