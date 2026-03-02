@@ -175,6 +175,21 @@ export async function runDbtJob(db: Database, jobId: string, keys: DbtJobRunnerK
             const prompts = orderedPromptList(native.image_prompts || {});
             const images = [];
             const maxRetries = clampRetries(input.imageMaxRetries);
+            output.image_progress = {
+                total: prompts.length,
+                completed: 0,
+                failed: 0,
+                statuses: [] as Array<{ slideIndex: number; success: boolean; attempts: number; error: string | null }>,
+                status: "running"
+            };
+            updateJob(db, jobId, { output_json: JSON.stringify(output) });
+            updateRunningStepDetails(db, jobId, "generate_images", {
+                image_total: prompts.length,
+                image_completed: 0,
+                image_failed: 0,
+                max_retries: maxRetries
+            });
+
             for (let i = 0; i < prompts.length; i++) {
                 const result = await generateImageWithRetry(
                     prompts[i] || "",
@@ -189,12 +204,31 @@ export async function runDbtJob(db: Database, jobId: string, keys: DbtJobRunnerK
                     error: result.error || null,
                     attempts: result.attempts
                 });
+
+                output.image_progress.statuses.push({
+                    slideIndex: i,
+                    success: result.success,
+                    attempts: result.attempts,
+                    error: result.error || null
+                });
+                if (result.success) output.image_progress.completed += 1;
+                else output.image_progress.failed += 1;
+
+                updateRunningStepDetails(db, jobId, "generate_images", {
+                    image_total: prompts.length,
+                    image_completed: output.image_progress.completed,
+                    image_failed: output.image_progress.failed,
+                    last_slide_index: i,
+                    max_retries: maxRetries
+                });
+                updateJob(db, jobId, { output_json: JSON.stringify(output) });
             }
 
             const failed = images.filter((i) => !i.success).length;
             if (failed > 0) throw new Error(`image generation failed for ${failed} slide(s)`);
 
             output.images = images;
+            output.image_progress.status = "completed";
             completeStep(db, jobId, "generate_images", {
                 image_count: images.length,
                 max_retries: maxRetries
@@ -319,6 +353,19 @@ function completeStep(db: Database, jobId: string, step: string, details: any): 
     db.query(`
         UPDATE dbt_post_steps
         SET status = 'completed', ended_at = CURRENT_TIMESTAMP, details_json = ?
+        WHERE id = (
+            SELECT id FROM dbt_post_steps
+            WHERE job_id = ? AND step = ? AND status = 'running'
+            ORDER BY id DESC
+            LIMIT 1
+        )
+    `).run(JSON.stringify(details || {}), jobId, step);
+}
+
+function updateRunningStepDetails(db: Database, jobId: string, step: string, details: any): void {
+    db.query(`
+        UPDATE dbt_post_steps
+        SET details_json = ?
         WHERE id = (
             SELECT id FROM dbt_post_steps
             WHERE job_id = ? AND step = ? AND status = 'running'
