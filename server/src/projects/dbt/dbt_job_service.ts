@@ -153,18 +153,33 @@ export async function runDbtJob(db: Database, jobId: string, keys: DbtJobRunnerK
 
     try {
         startStep(db, jobId, "generate_slides");
-        const native = await generateDbtSlides({
-            ANTHROPIC_API_KEY: keys.anthropicApiKey,
-            topic: selectedTopic,
-            includeBranding: input.includeBranding !== false,
-            artStyle: input.artStyle || "hopper"
-        });
+        const slidesResult = await withRetry(
+            async (attempt: number) => {
+                updateRunningStepDetails(db, jobId, "generate_slides", {
+                    attempt,
+                    max_attempts: 4
+                });
+                return await generateDbtSlides({
+                    ANTHROPIC_API_KEY: keys.anthropicApiKey,
+                    topic: selectedTopic,
+                    includeBranding: input.includeBranding !== false,
+                    artStyle: input.artStyle || "hopper"
+                });
+            },
+            {
+                maxAttempts: 4,
+                baseDelayMs: 2000,
+                shouldRetry: isRetryableAnthropicError
+            }
+        );
+        const native = slidesResult.result;
         output.visual_style = native.visual_style;
         output.slides = native.slides || [];
         output.image_prompts = native.image_prompts || {};
         completeStep(db, jobId, "generate_slides", {
             slide_count: Array.isArray(native.slides) ? native.slides.length : 0,
-            visual_style: native.visual_style
+            visual_style: native.visual_style,
+            attempts: slidesResult.attempts
         });
 
         if (input.generateImages !== false) {
@@ -239,11 +254,26 @@ export async function runDbtJob(db: Database, jobId: string, keys: DbtJobRunnerK
             updateJob(db, jobId, { current_step: "generate_metadata" });
             startStep(db, jobId, "generate_metadata");
             const slidesText = (output.slides || []).map((s: string, i: number) => `Slide ${i + 1}: ${s}`).join("\n");
-            const metadata = await generateDbtMetadata(slidesText, keys.anthropicApiKey);
+            const metadataResult = await withRetry(
+                async (attempt: number) => {
+                    updateRunningStepDetails(db, jobId, "generate_metadata", {
+                        attempt,
+                        max_attempts: 4
+                    });
+                    return await generateDbtMetadata(slidesText, keys.anthropicApiKey);
+                },
+                {
+                    maxAttempts: 4,
+                    baseDelayMs: 2500,
+                    shouldRetry: isRetryableAnthropicError
+                }
+            );
+            const metadata = metadataResult.result;
             output.metadata = metadata;
             completeStep(db, jobId, "generate_metadata", {
                 has_title: Boolean(metadata.title),
-                has_description: Boolean(metadata.description)
+                has_description: Boolean(metadata.description),
+                attempts: metadataResult.attempts
             });
         }
 
@@ -400,6 +430,39 @@ function updateJob(db: Database, jobId: string, patch: Record<string, any>): voi
         SET ${sets}, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     `).run(...values, jobId);
+}
+
+function isRetryableAnthropicError(error: unknown): boolean {
+    const message = String(error instanceof Error ? error.message : error || "").toLowerCase();
+    return (
+        message.includes("overload") ||
+        message.includes("overloaded") ||
+        message.includes("rate limit") ||
+        message.includes("429") ||
+        message.includes("503") ||
+        message.includes("529") ||
+        message.includes("anthropic api error")
+    );
+}
+
+async function withRetry<T>(
+    fn: (attempt: number) => Promise<T>,
+    options: { maxAttempts: number; baseDelayMs: number; shouldRetry: (error: unknown) => boolean }
+): Promise<{ result: T; attempts: number }> {
+    let lastError: unknown = null;
+    for (let attempt = 1; attempt <= options.maxAttempts; attempt++) {
+        try {
+            const result = await fn(attempt);
+            return { result, attempts: attempt };
+        } catch (error) {
+            lastError = error;
+            const canRetry = attempt < options.maxAttempts && options.shouldRetry(error);
+            if (!canRetry) throw error;
+            const backoffMs = options.baseDelayMs * attempt;
+            await new Promise((resolve) => setTimeout(resolve, backoffMs));
+        }
+    }
+    throw lastError instanceof Error ? lastError : new Error(String(lastError || "retry failed"));
 }
 
 async function generateDbtMetadata(slidesText: string, apiKey: string): Promise<{ title: string; description: string }> {
