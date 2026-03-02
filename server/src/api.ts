@@ -58,7 +58,7 @@ if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !API_PASSWORD) {
     await loadEnv(path.join(process.cwd(), "..", ".env"));
 }
 
-const PORT = 3001; // Using 3001 to avoid conflicts
+const PORT = parseInt(process.env.PORT || "3001", 10); // Railway/hosted platforms inject PORT
 
 console.log(`Ã°Å¸Å¡â‚¬ Hook Bridge API starting on http://localhost:${PORT}`);
 console.log(`Ã°Å¸â€œâ€š Working Directory: ${process.cwd()}`);
@@ -145,6 +145,14 @@ const server = Bun.serve({
             return resp;
         };
 
+        const cleanPath = url.pathname.replace(/^\/api/, '').replace(/\/$/, '') || '/';
+        const method = req.method;
+
+        // Healthcheck endpoint for hosting providers (kept unauthenticated intentionally)
+        if (cleanPath === "/health" && method === "GET") {
+            return sendJSON({ ok: true, service: "hook-bridge-api" });
+        }
+
         // Optional API password auth for public deployments
         if (API_PASSWORD) {
             const authHeader = req.headers.get("Authorization") || req.headers.get("authorization") || "";
@@ -158,9 +166,6 @@ const server = Bun.serve({
                 return sendJSON({ error: "Unauthorized" }, 401);
             }
         }
-
-        const cleanPath = url.pathname.replace(/^\/api/, '').replace(/\/$/, '') || '/';
-        const method = req.method;
         console.log(`[Router] ${method} ${url.pathname} -> Cleaned Path: ${cleanPath}`);
 
         // GET /dbt/topics - list supported DBT topic names for fixed selection

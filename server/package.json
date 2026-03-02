@@ -14,8 +14,9 @@
     "playwright": "^1.57.0"
   },
   "scripts": {
-    "scrape": "C:/Users/tscho/.bun/bin/bun src/scraper.ts",
-    "analyze": "C:/Users/tscho/.bun/bin/bun src/analyzer.ts",
-    "api": "C:/Users/tscho/.bun/bin/bun src/api.ts"
+    "scrape": "bun src/scraper.ts",
+    "analyze": "bun src/analyzer.ts",
+    "api": "bun src/api.ts",
+    "start": "bun src/api.ts"
   }
 }
