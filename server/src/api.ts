@@ -6,6 +6,7 @@ import { generateImage, generateCarouselImages, flattenImagePrompt, generateImag
 import type { ReferenceImage } from "./image_generator";
 import { generateSypSlides } from "./projects/syp/syp_service";
 import { generateDbtSlides } from "./projects/dbt/dbt_service";
+import { createDbtJob, getDbtJob, getDbtTopics, initDbtJobTables, runDbtJob } from "./projects/dbt/dbt_job_service";
 import { getAnchorImage, buildUGCSlide1Prompt } from "./common/prompt_utils";
 import { ART_STYLES } from "./projects/dbt/art_styles";
 
@@ -19,6 +20,7 @@ if (!existsSync(ANCHORS_DIR)) {
 }
 
 const db = new Database(path.join(DATA_DIR, "hooks.db"));
+initDbtJobTables(db);
 
 // (Moved to common/prompt_utils.ts)
 const { file } = Bun;
@@ -27,8 +29,9 @@ const { file } = Bun;
 let ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 let OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 let GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+let API_PASSWORD = process.env.API_PASSWORD;
 
-if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY) {
+if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !API_PASSWORD) {
     console.log("Ã¢Å¡Â Ã¯Â¸Â Keys not found in process.env, attempting manual load...");
     async function loadEnv(pathStr: string) {
         try {
@@ -38,10 +41,12 @@ if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY) {
             const anthropicMatch = envText.match(/ANTHROPIC_API_KEY=(.*)/);
             const openaiMatch = envText.match(/OPENAI_API_KEY=(.*)/);
             const geminiMatch = envText.match(/GEMINI_API_KEY=(.*)/);
+            const apiPasswordMatch = envText.match(/API_PASSWORD=(.*)/);
 
             if (anthropicMatch && anthropicMatch[1]) ANTHROPIC_API_KEY = anthropicMatch[1].trim();
             if (openaiMatch && openaiMatch[1]) OPENAI_API_KEY = openaiMatch[1].trim();
             if (geminiMatch && geminiMatch[1]) GEMINI_API_KEY = geminiMatch[1].trim();
+            if (apiPasswordMatch && apiPasswordMatch[1]) API_PASSWORD = apiPasswordMatch[1].trim();
         } catch (e) {
             console.error(`Ã¢ÂÅ’ Failed to load ${pathStr}`);
         }
@@ -125,7 +130,7 @@ const server = Bun.serve({
         const corsHeaders = {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, POST, DELETE, PUT, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-API-Key, X-API-Password",
         };
 
         // Handle OPTIONS request
@@ -140,10 +145,65 @@ const server = Bun.serve({
             return resp;
         };
 
+        // Optional API password auth for public deployments
+        if (API_PASSWORD) {
+            const authHeader = req.headers.get("Authorization") || req.headers.get("authorization") || "";
+            const xApiKey = req.headers.get("X-API-Key") || req.headers.get("x-api-key") || "";
+            const xApiPassword = req.headers.get("X-API-Password") || req.headers.get("x-api-password") || "";
+            const bearer = authHeader.toLowerCase().startsWith("bearer ")
+                ? authHeader.slice(7).trim()
+                : "";
+            const provided = (xApiKey || xApiPassword || bearer).trim();
+            if (provided !== API_PASSWORD) {
+                return sendJSON({ error: "Unauthorized" }, 401);
+            }
+        }
+
         const cleanPath = url.pathname.replace(/^\/api/, '').replace(/\/$/, '') || '/';
         const method = req.method;
         console.log(`[Router] ${method} ${url.pathname} -> Cleaned Path: ${cleanPath}`);
 
+        // GET /dbt/topics - list supported DBT topic names for fixed selection
+        if (cleanPath === "/dbt/topics" && method === "GET") {
+            return sendJSON({ topics: getDbtTopics() });
+        }
+        // POST /dbt/jobs - create async DBT-Mind post generation job
+        else if (cleanPath === "/dbt/jobs" && method === "POST") {
+            try {
+                if (!ANTHROPIC_API_KEY) throw new Error("Anthropic API Key missing");
+                const input = await req.json() as any;
+                const wantsImages = input?.generateImages !== false;
+                if (wantsImages && !GEMINI_API_KEY) throw new Error("Gemini API Key missing");
+
+                const created = createDbtJob(db, input || {});
+
+                void runDbtJob(db, created.id, {
+                    anthropicApiKey: ANTHROPIC_API_KEY!,
+                    geminiApiKey: GEMINI_API_KEY || undefined
+                });
+
+                return sendJSON({
+                    job_id: created.id,
+                    status: created.status
+                }, 202);
+            } catch (e) {
+                return sendJSON({ error: "DBT job creation failed", details: String(e) }, 400);
+            }
+        }
+        // GET /dbt/jobs/:id - fetch job state and artifacts
+        else if (cleanPath.startsWith("/dbt/jobs/") && method === "GET") {
+            try {
+                const jobId = decodeURIComponent(cleanPath.replace("/dbt/jobs/", ""));
+                if (!jobId) return sendJSON({ error: "job id is required" }, 400);
+
+                const job = getDbtJob(db, jobId);
+                if (!job) return sendJSON({ error: "job not found", job_id: jobId }, 404);
+
+                return sendJSON(job);
+            } catch (e) {
+                return sendJSON({ error: "DBT job fetch failed", details: String(e) }, 500);
+            }
+        }
         // GET /hooks - Get viral hooks from the DB
         if (cleanPath === "/hooks" && method === "GET") {
             try {
