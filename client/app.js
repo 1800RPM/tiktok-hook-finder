@@ -26,7 +26,37 @@ const state = {
     characterAnchorDbt: [],  // Array of dataUrl strings
 };
 
-const API_BASE = 'http://localhost:3001';
+function normalizeApiBase(base) {
+    return String(base || '').trim().replace(/\/+$/, '');
+}
+
+function resolveApiBase() {
+    const fromQuery = new URLSearchParams(window.location.search).get('apiBase');
+    const fromStorage = localStorage.getItem('TIKTOK_API_BASE');
+    const fromWindow = window.__API_BASE__;
+
+    const configured = fromQuery || fromStorage || fromWindow;
+    if (configured) {
+        const normalized = normalizeApiBase(configured);
+        if (normalized) {
+            localStorage.setItem('TIKTOK_API_BASE', normalized);
+            return normalized;
+        }
+    }
+
+    const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    return isLocal ? 'http://localhost:3001' : `${window.location.origin}/api`;
+}
+
+const API_BASE = resolveApiBase();
+
+function getApiAuthHeaders() {
+    const fromStorage = localStorage.getItem('TIKTOK_API_PASSWORD');
+    const fromWindow = window.__API_PASSWORD__;
+    const password = (fromStorage || fromWindow || '').trim();
+    if (!password) return {};
+    return { 'Authorization': `Bearer ${password}` };
+}
 
 const parseDataUrl = (dataUrl) => {
     if (!dataUrl) return null;
@@ -241,6 +271,13 @@ function updateSlideCounter() {
     elements.slideCounter.textContent = `${state.slides.length} slide${state.slides.length !== 1 ? 's' : ''}`;
 }
 
+function getDefaultSlidePosition(index) {
+    // Slide 1: centered in lower half; Slide 6: slightly lower
+    if (index === 0) return { x: 50, y: 72 };
+    if (index === 5) return { x: 50, y: 78 };
+    return { x: 50, y: 50 };
+}
+
 function normalizeStaticSlides(staticSlides, useStaticSlide1) {
     const normalized = {};
 
@@ -315,7 +352,7 @@ function ensureSlidesParsed() {
         const parsed = parseSlidesFromText(text).map((slide, index) => ({
             ...slide,
             id: Date.now() + index,
-            position: { x: 50, y: 50 },
+            position: getDefaultSlidePosition(index),
             scale: 1.5,
             image: (state.generatedImages && state.generatedImages[index]) || null
         }));
@@ -358,7 +395,7 @@ function parseSlidesFromText(text) {
                     text: cleaned,
                     image: null,
                     id: Date.now() + counter++,
-                    position: { x: 50, y: 50 }
+                    position: getDefaultSlidePosition(slides.length)
                 });
             }
         });
@@ -378,7 +415,7 @@ function parseSlidesFromText(text) {
                 text: line.replace(/^Slide\s*\d*[:\-]?\s*/i, '').trim(),
                 image: null,
                 id: Date.now() + i,
-                position: { x: 50, y: 50 },
+                position: getDefaultSlidePosition(i),
                 scale: 1.5,
                 maxWidth: 120
             });
@@ -438,7 +475,8 @@ async function generateNativeSlides() {
         const response = await fetch(`${API_BASE}/generate-native-slides`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                ...getApiAuthHeaders()
             },
             body: JSON.stringify({
                 service: 'dbt',
@@ -449,7 +487,8 @@ async function generateNativeSlides() {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const raw = await response.text();
+            throw new Error(`HTTP ${response.status}: ${raw.substring(0, 300)}`);
         }
 
         const data = await response.json();
@@ -471,7 +510,7 @@ async function generateNativeSlides() {
         }
     } catch (error) {
         console.error('Error generating slides:', error);
-        showNotification('Failed to generate slides. Please try again.', 'error');
+        showNotification(`Failed to generate slides: ${error.message || 'unknown error'}`, 'error');
     } finally {
         elements.generateNativeSlidesBtn.disabled = false;
         elements.generateNativeSlidesBtn.innerHTML = '<span>🔥 Generate Weird Therapist Hacks (Opus)</span>';
@@ -2351,7 +2390,7 @@ function initEventListeners() {
                 ...slide,
                 id: Date.now() + index,
                 image: state.generatedImages[index] || null, // Attach generated image if available
-                position: { x: 50, y: 50 },
+                position: getDefaultSlidePosition(index),
                 scale: 1.5,
                 maxWidth: 120
             }));
@@ -2464,7 +2503,7 @@ function initEventListeners() {
                 ...slide,
                 id: Date.now() + index,
                 image: state.generatedImages[index] || null, // Attach generated image
-                position: { x: 50, y: 50 },
+                position: getDefaultSlidePosition(index),
                 scale: 1.5,
                 maxWidth: 120
             }));
@@ -2774,7 +2813,7 @@ function parseImagesToSlides() {
     state.slides = parseSlidesFromText(text).map((slide, index) => {
         // Priority: 1. New generated image, 2. Existing image on this slide index
         const image = state.generatedImages[index] || (oldSlides[index] ? oldSlides[index].image : null);
-        const position = oldSlides[index] ? oldSlides[index].position : { x: 50, y: 50 };
+        const position = oldSlides[index] ? oldSlides[index].position : getDefaultSlidePosition(index);
         const scale = oldSlides[index] && oldSlides[index].scale ? Math.min(1.5, oldSlides[index].scale) : 1.5;
         const maxWidth = oldSlides[index] && oldSlides[index].maxWidth ? oldSlides[index].maxWidth : 120;
 
@@ -2808,11 +2847,17 @@ async function generateNativeSlidesSyp() {
     try {
         const response = await fetch(`${API_BASE}/generate-native-slides`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...getApiAuthHeaders()
+            },
             body: JSON.stringify({ profile, topic, service: 'syp', brandingMode })
         });
 
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+            const raw = await response.text();
+            throw new Error(`HTTP ${response.status}: ${raw.substring(0, 300)}`);
+        }
         const data = await response.json();
 
         if (data.slides && Array.isArray(data.slides)) {
