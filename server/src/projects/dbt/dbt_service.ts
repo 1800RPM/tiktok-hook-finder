@@ -75,13 +75,13 @@ CORE STYLE GUIDELINES:
 - **Gen-Z Touch**: Use a language that feels contemporary and relatable (e.g., "vibes," "real," "lowkey") but stay helpful and serious about the skills. **STRICTLY AVOID** using words like "bestie", "sis", or "queen".
 - **Visuals**: Use bullet points for clarity. Focus on "THE REAL TEA" or "WHY THIS HELPS" instead of "SHOCKING TRUTHS."
 - **NO MIRRORS**: Strictly avoid any mention of mirrors or looking at one's reflection.
-- **Emojis**: Use emojis EXTREMELY sparingly. Maximum 1-2 across the entire 7-slide series. **NEVER** use emojis on Slide 1 (the hook).
+- **Emojis**: Use emojis EXTREMELY sparingly. Maximum 1-2 across the entire 6-slide series. **NEVER** use emojis on Slide 1 (the hook).
 - **Phrases**: Use "I know this is hard," "here's what actually helps," "let's try this together," "it's okay to feel this way."
 
 NEVER use the word "bestie" or overly juvenile slang. Authenticity comes from emotional truth, not forced slang.
 
 CONTENT STRUCTURE:
-- You will generate a 7-slide series.
+- You will generate a 6-slide series.
 - **Max Words per Slide**: Strictly limit each slide to a maximum of 30 words.
 - **Slide 1**: ONLY contain the hook. It MUST follow one of these two formats:
   "Weird DBT hacks from my therapist for [PROBLEM]\n\n(that ACTUALLY work)"
@@ -93,16 +93,13 @@ CONTENT STRUCTURE:
 - **Slide 5**: Actual DBT Skill. Provide 1 slide that uses a real DBT skill (e.g. TIPP, Opposite Action, STOP, Radical Acceptance, Wise Mind). Explain the skill simply and how to apply it to the struggle.
 - **Slide 6 (App Slide)**: Must be EXACTLY this text, unchanged:
   "my therapist recommended DBT-Mind (free) — that's where the skill finally clicked for me."
-- **Slide 7 (CTA)**: Must be EXACTLY this text, unchanged:
-  "i track it all on DBT-Mind. it's free."
-
 MANDATORY BRANDING:
-Slide 6 and Slide 7 are always included as described above.`;
+Slide 6 is always included as described above.`;
 
 
 
 
-    const userPrompt = `Generate a new 7-slide series for DBT-Mind focusing on this specific struggle:
+    const userPrompt = `Generate a new 6-slide series for DBT-Mind focusing on this specific struggle:
 Topic: ${selectedTopic.topic}
 Struggles: ${selectedTopic.struggles.join(', ')}
 
@@ -115,10 +112,9 @@ Struggles: ${selectedTopic.struggles.join(', ')}
 5. Ensure the tone is helpful and supportive mentor-like. Focus on maximum value.
 6. Dedicate exactly 1 slide (5) to a clinical DBT skill.
 7. Slide 6 must be exactly: "my therapist recommended DBT-Mind (free) — that's where the skill finally clicked for me."
-8. Slide 7 must be exactly: "i track it all on DBT-Mind. it's free."
-9. Use emojis EXTREMELY sparingly (max 1-2 per series, none on Slide 1).
+8. Use emojis EXTREMELY sparingly (max 1-2 per series, none on Slide 1).
 
-Return a JSON object with a "slides" key containing an array of 7 strings.`;
+Return a JSON object with a "slides" key containing an array of 6 strings.`;
 
 
 
@@ -153,10 +149,11 @@ Return a JSON object with a "slides" key containing an array of 7 strings.`;
     if (!jsonMatch) throw new Error("No JSON found in AI response");
 
     const parsed = JSON.parse(jsonMatch[0]);
-    const slides = (parsed.slides || parsed).map((s: any) => {
+    let slides = (parsed.slides || parsed).map((s: any) => {
         const text = typeof s === 'string' ? s : (s.text || JSON.stringify(s));
         return text.replace(/^Slide \d+:\s*/i, '').trim();
     });
+    slides = slides.slice(0, 6);
     const normalizeWords = (line: string) =>
         line
             .replace(/[^\p{L}\p{N}'’\- ]/gu, ' ')
@@ -177,22 +174,20 @@ Return a JSON object with a "slides" key containing an array of 7 strings.`;
         const fallbackProblem = (selectedTopic?.topic || "this pattern").toLowerCase();
         slides[0] = formatSlide1Hook(slides[0], fallbackProblem);
     }
-    if (slides.length >= 7) {
+    if (slides.length >= 6) {
         slides[5] = "my therapist recommended DBT-Mind (free) — that's where the skill finally clicked for me.";
-        slides[6] = "i track it all on DBT-Mind. it's free.";
     }
 
-    // Generate image prompts for the 7 slides
+    // Generate image prompts for the generated slides
     const imagePrompts: Record<string, string> = {};
     const stylePrefix = selectedArtStyle.prefix + ". ";
     const styleSuffix = selectedArtStyle.suffix;
 
-    // Use a secondary AI call or logic for image prompts (simplified for now to match 7 slides)
+    // Use fallback generic prompts
     for (let i = 1; i <= slides.length; i++) {
         // Fallback generic prompts if no specific ArtStyle logic is applied
         const basePrompt = i === 1 ? "Dramatic painting of woman in a crisis moment, intense shadows, solitary figure" :
-            i === 7 ? "Quietly hopeful painting of woman looking toward a window, soft light" :
-                "Solitary woman in an emotional moment, painterly style, atmospheric lighting";
+            "Solitary woman in an emotional moment, painterly style, atmospheric lighting";
 
         imagePrompts[`slide${i}`] = stylePrefix + basePrompt + styleSuffix;
     }

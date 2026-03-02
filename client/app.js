@@ -204,7 +204,7 @@ const dbtFramework = {
             name: 'Relatable/Emotional',
             percentage: '50%',
             purpose: 'Emotional connection & "me too" moments',
-            appMention: 'App slide on 6 + fixed CTA on 7',
+            appMention: 'App slide on 6',
             hookStyle: 'relatable-emotional',
             slideCount: 7
         },
@@ -212,7 +212,7 @@ const dbtFramework = {
             name: 'POV',
             percentage: '20%',
             purpose: 'Immersive experience & relatability',
-            appMention: 'App slide on 6 + fixed CTA on 7',
+            appMention: 'App slide on 6',
             hookStyle: 'pov',
             slideCount: 7
         },
@@ -220,7 +220,7 @@ const dbtFramework = {
             name: 'Tips/Hacks',
             percentage: '30%',
             purpose: 'Practical value & solution-focused',
-            appMention: 'App slide on 6 + fixed CTA on 7',
+            appMention: 'App slide on 6',
             hookStyle: 'tips',
             slideCount: 7
         }
