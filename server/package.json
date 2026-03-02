@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@google/genai": "^1.4.0",
-    "playwright": "^1.57.0"
+    "playwright": "^1.57.0",
+    "sharp": "^0.33.5"
   },
   "scripts": {
     "scrape": "bun src/scraper.ts",

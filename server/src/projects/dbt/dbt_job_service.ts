@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { generateImage } from "../../image_generator";
 import { generateDbtSlides } from "./dbt_service";
+import sharp from "sharp";
 
 export type DbtTopicMode = "random" | "fixed";
 
@@ -11,6 +12,7 @@ export interface DbtJobInput {
     artStyle?: string;
     generateImages?: boolean;
     generateMetadata?: boolean;
+    renderTextOverlay?: boolean;
     aspectRatio?: "9:16" | "16:9" | "1:1" | "4:3" | "3:4";
     imageMaxRetries?: number;
 }
@@ -93,6 +95,7 @@ export function createDbtJob(db: Database, input: DbtJobInput): { id: string; st
         artStyle: input.artStyle,
         generateImages: input.generateImages !== false,
         generateMetadata: input.generateMetadata !== false,
+        renderTextOverlay: input.renderTextOverlay !== false,
         aspectRatio: input.aspectRatio || "9:16",
         imageMaxRetries: clampRetries(input.imageMaxRetries)
     };
@@ -248,6 +251,18 @@ export async function runDbtJob(db: Database, jobId: string, keys: DbtJobRunnerK
                 image_count: images.length,
                 max_retries: maxRetries
             });
+
+            if (input.renderTextOverlay !== false) {
+                updateJob(db, jobId, { current_step: "render_overlays" });
+                startStep(db, jobId, "render_overlays");
+
+                const renderedImages = await renderSlidesWithTextOverlays(output.slides || [], images);
+                output.rendered_images = renderedImages;
+
+                completeStep(db, jobId, "render_overlays", {
+                    rendered_count: renderedImages.length
+                });
+            }
         }
 
         if (input.generateMetadata !== false) {
@@ -430,6 +445,126 @@ function updateJob(db: Database, jobId: string, patch: Record<string, any>): voi
         SET ${sets}, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     `).run(...values, jobId);
+}
+
+async function renderSlidesWithTextOverlays(
+    slides: string[],
+    images: Array<{ slideIndex: number; success: boolean; image: { data: string; mime_type: string } | null }>
+): Promise<Array<{ slideIndex: number; image: { data: string; mime_type: string } }>> {
+    const rendered: Array<{ slideIndex: number; image: { data: string; mime_type: string } }> = [];
+
+    for (const item of images) {
+        if (!item.success || !item.image) {
+            throw new Error(`render overlay failed: missing image for slide ${item.slideIndex + 1}`);
+        }
+        const slideText = String(slides[item.slideIndex] || "").trim();
+        const baseBuffer = Buffer.from(item.image.data, "base64");
+        const composed = await composeTextOverlay(baseBuffer, slideText, item.slideIndex);
+        rendered.push({
+            slideIndex: item.slideIndex,
+            image: {
+                data: composed.toString("base64"),
+                mime_type: "image/png"
+            }
+        });
+    }
+
+    return rendered;
+}
+
+async function composeTextOverlay(baseImageBuffer: Buffer, text: string, slideIndex: number): Promise<Buffer> {
+    const base = sharp(baseImageBuffer);
+    const metadata = await base.metadata();
+    const width = metadata.width || 1080;
+    const height = metadata.height || 1920;
+
+    const fontSize = Math.max(30, Math.round(width * 0.045));
+    const lineHeight = Math.round(fontSize * 1.18);
+    const boxWidth = Math.round(width * 0.82);
+    const boxX = Math.round((width - boxWidth) / 2);
+    const maxCharsPerLine = Math.max(14, Math.floor((boxWidth * 0.82) / (fontSize * 0.58)));
+    const paragraphGap = Math.round(fontSize * 0.45);
+    const padX = Math.round(fontSize * 0.38);
+    const padY = Math.round(fontSize * 0.26);
+    const anchorY = Math.round(height * getOverlayAnchorY(slideIndex));
+
+    const paragraphs = splitParagraphs(text).map((p) => wrapTextLines(p, maxCharsPerLine));
+    const paragraphHeights = paragraphs.map((lines) => lines.length * lineHeight + padY * 2);
+    const totalHeight = paragraphHeights.reduce((a, b) => a + b, 0) + Math.max(0, paragraphs.length - 1) * paragraphGap;
+    let currentY = Math.round(anchorY - totalHeight / 2);
+
+    const blocks: string[] = [];
+    paragraphs.forEach((lines, idx) => {
+        const blockHeight = paragraphHeights[idx] || 0;
+        const rectY = currentY;
+        const textStartY = rectY + padY + lineHeight - Math.round(fontSize * 0.2);
+        const escapedLines = lines.map(escapeXml);
+
+        blocks.push(
+            `<rect x="${boxX}" y="${rectY}" rx="${Math.round(fontSize * 0.2)}" ry="${Math.round(fontSize * 0.2)}" width="${boxWidth}" height="${blockHeight}" fill="rgba(255,255,255,0.93)"/>`
+        );
+
+        escapedLines.forEach((line, lineIdx) => {
+            const lineY = textStartY + lineIdx * lineHeight;
+            blocks.push(
+                `<text x="${Math.round(width / 2)}" y="${lineY}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="800" fill="#111111">${line}</text>`
+            );
+        });
+
+        currentY += blockHeight + paragraphGap;
+    });
+
+    const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+  ${blocks.join("\n  ")}
+</svg>`;
+
+    return await base
+        .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+        .png()
+        .toBuffer();
+}
+
+function getOverlayAnchorY(slideIndex: number): number {
+    if (slideIndex === 0) return 0.72;
+    if (slideIndex === 5) return 0.78;
+    return 0.5;
+}
+
+function splitParagraphs(text: string): string[] {
+    const raw = text
+        .split(/\n+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    return raw.length > 0 ? raw : [""];
+}
+
+function wrapTextLines(input: string, maxCharsPerLine: number): string[] {
+    const words = input.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return [""];
+    const lines: string[] = [];
+    let current = "";
+
+    for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word;
+        if (candidate.length <= maxCharsPerLine || !current) {
+            current = candidate;
+        } else {
+            lines.push(current);
+            current = word;
+        }
+    }
+    if (current) lines.push(current);
+    return lines;
+}
+
+function escapeXml(text: string): string {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
 }
 
 function isRetryableAnthropicError(error: unknown): boolean {
