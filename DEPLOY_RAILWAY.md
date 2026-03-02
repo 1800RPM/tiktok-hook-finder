@@ -13,7 +13,7 @@ Set these in Railway -> Variables:
 - `ANTHROPIC_API_KEY=...`
 - `OPENAI_API_KEY=...`
 - `GEMINI_API_KEY=...`
-- `API_PASSWORD=...` (required for external tool access)
+- `API_KEYS=key_one,key_two` (required for external tool access; comma-separated)
 
 Optional:
 - `PORT` (Railway usually injects this automatically)
@@ -23,7 +23,7 @@ Use:
 - Path: `/health`
 - Expected: `200` with JSON `{ "ok": true, ... }`
 
-`/health` is intentionally public so Railway health checks do not fail when `API_PASSWORD` is enabled.
+`/health` is intentionally public so Railway health checks do not fail when API key auth is enabled.
 
 ## 4. Persistent data (recommended)
 The app uses SQLite in `data/hooks.db` and stores job state there.
@@ -34,11 +34,11 @@ Recommended:
 - Mount path: `/app/data`
 
 ## 5. Verify deployment
-Replace `<API_URL>` and `<API_PASSWORD>`:
+Replace `<API_URL>` and `<API_KEY>`:
 
 ```bash
 curl <API_URL>/health
-curl -H "Authorization: Bearer <API_PASSWORD>" <API_URL>/api/dbt/topics
+curl -H "X-API-Key: <API_KEY>" <API_URL>/api/dbt/topics
 ```
 
 If auth is correct, `/api/dbt/topics` returns JSON topic list.

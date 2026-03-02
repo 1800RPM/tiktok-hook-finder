@@ -51,11 +51,14 @@ function resolveApiBase() {
 const API_BASE = resolveApiBase();
 
 function getApiAuthHeaders() {
-    const fromStorage = localStorage.getItem('TIKTOK_API_PASSWORD');
-    const fromWindow = window.__API_PASSWORD__;
-    const password = (fromStorage || fromWindow || '').trim();
-    if (!password) return {};
-    return { 'Authorization': `Bearer ${password}` };
+    const fromStorage = localStorage.getItem('TIKTOK_API_KEY') || localStorage.getItem('TIKTOK_API_PASSWORD');
+    const fromWindow = window.__API_KEY__ || window.__API_PASSWORD__;
+    const apiKey = (fromStorage || fromWindow || '').trim();
+    if (!apiKey) return {};
+    return {
+        'X-API-Key': apiKey,
+        'Authorization': `Bearer ${apiKey}`
+    };
 }
 
 const parseDataUrl = (dataUrl) => {

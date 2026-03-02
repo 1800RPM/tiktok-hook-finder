@@ -29,9 +29,9 @@ const { file } = Bun;
 let ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 let OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 let GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-let API_PASSWORD = process.env.API_PASSWORD;
+let API_KEYS_RAW = process.env.API_KEYS;
 
-if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !API_PASSWORD) {
+if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !API_KEYS_RAW) {
     console.log("Ã¢Å¡Â Ã¯Â¸Â Keys not found in process.env, attempting manual load...");
     async function loadEnv(pathStr: string) {
         try {
@@ -41,12 +41,12 @@ if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !API_PASSWORD) {
             const anthropicMatch = envText.match(/ANTHROPIC_API_KEY=(.*)/);
             const openaiMatch = envText.match(/OPENAI_API_KEY=(.*)/);
             const geminiMatch = envText.match(/GEMINI_API_KEY=(.*)/);
-            const apiPasswordMatch = envText.match(/API_PASSWORD=(.*)/);
+            const apiKeysMatch = envText.match(/API_KEYS=(.*)/);
 
             if (anthropicMatch && anthropicMatch[1]) ANTHROPIC_API_KEY = anthropicMatch[1].trim();
             if (openaiMatch && openaiMatch[1]) OPENAI_API_KEY = openaiMatch[1].trim();
             if (geminiMatch && geminiMatch[1]) GEMINI_API_KEY = geminiMatch[1].trim();
-            if (apiPasswordMatch && apiPasswordMatch[1]) API_PASSWORD = apiPasswordMatch[1].trim();
+            if (apiKeysMatch && apiKeysMatch[1]) API_KEYS_RAW = apiKeysMatch[1].trim();
         } catch (e) {
             console.error(`Ã¢ÂÅ’ Failed to load ${pathStr}`);
         }
@@ -59,6 +59,12 @@ if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !API_PASSWORD) {
 }
 
 const PORT = parseInt(process.env.PORT || "3001", 10); // Railway/hosted platforms inject PORT
+const API_KEYS = new Set(
+    String(API_KEYS_RAW || "")
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean)
+);
 
 console.log(`Ã°Å¸Å¡â‚¬ Hook Bridge API starting on http://localhost:${PORT}`);
 console.log(`Ã°Å¸â€œâ€š Working Directory: ${process.cwd()}`);
@@ -130,7 +136,7 @@ const server = Bun.serve({
         const corsHeaders = {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, POST, DELETE, PUT, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-API-Key, X-API-Password",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-API-Key",
         };
 
         // Handle OPTIONS request
@@ -153,16 +159,15 @@ const server = Bun.serve({
             return sendJSON({ ok: true, service: "hook-bridge-api" });
         }
 
-        // Optional API password auth for public deployments
-        if (API_PASSWORD) {
+        // Optional API key auth for public deployments
+        if (API_KEYS.size > 0) {
             const authHeader = req.headers.get("Authorization") || req.headers.get("authorization") || "";
             const xApiKey = req.headers.get("X-API-Key") || req.headers.get("x-api-key") || "";
-            const xApiPassword = req.headers.get("X-API-Password") || req.headers.get("x-api-password") || "";
             const bearer = authHeader.toLowerCase().startsWith("bearer ")
                 ? authHeader.slice(7).trim()
                 : "";
-            const provided = (xApiKey || xApiPassword || bearer).trim();
-            if (provided !== API_PASSWORD) {
+            const provided = (xApiKey || bearer).trim();
+            if (!API_KEYS.has(provided)) {
                 return sendJSON({ error: "Unauthorized" }, 401);
             }
         }
