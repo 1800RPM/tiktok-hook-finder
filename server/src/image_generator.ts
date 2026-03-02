@@ -1,5 +1,5 @@
 /**
- * Image Generator Module - Nano Banana Pro (Gemini 3 Pro Image Preview)
+ * Image Generator Module - Nano Banana 2 (Gemini 3.1 Flash Image Preview)
  * Generates TikTok slide images using Google's Gemini image generation API
  */
 
@@ -8,7 +8,7 @@ import { GoogleGenAI } from "@google/genai";
 // Types
 export interface ImageGenerationOptions {
     aspectRatio?: "9:16" | "16:9" | "1:1" | "4:3" | "3:4";
-    imageSize?: "1K" | "2K" | "4K";
+    imageSize?: "0.5K" | "1K" | "2K" | "4K";
 }
 
 export interface GeneratedImage {
@@ -36,7 +36,7 @@ function getClient(apiKey: string): GoogleGenAI {
 }
 
 /**
- * Generate a single image using Nano Banana Pro (Gemini 3 Pro Image Preview)
+ * Generate a single image using Nano Banana 2 (Gemini 3.1 Flash Image Preview)
  * 
  * @param prompt - Text description of the image to generate
  * @param apiKey - Gemini API key
@@ -52,17 +52,17 @@ export async function generateImage(
         return { success: false, error: "Gemini API key not configured" };
     }
 
-    const { aspectRatio = "9:16", imageSize = "2K" } = options;
+    const { aspectRatio = "9:16", imageSize = "0.5K" } = options;
 
     try {
         const client = getClient(apiKey);
 
-        console.log(`[ImageGen] Generating image with Nano Banana Pro...`);
+        console.log(`[ImageGen] Generating image with Nano Banana 2...`);
         console.log(`[ImageGen] Prompt: ${prompt.substring(0, 100)}...`);
         console.log(`[ImageGen] Aspect: ${aspectRatio}, Size: ${imageSize}`);
 
         const response = await client.models.generateContent({
-            model: "gemini-3-pro-image-preview",
+            model: "gemini-3.1-flash-image-preview",
             contents: prompt,
             config: {
                 responseModalities: ["Image"],
@@ -143,7 +143,7 @@ export async function generateImageWithReferences(
         return { success: false, error: "Gemini API key not configured" };
     }
 
-    const { aspectRatio = "9:16", imageSize = "2K" } = options;
+    const { aspectRatio = "9:16", imageSize = "0.5K" } = options;
 
     // Limit to 5 reference images (Gemini's limit for human consistency)
     const limitedRefs = referenceImages.slice(0, 5);
@@ -170,7 +170,7 @@ export async function generateImageWithReferences(
         }
 
         const response = await client.models.generateContent({
-            model: "gemini-3-pro-image-preview",
+            model: "gemini-3.1-flash-image-preview",
             contents: contents,
             config: {
                 responseModalities: ["Image"],

@@ -2,6 +2,39 @@ import path from "path";
 import { readFileSync, existsSync } from "fs";
 import { buildUGCSlide1Prompt } from "../../common/prompt_utils";
 
+async function fetchAnthropicWithRetry(url: string, options: any, maxRetries = 4) {
+    for (let i = 0; i < maxRetries; i++) {
+        const response = await fetch(url, options);
+        if (response.ok) {
+            return response;
+        }
+
+        let isOverloaded = response.status === 529 || response.status === 429;
+        if (!isOverloaded) {
+            try {
+                const errorText = await response.clone().text();
+                const errorObj = JSON.parse(errorText);
+                const errorMessage = errorObj?.error?.message?.toLowerCase() || "";
+                if (errorMessage.includes("overloaded") || errorObj?.error?.type === "overloaded_error") {
+                    isOverloaded = true;
+                }
+            } catch (e) {
+                // Ignore parse errors safely
+            }
+        }
+
+        if (isOverloaded && i < maxRetries - 1) {
+            const delay = 2000 * Math.pow(2, i);
+            console.log(`[SYP Service] Anthropic API overloaded. Retrying \${i + 1}/\${maxRetries} in \${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+        }
+
+        return response; // Caller handles the failed response or returns it
+    }
+    return fetch(url, options); // Fallback
+}
+
 export interface SypGenerateParams {
     profile: string;
     topic: string;
@@ -203,6 +236,9 @@ Da der Benutzer "SaveYourPet erwähnen" DEAKTIVIERT hat:
     const systemPrompt = `You are the AI engine for 'SaveYourPet'. Your goal is to generate viral TikTok slide content in GERMAN.
 You MUST strictly follow the provided framework content below.
 
+- **Emojis**: Use emojis EXTREMELY sparingly. Maximum 1-2 across the entire slide series. **NEVER** use emojis on Slide 1 (the hook).
+- **Tone**: Authentic, relatable, slightly dry/humorous.
+
 ${frameworkContent}
 ${brandingInstruction}
 IMPORTANT: The user has chosen the profile: ${selectedProfile.name} & ${selectedProfile.pet}.
@@ -274,7 +310,7 @@ MANDATORY INSTRUCTION:
 `;
     }
 
-    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    const claudeResponse = await fetchAnthropicWithRetry('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
             'x-api-key': ANTHROPIC_API_KEY,
@@ -425,6 +461,9 @@ The image is a SELFIE taken with an iPhone front-camera. ONE HAND MUST HOLD THE 
 - "both hands gesturing" - no hand to hold the phone
 - Any pose requiring BOTH hands to do something
 
+### ❌ NO BATHROOMS:
+- **NEGATIVE CONSTRAINT:** Strictly avoid any mention of bathrooms, toilets, showers, or looking into a bathroom mirror.
+
 ### ❌ NO PETS ON COUNTERS:
 - **NEGATIVE CONSTRAINT:** NEVER show a pet (dog/cat) on a kitchen counter, table, or any raised household surface. 
 - The pet must always be on the floor, on a bed, on a couch, or in the owner's arms.
@@ -441,7 +480,7 @@ Slide 1: ${ugcSlide1Prompt}
 Persona: ${persona.name} (${persona.subject.hair.color}, ${persona.subject.hair.style})
 Pet: ${selectedProfile.vars.NAME} (${persona.pet.description})${saveyourpetImageInstruction}`;
 
-    const imagePromptResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    const imagePromptResponse = await fetchAnthropicWithRetry('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
             'x-api-key': ANTHROPIC_API_KEY,

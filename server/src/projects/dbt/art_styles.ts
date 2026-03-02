@@ -110,25 +110,26 @@ FIGURES & MOOD:
     symbolic: {
         id: "symbolic",
         name: "Symbolic (No People)",
-        prefix: "A candid, spontaneous snapshot",
+        prefix: "A candid, spontaneous snapshot taken with an iPhone 12",
         systemPromptPrinciples: `
-- Style: Candid, spontaneous iPhone 12 photography. Point-and-shoot realism.
-- Visuals: Quiet, intimate moments in a real home. Intentionally unposed.
-- Texture: Natural wood grain, textured paper or leather, soft fabric, natural light refraction.
-- Composition: Casual, slightly tilted angles. Authentic and un-orchestrated.
-- Lighting: Soft natural light (morning sun filtering through windows, warm natural shadows).
+- Style: iPhone 12 photography, candid UGC, hobby Pinterest vibe (personal and lived-in, not commercial).
+- Visuals: Authentic snapshots that look like a normal person casually documented a real moment in their day.
+- Texture: Real mobile camera grain, mild noise, imperfect white balance, natural digital sharpening, no creamy pro bokeh.
+- Composition: Handheld framing with slight tilt or imperfect centering, but still one clear hero object and readable focus.
+- Lighting: Natural, uncorrected lighting (window spill, practical lamp, overhead room light), never studio or ad lighting.
 - Rule: STRICTLY NO PEOPLE. No human figures, no hands, no faces. Not even silhouettes.
-- Anti-Staging: Avoid "stock photo" tropes. No arranged zen stones, no staged old keys. Use items actually found in a bedroom or daily life (journals, pens, glasses of water, bedside tables).
+- Persona: The person is a casual hobbyist with taste, not an influencer production setup. Real, spontaneous, and unpolished.
+- Settings: Cozy and relatable everyday spaces (bedside table, IKEA desk, kitchen counter corner, windowsill, hallway shelf), lightly lived-in but not filthy or chaotic.
 `,
         suffix: `
 NO BORDERS, NO FRAMES, FULL BLEED.
 STRICT RULE: ABSOLUTELY NO PEOPLE, NO HUMAN FIGURES, NO FACES, NO BODY PARTS.
-Style: Candid, spontaneous snapshot, genuine iPhone photography, natural light, warm shadows, quiet intimacy.
+Style: iPhone 12 photography, candid UGC snapshot, hobby Pinterest vibe, natural unedited light, real life, no professional polish.
 COMPOSITION & MOOD:
-- Focus on the unposed feel of a real moment caught on a phone.
-- Use natural textures (wood, leather, textiles) and soft ambient detail.
-- Capture themes of reflection, memory, and introspection through ordinary objects.
-- Slightly tilted or off-center framing to enhance the authentic point-and-shoot feel.
+- Focus on the "authentic and personal" feel of a moment shared privately with a friend.
+- Use relatable, real-life environments with one clear object/story focus.
+- Capture genuine, un-staged intimacy; imperfect but aesthetically pleasing.
+- Casual handheld framing; avoid ad-like symmetry, product-shot polish, and cinematic grading.
 `
     }
 };

@@ -5,7 +5,7 @@ const state = {
     includeBranding: true,
     slides: [],
     currentSlideIndex: 0,
-    characterAnchor: null,
+    characterAnchor: [], // Array of dataUrl strings for SYP
     imagePrompts: [],
     generatedImages: [],
     isDragging: false,
@@ -21,7 +21,9 @@ const state = {
     isResizingLeft: false,
     selectedRefIndices: [],
     customImages: [],
-    useStaticSlide1: false
+    useStaticSlide1: false,
+    staticSlides: {},
+    characterAnchorDbt: [],  // Array of dataUrl strings
 };
 
 const API_BASE = 'http://localhost:3001';
@@ -43,8 +45,8 @@ const parseDataUrl = (dataUrl) => {
 const elements = {
     nativeGenFormat: document.getElementById('native-gen-format'),
     nativeGenTopic: document.getElementById('native-gen-topic'),
+    nativeGenTopicDbt: document.getElementById('native-gen-topic_dbt'),
     artStyleSelect: document.getElementById('art-style-select'),
-    includeBrandingDbt: document.getElementById('include-branding_dbt'),
     generateNativeSlidesBtn: document.getElementById('generate-native-slides-btn'),
     compatibilityWarning: document.getElementById('compatibility-warning'),
     slideTextInput: document.getElementById('slide-text-input'),
@@ -123,17 +125,41 @@ const elements = {
     hookOptionsSyp: document.getElementById('hook-options_syp'),
     hookListSyp: document.getElementById('hook-list_syp'),
     hookContextStatusSyp: document.getElementById('hook-context-status_syp'),
-    anchorReferenceDisplaySyp: document.getElementById('anchor-reference-display_syp'),
-    anchorReferenceImgSyp: document.getElementById('anchor-reference-img_syp'),
-    clearAnchorRefBtnSyp: document.getElementById('clear-anchor-ref-btn_syp'),
     downloadAllBtnSyp: document.getElementById('download-all_syp'),
     downloadCurrentBtnSyp: document.getElementById('download-current_syp'),
+
+    // SYP Reference Display (multi)
+    anchorReferenceDisplaySyp: document.getElementById('anchor-reference-display_syp'),
+    anchorRefGallerySypStep3: document.getElementById('anchor-ref-gallery_syp_step3'),
+    clearAnchorRefBtnSyp: document.getElementById('clear-anchor-ref-btn_syp'),
+
+    // SYP Step 2 Multi-Ref
+    anchorReferenceDisplaySypStep2: document.getElementById('anchor-reference-display_syp_step2'),
+    anchorRefGallerySypStep2: document.getElementById('anchor-ref-gallery_syp'),
+    clearAnchorRefBtnSypStep2: document.getElementById('clear-anchor-ref-btn_syp_step2'),
+
     quickImproveAppMentionBtn: document.getElementById('quick-improve-app-mention'),
     appMentionOptions: document.getElementById('app-mention-options'),
     appMentionList: document.getElementById('app-mention-list'),
+
+    // Custom Prompts
     customPromptInput: document.getElementById('custom-prompt-input'),
     generateCustomImageBtn: document.getElementById('generate-custom-image-btn'),
-    flowSelect: document.getElementById('flow-select')
+    customPromptInputSyp: document.getElementById('custom-prompt-input_syp'),
+    generateCustomImageBtnSyp: document.getElementById('generate-custom-image-btn_syp'),
+    uploadAnchorBtnSypCustom: document.getElementById('upload-anchor-btn_syp_custom'),
+    anchorFileInputSypCustom: document.getElementById('anchor-file-input_syp_custom'),
+    aspectRatioSelectDbt: document.getElementById('aspect-ratio-select_dbt'),
+    aspectRatioSelectSyp: document.getElementById('aspect-ratio-select_syp'),
+
+    flowSelect: document.getElementById('flow-select'),
+
+    // DBT Step 3 Upload Refs (multi)
+    uploadAnchorBtnDbt: document.getElementById('upload-anchor-btn_dbt'),
+    anchorFileInputDbt: document.getElementById('anchor-file-input_dbt'),
+    clearAnchorRefBtnDbt: document.getElementById('clear-anchor-ref-btn_dbt'),
+    anchorReferenceDisplayDbt: document.getElementById('anchor-reference-display_dbt'),
+    anchorRefGalleryDbt: document.getElementById('anchor-ref-gallery_dbt'),
 };
 
 // ==========================================
@@ -145,25 +171,25 @@ const dbtFramework = {
             name: 'Relatable/Emotional',
             percentage: '50%',
             purpose: 'Emotional connection & "me too" moments',
-            appMention: 'Natural mention in last slide',
+            appMention: 'App slide on 6 + fixed CTA on 7',
             hookStyle: 'relatable-emotional',
-            slideCount: 5
+            slideCount: 7
         },
         pov: {
             name: 'POV',
             percentage: '20%',
             purpose: 'Immersive experience & relatability',
-            appMention: 'Subtle integration in slide 4-5',
+            appMention: 'App slide on 6 + fixed CTA on 7',
             hookStyle: 'pov',
-            slideCount: 5
+            slideCount: 7
         },
         tips: {
             name: 'Tips/Hacks',
             percentage: '30%',
             purpose: 'Practical value & solution-focused',
-            appMention: 'Present app as the solution',
+            appMention: 'App slide on 6 + fixed CTA on 7',
             hookStyle: 'tips',
-            slideCount: 5
+            slideCount: 7
         }
     },
     topics: {
@@ -215,6 +241,65 @@ function updateSlideCounter() {
     elements.slideCounter.textContent = `${state.slides.length} slide${state.slides.length !== 1 ? 's' : ''}`;
 }
 
+function normalizeStaticSlides(staticSlides, useStaticSlide1) {
+    const normalized = {};
+
+    if (staticSlides && typeof staticSlides === 'object') {
+        Object.entries(staticSlides).forEach(([key, value]) => {
+            const idx = parseInt(key, 10);
+            if (!Number.isNaN(idx) && value) {
+                const zeroBased = idx > 0 ? idx - 1 : idx;
+                normalized[zeroBased] = value;
+            }
+        });
+    }
+
+    if (useStaticSlide1) {
+        normalized[0] = 'slide1.png';
+    }
+
+    return normalized;
+}
+
+function isStaticSlide(index) {
+    return !!(state.staticSlides && state.staticSlides[index]);
+}
+
+function getStaticSlideImage(index) {
+    return state.staticSlides ? state.staticSlides[index] : null;
+}
+
+function setSlideImage(index, imageUrl, options = {}) {
+    if (!state.slides[index]) return;
+    if (isStaticSlide(index) && !options.force) return;
+    state.slides[index].image = imageUrl;
+}
+
+function applyStaticSlides() {
+    if (!state.staticSlides) return;
+    Object.entries(state.staticSlides).forEach(([idxStr, filename]) => {
+        const idx = parseInt(idxStr, 10);
+        if (Number.isNaN(idx)) return;
+        state.generatedImages[idx] = filename;
+        setSlideImage(idx, filename, { force: true });
+    });
+}
+
+function buildImagePromptsArray(imagePrompts, slideCount) {
+    const prompts = Array.from({ length: slideCount }, () => null);
+
+    if (imagePrompts && typeof imagePrompts === 'object') {
+        Object.entries(imagePrompts).forEach(([key, value]) => {
+            if (!key.startsWith('image')) return;
+            const idx = parseInt(key.replace('image', ''), 10);
+            if (Number.isNaN(idx)) return;
+            prompts[idx - 1] = value;
+        });
+    }
+
+    return prompts;
+}
+
 /**
  * Ensures slides are parsed from the active textarea if state.slides is empty.
  * Returns true if slides exist or were successfully parsed.
@@ -241,6 +326,10 @@ function ensureSlidesParsed() {
                 scale: slide.scale || 1.5,
                 maxWidth: slide.maxWidth || 120
             }));
+            if (state.currentService === 'dbt' && state.slides.length >= 6) {
+                if (!state.staticSlides[5]) state.staticSlides[5] = 'app_image.png';
+            }
+            applyStaticSlides();
             renderSlidesPreview();
             showNotification(`Using ${state.slides.length} slides from text box`, 'success');
             return true;
@@ -338,7 +427,7 @@ function checkFormatTopicCompatibility() {
 // NATIVE SLIDES GENERATION
 // ==========================================
 async function generateNativeSlides() {
-    const includeBranding = elements.includeBrandingDbt.checked;
+    const includeBranding = true;
 
     state.includeBranding = includeBranding;
 
@@ -354,7 +443,8 @@ async function generateNativeSlides() {
             body: JSON.stringify({
                 service: 'dbt',
                 includeBranding,
-                artStyle: elements.artStyleSelect?.value || 'hopper'
+                artStyle: elements.artStyleSelect?.value || 'hopper',
+                topic: elements.nativeGenTopicDbt?.value || 'random'
             })
         });
 
@@ -443,15 +533,22 @@ async function generateImagePromptsFromSlides(slidesToUse) {
 
         const data = await response.json();
 
-        if (data.prompts && Array.isArray(data.prompts)) {
-            state.imagePrompts = data.prompts;
+        if (data.image_prompts || data.prompts) {
             state.useStaticSlide1 = data.useStaticSlide1 || false;
-
-            if (state.useStaticSlide1) {
-                state.generatedImages[0] = 'slide1.png';
-                if (state.slides[0]) state.slides[0].image = 'slide1.png';
+            state.staticSlides = normalizeStaticSlides(data.staticSlides, state.useStaticSlide1);
+            if (state.currentService === 'dbt' && slidesToUse.length >= 6) {
+                if (!state.staticSlides[5]) state.staticSlides[5] = 'app_image.png';
             }
 
+            if (data.image_prompts && typeof data.image_prompts === 'object') {
+                state.imagePrompts = buildImagePromptsArray(data.image_prompts, slidesToUse.length);
+            } else if (Array.isArray(data.prompts)) {
+                state.imagePrompts = data.prompts.slice(0, slidesToUse.length);
+            } else {
+                state.imagePrompts = [];
+            }
+
+            applyStaticSlides();
             renderImagePrompts();
             initializeImageGenerationGrid(); // Initialize the slots in Step 3
             renderSlidesPreview(); // Update preview immediately
@@ -476,34 +573,34 @@ function renderImagePrompts() {
     if (!container) return;
     container.innerHTML = '';
 
-    // If Slide 1 is static, we show it but disable editing
-    if (state.useStaticSlide1) {
-        const staticEl = document.createElement('div');
-        staticEl.className = 'image-prompt-card static-prompt';
-        staticEl.innerHTML = `
-            <div class="prompt-header">
-                <span class="prompt-number">Slide 1 (Static)</span>
-            </div>
-            <div class="static-image-notice" style="padding: 10px; color: var(--text-muted); font-style: italic;">
-                Slide 1 uses a static image (slide1.png). No AI prompt needed.
-            </div>
-        `;
-        container.appendChild(staticEl);
-    }
+    state.slides.forEach((slide, index) => {
+        const staticImage = getStaticSlideImage(index);
+        if (staticImage) {
+            const staticEl = document.createElement('div');
+            staticEl.className = 'image-prompt-card static-prompt';
+            staticEl.innerHTML = `
+                <div class="prompt-header">
+                    <span class="prompt-number">Slide ${index + 1} (Static)</span>
+                </div>
+                <div class="static-image-notice" style="padding: 10px; color: var(--text-muted); font-style: italic;">
+                    Slide ${index + 1} uses a static image (${staticImage}). No AI prompt needed.
+                </div>
+            `;
+            container.appendChild(staticEl);
+            return;
+        }
 
-    state.imagePrompts.forEach((prompt, index) => {
-        const slideIndex = state.useStaticSlide1 ? index + 1 : index;
         const promptEl = document.createElement('div');
         promptEl.className = 'image-prompt-card';
         promptEl.innerHTML = `
             <div class="prompt-header">
-                <span class="prompt-number">Slide ${slideIndex + 1}</span>
+                <span class="prompt-number">Slide ${index + 1}</span>
                 <div class="prompt-actions" style="display: flex; gap: 4px;">
                     <button class="btn btn-sm btn-secondary copy-prompt-btn" data-index="${index}">📋 Copy</button>
                     <button class="btn btn-sm btn-primary save-prompt-btn" data-index="${index}" style="display: none;">💾 Save</button>
                 </div>
             </div>
-            <textarea class="prompt-textarea" data-index="${index}">${prompt}</textarea>
+            <textarea class="prompt-textarea" data-index="${index}">${state.imagePrompts[index] || ''}</textarea>
         `;
         container.appendChild(promptEl);
     });
@@ -560,6 +657,8 @@ async function generateAiImages() {
     if (containerEl) containerEl.style.display = 'none';
 
     try {
+        const referenceImages = getServiceReferenceImages(isSyp);
+
         const response = await fetch(`${API_BASE}/generate-ai-images`, {
             method: 'POST',
             headers: {
@@ -567,10 +666,11 @@ async function generateAiImages() {
             },
             body: JSON.stringify({
                 imagePrompts: state.imagePrompts.reduce((acc, prompt, i) => {
-                    const slideIndex = state.useStaticSlide1 ? i + 2 : i + 1;
-                    acc[`image${slideIndex}`] = prompt;
+                    if (prompt) acc[`image${i + 1}`] = prompt;
                     return acc;
                 }, {}),
+                referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
+                aspectRatio: (isSyp ? elements.aspectRatioSelectSyp : elements.aspectRatioSelectDbt)?.value || '9:16',
                 character_id: characterPresetEl?.value || 'luna',
                 service: state.currentService,
                 brandingMode: isSyp ? (document.querySelector('input[name="syp-branding-mode"]:checked')?.value || 'full') : 'none'
@@ -590,17 +690,11 @@ async function generateAiImages() {
                     const imageUrl = `data:${item.image.mime_type || 'image/png'};base64,${item.image.data}`;
                     const idx = item.slideIndex;
                     state.generatedImages[idx] = imageUrl;
-                    if (state.slides[idx]) {
-                        state.slides[idx].image = imageUrl;
-                    }
+                    setSlideImage(idx, imageUrl);
                 }
             });
 
-            // Handle static Slide 1 if applicable
-            if (state.useStaticSlide1) {
-                state.generatedImages[0] = 'slide1.png';
-                if (state.slides[0]) state.slides[0].image = 'slide1.png';
-            }
+            applyStaticSlides();
 
             renderGeneratedImages();
             renderSlidesPreview();
@@ -618,21 +712,47 @@ async function generateAiImages() {
 }
 
 async function generateCustomImage() {
-    const prompt = elements.customPromptInput.value.trim();
+    const isSyp = state.currentService === 'syp';
+    const inputEl = isSyp ? elements.customPromptInputSyp : elements.customPromptInput;
+    const prompt = inputEl ? inputEl.value.trim() : '';
+
     if (!prompt) {
         showNotification('Please enter a custom prompt first!', 'error');
         return;
     }
 
-    const originalBtnContent = elements.generateCustomImageBtn.innerHTML;
-    elements.generateCustomImageBtn.disabled = true;
-    elements.generateCustomImageBtn.innerHTML = '<span>⏳ Generating...</span>';
+    // Capture state for this specific generation
+    const tempId = Date.now();
+    const ratioEl = isSyp ? elements.aspectRatioSelectSyp : elements.aspectRatioSelectDbt;
+    const selectedRatio = ratioEl ? ratioEl.value : '9:16';
+
+    // Clear input immediately so user can type next prompt
+    if (inputEl) inputEl.value = '';
+
+    // Add loading placeholder to state
+    state.customImages.unshift({
+        id: tempId,
+        prompt: prompt,
+        aspectRatio: selectedRatio,
+        status: 'loading',
+        timestamp: new Date().toLocaleTimeString()
+    });
+
+    renderGeneratedImages();
+    showNotification('Generation started!', 'info');
 
     try {
+        const referenceImages = getServiceReferenceImages(isSyp);
+
         const response = await fetch(`${API_BASE}/generate-custom-image`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: prompt, aspectRatio: "9:16" })
+            body: JSON.stringify({
+                prompt: prompt,
+                aspectRatio: selectedRatio,
+                referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
+                service: state.currentService
+            })
         });
 
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -641,25 +761,34 @@ async function generateCustomImage() {
         if (data.success && data.image) {
             const imageUrl = `data:${data.image.mime_type || 'image/png'};base64,${data.image.data}`;
 
-            // Store in state so it persists across re-renders
-            state.customImages.unshift({
-                id: Date.now(),
-                url: imageUrl,
-                timestamp: new Date().toLocaleTimeString()
-            });
+            // Update the placeholder in state
+            const index = state.customImages.findIndex(ci => ci.id === tempId);
+            if (index !== -1) {
+                state.customImages[index] = {
+                    id: tempId,
+                    url: imageUrl,
+                    prompt: prompt,
+                    aspectRatio: selectedRatio,
+                    timestamp: new Date().toLocaleTimeString(),
+                    status: 'done'
+                };
+            }
 
             renderGeneratedImages();
             showNotification('Custom image generated!', 'success');
-            elements.customPromptInput.value = ''; // Clear input if successful
         } else {
             throw new Error(data.error || 'Generation failed');
         }
     } catch (error) {
         console.error('Error generating custom image:', error);
-        showNotification('Failed to generate custom image: ' + error.message, 'error');
-    } finally {
-        elements.generateCustomImageBtn.disabled = false;
-        elements.generateCustomImageBtn.innerHTML = originalBtnContent;
+        showNotification('Failed to generate: ' + error.message, 'error');
+        // Update placeholder to show error or remove it
+        const index = state.customImages.findIndex(ci => ci.id === tempId);
+        if (index !== -1) {
+            state.customImages[index].status = 'error';
+            state.customImages[index].error = error.message;
+            renderGeneratedImages();
+        }
     }
 }
 
@@ -672,36 +801,35 @@ function initializeImageGenerationGrid() {
     container.innerHTML = '';
     container.style.display = 'grid';
 
-    // If Slide 1 is static, show it first as "ready"
-    if (state.useStaticSlide1) {
+    state.slides.forEach((slide, index) => {
+        const staticImage = getStaticSlideImage(index);
+        const prompt = state.imagePrompts[index];
         const item = document.createElement('div');
         item.className = 'generated-image-item';
-        item.innerHTML = `
-            <span class="slide-label">Slide 1 (Static)</span>
-            <img src="slide1.png" alt="Slide 1 Static">
-            <div class="static-notice" style="padding: 5px; font-size: 0.7rem; color: var(--text-muted);">
-                Static asset used for Slide 1
-            </div>
-        `;
-        container.appendChild(item);
-    }
-
-    state.imagePrompts.forEach((prompt, index) => {
-        const item = document.createElement('div');
-        item.className = 'generated-image-item generated-image-pending';
         item.dataset.index = index;
 
-        item.innerHTML = `
-            <span class="slide-label">Slide ${index + 1}</span>
-            <div style="text-align: center; padding: 20px;">
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Prompt Ready</p>
-                <button class="btn-gen-slide generate-single-btn" data-index="${index}">✨ Generate Image</button>
-            </div>
-            <div class="ref-selection">
-                <input type="checkbox" class="ref-checkbox" data-index="${index}" id="ref-check-${index}" ${state.selectedRefIndices.includes(index) ? 'checked' : ''}>
-                <label for="ref-check-${index}" class="ref-label">Use as Ref</label>
-            </div>
-        `;
+        if (staticImage) {
+            item.innerHTML = `
+                <span class="slide-label">Slide ${index + 1} (Static)</span>
+                <img src="${staticImage}" alt="Slide ${index + 1} Static">
+                <div class="static-notice" style="padding: 5px; font-size: 0.7rem; color: var(--text-muted);">
+                    Static asset used for Slide ${index + 1}
+                </div>
+            `;
+        } else {
+            item.classList.add('generated-image-pending');
+            item.innerHTML = `
+                <span class="slide-label">Slide ${index + 1}</span>
+                <div style="text-align: center; padding: 20px;">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Prompt Ready</p>
+                    <button class="btn-gen-slide generate-single-btn" data-index="${index}" ${prompt ? '' : 'disabled'}>✨ Generate Image</button>
+                </div>
+                <div class="ref-selection">
+                    <input type="checkbox" class="ref-checkbox" data-index="${index}" id="ref-check-${index}" ${state.selectedRefIndices.includes(index) ? 'checked' : ''}>
+                    <label for="ref-check-${index}" class="ref-label">Use as Ref</label>
+                </div>
+            `;
+        }
         container.appendChild(item);
     });
 
@@ -737,10 +865,11 @@ function initializeImageGenerationGrid() {
 }
 
 async function generateSingleImage(index, btnEl) {
+    if (isStaticSlide(index)) return;
     const prompt = state.imagePrompts[index];
     if (!prompt) return;
 
-    const slideIndexToUse = state.useStaticSlide1 ? index + 1 : index;
+    const slideIndexToUse = index;
     const originalText = btnEl.innerHTML;
 
     try {
@@ -756,11 +885,7 @@ async function generateSingleImage(index, btnEl) {
         const isSyp = state.currentService === 'syp';
         const characterPresetEl = isSyp ? elements.characterPresetSyp : elements.characterPreset;
 
-        const referenceImages = [];
-        if (isSyp && state.characterAnchor) {
-            const parsed = parseDataUrl(state.characterAnchor);
-            if (parsed) referenceImages.push(parsed);
-        }
+        const referenceImages = getServiceReferenceImages(isSyp);
 
         state.selectedRefIndices.forEach(refIdx => {
             if (state.generatedImages[refIdx]) {
@@ -779,6 +904,7 @@ async function generateSingleImage(index, btnEl) {
                 referenceImages: referenceImages,
                 slideIndex: slideIndexToUse,
                 service: state.currentService,
+                aspectRatio: (isSyp ? elements.aspectRatioSelectSyp : elements.aspectRatioSelectDbt)?.value || '9:16',
                 character_id: characterPresetEl?.value || 'luna',
                 brandingMode: brandingMode
             })
@@ -792,9 +918,7 @@ async function generateSingleImage(index, btnEl) {
             state.generatedImages[slideIndexToUse] = imageUrl;
 
             // Assign to state.slides
-            if (state.slides[slideIndexToUse]) {
-                state.slides[slideIndexToUse].image = imageUrl;
-            }
+            setSlideImage(slideIndexToUse, imageUrl);
 
             // Replace card content with image
             cardEl.classList.remove('generated-image-pending');
@@ -830,7 +954,7 @@ async function generateSingleImage(index, btnEl) {
                 useBtn.classList.add('added');
                 useBtn.textContent = '✓ Added';
                 if (state.slides[index]) {
-                    state.slides[index].image = imageUrl;
+                    setSlideImage(index, imageUrl);
                     renderSlidesPreview();
                     showNotification(`Image assigned to slide ${index + 1}`, 'success');
                 } else {
@@ -856,6 +980,68 @@ async function generateSingleImage(index, btnEl) {
     }
 }
 
+async function regenerateCustomImage(id) {
+    const imgObj = state.customImages.find(ci => ci.id === id);
+    if (!imgObj || !imgObj.prompt) {
+        showNotification('No prompt stored for this image – cannot regenerate.', 'error');
+        return;
+    }
+
+    const prompt = imgObj.prompt;
+    const isSyp = state.currentService === 'syp';
+
+    // Mark as loading
+    imgObj.status = 'loading';
+    imgObj.url = null;
+    renderGeneratedImages();
+    showNotification('Regenerating image…', 'info');
+
+    try {
+        const referenceImages = getServiceReferenceImages(isSyp);
+
+        const response = await fetch(`${API_BASE}/generate-custom-image`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt,
+                aspectRatio: imgObj.aspectRatio || '9:16',
+                referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
+                service: state.currentService
+            })
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+
+        if (data.success && data.image) {
+            const imageUrl = `data:${data.image.mime_type || 'image/png'};base64,${data.image.data}`;
+            const idx = state.customImages.findIndex(ci => ci.id === id);
+            if (idx !== -1) {
+                state.customImages[idx] = {
+                    id,
+                    url: imageUrl,
+                    prompt,
+                    timestamp: new Date().toLocaleTimeString(),
+                    status: 'done'
+                };
+            }
+            renderGeneratedImages();
+            showNotification('Image regenerated!', 'success');
+        } else {
+            throw new Error(data.error || 'Generation failed');
+        }
+    } catch (error) {
+        console.error('Error regenerating custom image:', error);
+        showNotification('Regeneration failed: ' + error.message, 'error');
+        const idx = state.customImages.findIndex(ci => ci.id === id);
+        if (idx !== -1) {
+            state.customImages[idx].status = 'error';
+            state.customImages[idx].error = error.message;
+            renderGeneratedImages();
+        }
+    }
+}
+
 function renderGeneratedImages() {
     const isSyp = state.currentService === 'syp';
     const container = isSyp ? elements.generatedImagesContainerSyp : elements.generatedImagesContainer;
@@ -864,31 +1050,52 @@ function renderGeneratedImages() {
     if (!container) return;
     container.innerHTML = '';
 
-    // If Slide 1 is static, show it first
-    if (state.useStaticSlide1) {
-        const item = document.createElement('div');
-        item.className = 'generated-image-item';
-        item.innerHTML = `
-            <span class="slide-label">Slide 1 (Static)</span>
-            <img src="slide1.png" alt="Slide 1 Static">
-            <div class="static-notice" style="padding: 5px; font-size: 0.7rem; color: var(--text-muted);">
-                Static asset used for Slide 1
-            </div>
-        `;
-        container.appendChild(item);
-    }
-
     // 1. Render Custom Images first
     state.customImages.forEach((imgObj) => {
         const item = document.createElement('div');
         item.className = 'generated-image-item custom-image-item';
         item.dataset.customId = imgObj.id;
 
+        if (imgObj.status === 'loading') {
+            item.innerHTML = `
+                <span class="slide-label">⏳ Generating...</span>
+                <div class="custom-loading-state">
+                    <div class="spinner"></div>
+                </div>
+                <div class="custom-prompt-preview">${imgObj.prompt}</div>
+            `;
+            container.appendChild(item);
+            return;
+        }
+
+        if (imgObj.status === 'error') {
+            item.innerHTML = `
+                <span class="slide-label">❌ Failed</span>
+                <div class="custom-error-state">
+                    ${imgObj.error || 'Error'}
+                </div>
+                <div class="custom-image-toolbar">
+                    ${imgObj.prompt ? '<button class="btn btn-sm btn-secondary regen-custom-btn">🔄 Retry</button>' : ''}
+                    <button class="btn btn-sm btn-fire delete-custom-btn">🗑️</button>
+                </div>
+            `;
+            if (imgObj.prompt && item.querySelector('.regen-custom-btn')) {
+                item.querySelector('.regen-custom-btn').addEventListener('click', () => regenerateCustomImage(imgObj.id));
+            }
+            item.querySelector('.delete-custom-btn').addEventListener('click', () => {
+                state.customImages = state.customImages.filter(ci => ci.id !== imgObj.id);
+                renderGeneratedImages();
+            });
+            container.appendChild(item);
+            return;
+        }
+
         item.innerHTML = `
             <span class="slide-label">Custom - ${imgObj.timestamp}</span>
             <img src="${imgObj.url}" alt="Custom image">
-            <div class="image-actions">
+            <div class="custom-image-toolbar">
                 <button class="btn btn-sm btn-secondary use-custom-btn">Use</button>
+                <button class="btn btn-sm btn-secondary regen-custom-btn">🔄</button>
                 <button class="btn btn-sm btn-fire download-custom-btn">💾</button>
                 <button class="btn btn-sm btn-fire delete-custom-btn">🗑️</button>
             </div>
@@ -897,12 +1104,20 @@ function renderGeneratedImages() {
         // Add custom handlers
         item.querySelector('.use-custom-btn').addEventListener('click', () => {
             if (state.slides[state.currentSlideIndex]) {
-                state.slides[state.currentSlideIndex].image = imgObj.url;
-                renderSlidesPreview();
-                showNotification(`Image assigned to slide ${state.currentSlideIndex + 1}`, 'success');
+                if (isStaticSlide(state.currentSlideIndex)) {
+                    showNotification('This slide uses a static image and cannot be replaced.', 'info');
+                } else {
+                    setSlideImage(state.currentSlideIndex, imgObj.url);
+                    renderSlidesPreview();
+                    showNotification(`Image assigned to slide ${state.currentSlideIndex + 1}`, 'success');
+                }
             } else {
                 showNotification('No active slide to assign image to.', 'error');
             }
+        });
+
+        item.querySelector('.regen-custom-btn').addEventListener('click', () => {
+            regenerateCustomImage(imgObj.id);
         });
 
         item.querySelector('.download-custom-btn').addEventListener('click', () => {
@@ -922,26 +1137,35 @@ function renderGeneratedImages() {
     });
 
     // 2. Render Carousel Images
-    state.imagePrompts.forEach((prompt, index) => {
-        const slideIndex = state.useStaticSlide1 ? index + 1 : index;
-        const imgUrl = state.generatedImages[slideIndex];
+    state.slides.forEach((slide, index) => {
+        const staticImage = getStaticSlideImage(index);
+        const imgUrl = staticImage || state.generatedImages[index];
+        const prompt = state.imagePrompts[index];
 
         const item = document.createElement('div');
         item.className = 'generated-image-item';
 
-        if (!imgUrl) {
+        if (staticImage) {
+            item.innerHTML = `
+                <span class="slide-label">Slide ${index + 1} (Static)</span>
+                <img src="${staticImage}" alt="Slide ${index + 1} Static">
+                <div class="static-notice" style="padding: 5px; font-size: 0.7rem; color: var(--text-muted);">
+                    Static asset used for Slide ${index + 1}
+                </div>
+            `;
+        } else if (!imgUrl) {
             item.classList.add('generated-image-pending');
             item.innerHTML = `
-                <span class="slide-label">Slide ${slideIndex + 1}</span>
+                <span class="slide-label">Slide ${index + 1}</span>
                 <div style="text-align: center; padding: 20px;">
                     <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Prompt Ready</p>
-                    <button class="btn-gen-slide generate-single-btn" data-index="${index}">✨ Generate Image</button>
+                    <button class="btn-gen-slide generate-single-btn" data-index="${index}" ${prompt ? '' : 'disabled'}>✨ Generate Image</button>
                 </div>
             `;
         } else {
             item.innerHTML = `
-                <span class="slide-label">Slide ${slideIndex + 1}</span>
-                <img src="${imgUrl}" alt="Generated image ${slideIndex + 1}">
+                <span class="slide-label">Slide ${index + 1}</span>
+                <img src="${imgUrl}" alt="Generated image ${index + 1}">
                 <div class="image-actions">
                     <button class="btn btn-sm btn-secondary use-image-btn added" data-index="${index}">✓ Added</button>
                     <button class="btn btn-sm btn-fire regen-btn" data-index="${index}">🔄 Regen</button>
@@ -949,12 +1173,14 @@ function renderGeneratedImages() {
             `;
         }
 
-        item.innerHTML += `
-            <div class="ref-selection">
-                <input type="checkbox" class="ref-checkbox" data-index="${slideIndex}" id="ref-check-${slideIndex}" ${state.selectedRefIndices.includes(slideIndex) ? 'checked' : ''}>
-                <label for="ref-check-${slideIndex}" class="ref-label">Use as Ref</label>
-            </div>
-        `;
+        if (!staticImage) {
+            item.innerHTML += `
+                <div class="ref-selection">
+                    <input type="checkbox" class="ref-checkbox" data-index="${index}" id="ref-check-${index}" ${state.selectedRefIndices.includes(index) ? 'checked' : ''}>
+                    <label for="ref-check-${index}" class="ref-label">Use as Ref</label>
+                </div>
+            `;
+        }
         container.appendChild(item);
     });
 
@@ -979,16 +1205,15 @@ function renderGeneratedImages() {
         btn.addEventListener('click', (e) => {
             const btnEl = e.target.closest('.use-image-btn');
             const index = parseInt(btnEl.dataset.index);
-            const slideIndex = state.useStaticSlide1 ? index + 1 : index;
 
             // Always provide visual feedback
             btnEl.classList.add('added');
             btnEl.textContent = '✓ Added';
 
-            if (state.slides[slideIndex]) {
-                state.slides[slideIndex].image = state.generatedImages[slideIndex];
+            if (state.slides[index]) {
+                setSlideImage(index, state.generatedImages[index]);
                 renderSlidesPreview();
-                showNotification(`Image assigned to slide ${slideIndex + 1}`, 'success');
+                showNotification(`Image assigned to slide ${index + 1}`, 'success');
             } else {
                 showNotification(`Image selected! Click 'Parse & Apply' to create slides.`, 'info');
             }
@@ -1034,6 +1259,33 @@ function updateParsingToolsVisibility() {
     }
 }
 
+function splitTextBlocks(text) {
+    return String(text || '')
+        .split(/\n\s*\n+/)
+        .map(part => part.trim())
+        .filter(Boolean);
+}
+
+function escapeHtml(text) {
+    return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function buildTextBlocksPreviewHtml(text, baseFontSize) {
+    const blocks = splitTextBlocks(text);
+    if (blocks.length === 0) return '';
+
+    return blocks.map(block => `
+        <div class="text-box" style="font-size: ${baseFontSize}px; width: 100%;" data-base-font-size="${baseFontSize}">
+            <span class="text-content-span">${escapeHtml(block).replace(/\n/g, '<br>')}</span>
+        </div>
+    `).join('');
+}
+
 // ==========================================
 // SLIDES RENDERING
 // ==========================================
@@ -1068,14 +1320,17 @@ function renderSlidesPreview() {
         const previewScaleFactor = 0.35 * slideScale; // Scale down the entire text overlay
         const slideMaxWidth = slide.maxWidth || elements.textWidthInput?.value || 120;
 
+        const staticImage = getStaticSlideImage(index);
+        const slideImageMarkup = staticImage
+            ? `<img src="${staticImage}" alt="Slide ${index + 1} Static">`
+            : (slide.image ? `<img src="${slide.image}" alt="Slide ${index + 1}">` : '<div class="no-image">No Image</div>');
+
         slideEl.innerHTML = `
             <div class="slide-number">${index + 1}</div>
             <div class="slide-preview" style="position: relative; width: 100%; height: 100%;">
-                ${(index === 0 && state.useStaticSlide1) ? '<img src="slide1.png" alt="Slide 1 Static">' : (slide.image ? `<img src="${slide.image}" alt="Slide ${index + 1}">` : '<div class="no-image">No Image</div>')}
+                ${slideImageMarkup}
                 <div class="text-overlay ${state.currentSlideIndex === index ? 'selected' : ''}" style="left: ${slide.position.x}%; top: ${slide.position.y}%; width: ${slideMaxWidth}%; transform: translate(-50%, -50%) scale(${previewScaleFactor}); transform-origin: center center;" data-scale="${slideScale}">
-                    <div class="text-box" style="font-size: ${baseFontSize}px; width: 100%;" data-base-font-size="${baseFontSize}">
-                        <span class="text-content-span">${slide.text || ''}</span>
-                    </div>
+                    <div class="text-block-stack">${buildTextBlocksPreviewHtml(slide.text || '', baseFontSize)}</div>
                     ${state.currentSlideIndex === index ? `
                         <div class="resize-handle corner" title="Drag to resize text"></div>
                         <div class="resize-handle width-handle" title="Drag to change width"></div>
@@ -1114,10 +1369,9 @@ function renderSlideToCanvas(slide, canvas) {
     ctx.fillRect(0, 0, width, height);
 
     // Draw image if exists
-    let imgToDraw = slide.image;
-    if (state.slides.indexOf(slide) === 0 && state.useStaticSlide1) {
-        imgToDraw = 'slide1.png';
-    }
+    const slideIndex = state.slides.indexOf(slide);
+    const staticImage = slideIndex >= 0 ? getStaticSlideImage(slideIndex) : null;
+    let imgToDraw = staticImage || slide.image;
 
     if (imgToDraw) {
         return new Promise((resolve) => {
@@ -1162,122 +1416,116 @@ function drawTextOverlay(ctx, text, width, height, position = { x: 50, y: 50 }, 
     // Preview physical coverage = (maxWidthPercent/100) * 0.35 * scale.
     const visualCoverageRatio = (maxWidthPercent / 100) * 0.35 * scaleFactor;
     const maxWidth = width * visualCoverageRatio;
-    const words = text.split(' ');
-    const lines = [];
-    let currentLine = words[0];
-
-    for (let i = 1; i < words.length; i++) {
-        const testLine = currentLine + ' ' + words[i];
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth) {
-            lines.push(currentLine);
-            currentLine = words[i];
-        } else {
-            currentLine = testLine;
-        }
-    }
-    lines.push(currentLine);
-
-    // Draw the "Unified TikTok Blob"
     const lineHeight = canvasFontSize * 1.25;
-    const totalHeight = lines.length * lineHeight;
-    const rects = [];
-    let currentYForRect = textY - (totalHeight / 2);
-
-    // Increased padding for authentic TikTok look
     const paddingX = canvasFontSize * 0.45;
     const paddingY = canvasFontSize * 0.18;
     const cornerRadius = canvasFontSize * 0.25;
+    const blockGap = lineHeight * 0.55;
+    const blocks = splitTextBlocks(text);
 
-    lines.forEach((line) => {
-        const metrics = ctx.measureText(line);
-        const lineWidth = metrics.width;
-
-        // Correct Y positioning: the text is drawn at the center of the line.
-        // startYForText for line i is: top + (i * lineHeight) + (lineHeight / 2)
-        // So the rect should be centered around: currentYForRect + (lineHeight / 2)
-        const centerY = currentYForRect + (lineHeight / 2);
-
-        rects.push({
-            x: textX - (lineWidth / 2) - paddingX,
-            y: centerY - (canvasFontSize / 2) - paddingY,
-            w: lineWidth + (paddingX * 2),
-            h: canvasFontSize + (paddingY * 2)
+    const wrapBlockToLines = (blockText) => {
+        const forcedLines = String(blockText || '').split('\n').map(s => s.trim()).filter(Boolean);
+        const wrapped = [];
+        forcedLines.forEach((line) => {
+            const words = line.split(/\s+/).filter(Boolean);
+            if (words.length === 0) return;
+            let currentLine = words[0];
+            for (let i = 1; i < words.length; i++) {
+                const testLine = `${currentLine} ${words[i]}`;
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > maxWidth) {
+                    wrapped.push(currentLine);
+                    currentLine = words[i];
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            wrapped.push(currentLine);
         });
-        currentYForRect += lineHeight;
-    });
+        return wrapped;
+    };
 
-    // Function to draw a unified path for the background
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.98)';
-    ctx.beginPath();
+    const drawTextBlob = (lines, centerY) => {
+        if (!lines || lines.length === 0) return;
+        const blockHeight = lines.length * lineHeight;
+        const rects = [];
+        let currentYForRect = centerY - (blockHeight / 2);
 
-    if (rects.length > 0) {
-        // Trace RIGHT side
-        ctx.moveTo(rects[0].x + cornerRadius, rects[0].y);
-        for (let i = 0; i < rects.length; i++) {
-            const r = rects[i];
-            const next = rects[i + 1];
+        lines.forEach((line) => {
+            const metrics = ctx.measureText(line);
+            const lineWidth = metrics.width;
+            const lineCenterY = currentYForRect + (lineHeight / 2);
 
-            // Top right
-            ctx.lineTo(r.x + r.w - cornerRadius, r.y);
-            ctx.arcTo(r.x + r.w, r.y, r.x + r.w, r.y + cornerRadius, cornerRadius);
+            rects.push({
+                x: textX - (lineWidth / 2) - paddingX,
+                y: lineCenterY - (canvasFontSize / 2) - paddingY,
+                w: lineWidth + (paddingX * 2),
+                h: canvasFontSize + (paddingY * 2)
+            });
+            currentYForRect += lineHeight;
+        });
 
-            if (next) {
-                // Bottom right transition
-                if (next.w > r.w) {
-                    // Step out: Draw arc to next width
-                    ctx.lineTo(r.x + r.w, next.y - cornerRadius);
-                    ctx.arcTo(r.x + r.w, next.y, next.x + next.w, next.y, cornerRadius);
-                } else if (next.w < r.w) {
-                    // Step in: Draw arc inwards
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.98)';
+        ctx.beginPath();
+
+        if (rects.length > 0) {
+            ctx.moveTo(rects[0].x + cornerRadius, rects[0].y);
+            for (let i = 0; i < rects.length; i++) {
+                const r = rects[i];
+                const next = rects[i + 1];
+
+                ctx.lineTo(r.x + r.w - cornerRadius, r.y);
+                ctx.arcTo(r.x + r.w, r.y, r.x + r.w, r.y + cornerRadius, cornerRadius);
+
+                if (next) {
                     ctx.lineTo(r.x + r.w, next.y - cornerRadius);
                     ctx.arcTo(r.x + r.w, next.y, next.x + next.w, next.y, cornerRadius);
                 } else {
-                    ctx.lineTo(r.x + r.w, next.y);
+                    ctx.lineTo(r.x + r.w, r.y + r.h - cornerRadius);
+                    ctx.arcTo(r.x + r.w, r.y + r.h, r.x + r.w - cornerRadius, r.y + r.h, cornerRadius);
                 }
-            } else {
-                // Final bottom right
-                ctx.lineTo(r.x + r.w, r.y + r.h - cornerRadius);
-                ctx.arcTo(r.x + r.w, r.y + r.h, r.x + r.w - cornerRadius, r.y + r.h, cornerRadius);
             }
-        }
 
-        // Trace LEFT side (backwards)
-        for (let i = rects.length - 1; i >= 0; i--) {
-            const r = rects[i];
-            const prev = rects[i - 1];
+            for (let i = rects.length - 1; i >= 0; i--) {
+                const r = rects[i];
+                const prev = rects[i - 1];
 
-            // Bottom left
-            ctx.lineTo(r.x + cornerRadius, r.y + r.h);
-            ctx.arcTo(r.x, r.y + r.h, r.x, r.y + r.h - cornerRadius, cornerRadius);
+                ctx.lineTo(r.x + cornerRadius, r.y + r.h);
+                ctx.arcTo(r.x, r.y + r.h, r.x, r.y + r.h - cornerRadius, cornerRadius);
 
-            if (prev) {
-                // Top left transition
-                if (prev.w > r.w) {
-                    ctx.lineTo(r.x, prev.y + prev.h + cornerRadius);
-                    ctx.arcTo(r.x, prev.y + prev.h, prev.x, prev.y + prev.h, cornerRadius);
-                } else if (prev.w < r.w) {
+                if (prev) {
                     ctx.lineTo(r.x, prev.y + prev.h + cornerRadius);
                     ctx.arcTo(r.x, prev.y + prev.h, prev.x, prev.y + prev.h, cornerRadius);
                 } else {
-                    ctx.lineTo(r.x, prev.y + prev.h);
+                    ctx.lineTo(r.x, r.y + cornerRadius);
+                    ctx.arcTo(r.x, r.y, r.x + cornerRadius, r.y, cornerRadius);
                 }
-            } else {
-                // Final top left
-                ctx.lineTo(r.x, r.y + cornerRadius);
-                ctx.arcTo(r.x, r.y, r.x + cornerRadius, r.y, cornerRadius);
             }
         }
-    }
-    ctx.closePath();
-    ctx.fill();
 
-    // Draw the text on top
-    ctx.fillStyle = '#000000';
-    let startYForText = textY - (totalHeight / 2) + (lineHeight / 2);
-    lines.forEach((line) => {
-        ctx.fillText(line, textX, startYForText);
-        startYForText += lineHeight;
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#000000';
+        let startYForText = centerY - (blockHeight / 2) + (lineHeight / 2);
+        lines.forEach((line) => {
+            ctx.fillText(line, textX, startYForText);
+            startYForText += lineHeight;
+        });
+    };
+
+    const blockLines = blocks.map(block => wrapBlockToLines(block)).filter(lines => lines.length > 0);
+    if (blockLines.length === 0) return;
+
+    const blockHeights = blockLines.map(lines => lines.length * lineHeight);
+    const totalHeight = blockHeights.reduce((a, b) => a + b, 0) + (blockGap * (blockLines.length - 1));
+
+    let currentTop = textY - (totalHeight / 2);
+    blockLines.forEach((lines, idx) => {
+        const blockHeight = blockHeights[idx];
+        const centerY = currentTop + (blockHeight / 2);
+        drawTextBlob(lines, centerY);
+        currentTop += blockHeight + blockGap;
     });
 }
 
@@ -1358,7 +1606,7 @@ function handleFileUpload(files) {
         reader.onload = (e) => {
             const imageIndex = state.slides.length > 0 ? state.currentSlideIndex + index : index;
             if (state.slides[imageIndex]) {
-                state.slides[imageIndex].image = e.target.result;
+                setSlideImage(imageIndex, e.target.result);
             }
 
             if (index === 0) {
@@ -1374,27 +1622,176 @@ function handleFileUpload(files) {
 // ==========================================
 // CHARACTER ANCHOR
 // ==========================================
+
+// Helper: collect all reference images for the current service
+function getServiceReferenceImages(isSyp) {
+    const referenceImages = [];
+    const sourceArray = isSyp ? state.characterAnchor : state.characterAnchorDbt;
+
+    // Both support multiple refs now
+    for (const dataUrl of sourceArray) {
+        const parsed = parseDataUrl(dataUrl);
+        if (parsed) referenceImages.push(parsed);
+    }
+    return referenceImages;
+}
+
 function handleAnchorUpload(file) {
     if (!file.type.startsWith('image/')) {
         showNotification('Please upload an image file', 'error');
         return;
     }
 
+    const isSyp = state.currentService === 'syp';
     const reader = new FileReader();
     reader.onload = (e) => {
-        state.characterAnchor = e.target.result;
-        elements.anchorImgPreview.src = e.target.result;
-        elements.characterAnchorPreview.style.display = 'block';
-        showNotification('Character anchor uploaded!', 'success');
+        const dataUrl = e.target.result;
+        if (isSyp) {
+            // SYP: push to array
+            state.characterAnchor.push(dataUrl);
+            renderSypRefGallery();
+            saveSypRefsToLocalStorage();
+        } else {
+            // DBT: push to array
+            state.characterAnchorDbt.push(dataUrl);
+            renderDbtRefGallery();
+            saveDbtRefsToLocalStorage();
+        }
+        showNotification('Reference image uploaded!', 'success');
     };
     reader.readAsDataURL(file);
 }
 
 function clearCharacterAnchor() {
-    state.characterAnchor = null;
-    elements.anchorImgPreview.src = '';
-    elements.characterAnchorPreview.style.display = 'none';
-    showNotification('Character anchor cleared', 'info');
+    const isSyp = state.currentService === 'syp';
+    if (isSyp) {
+        state.characterAnchor = [];
+        renderSypRefGallery();
+        localStorage.removeItem('characterAnchor_syp');
+    } else {
+        state.characterAnchorDbt = [];
+        renderDbtRefGallery();
+        localStorage.removeItem('characterAnchor_dbt');
+    }
+    showNotification('All references cleared', 'info');
+}
+
+function removeRef(index, service) {
+    if (service === 'syp') {
+        state.characterAnchor.splice(index, 1);
+        renderSypRefGallery();
+        saveSypRefsToLocalStorage();
+    } else {
+        state.characterAnchorDbt.splice(index, 1);
+        renderDbtRefGallery();
+        saveDbtRefsToLocalStorage();
+    }
+    showNotification('Reference removed', 'info');
+}
+
+function renderDbtRefGallery() {
+    const gallery = elements.anchorRefGalleryDbt;
+    const wrapper = elements.anchorReferenceDisplayDbt;
+    if (!gallery || !wrapper) return;
+
+    gallery.innerHTML = '';
+
+    if (state.characterAnchorDbt.length === 0) {
+        wrapper.style.display = 'none';
+        return;
+    }
+
+    wrapper.style.display = 'block';
+
+    state.characterAnchorDbt.forEach((dataUrl, idx) => {
+        const thumb = document.createElement('div');
+        thumb.style.cssText = 'position: relative; width: 48px; height: 48px; flex-shrink: 0;';
+        thumb.innerHTML = `
+            <img src="${dataUrl}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);">
+            <button class="ref-remove-btn" data-idx="${idx}" style="position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; border-radius: 50%; background: #ff4444; color: white; border: none; font-size: 10px; line-height: 16px; text-align: center; cursor: pointer; padding: 0;">×</button>
+        `;
+        thumb.querySelector('.ref-remove-btn').addEventListener('click', () => removeRef(idx, 'dbt'));
+        gallery.appendChild(thumb);
+    });
+}
+
+function renderSypRefGallery() {
+    // SYP can have gallery in Step 2 AND Step 3
+    const galleries = [elements.anchorRefGallerySypStep2, elements.anchorRefGallerySypStep3];
+    const wrappers = [elements.anchorReferenceDisplaySypStep2, elements.anchorReferenceDisplaySyp];
+
+    galleries.forEach((gallery, i) => {
+        if (!gallery) return;
+        gallery.innerHTML = '';
+        const wrapper = wrappers[i];
+
+        if (state.characterAnchor.length === 0) {
+            if (wrapper) wrapper.style.display = 'none';
+            return;
+        }
+
+        if (wrapper) wrapper.style.display = 'block';
+
+        state.characterAnchor.forEach((dataUrl, idx) => {
+            const thumb = document.createElement('div');
+            thumb.style.cssText = 'position: relative; width: 48px; height: 48px; flex-shrink: 1;';
+            thumb.innerHTML = `
+                <img src="${dataUrl}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);">
+                <button class="ref-remove-btn" data-idx="${idx}" style="position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; border-radius: 50%; background: #ff4444; color: white; border: none; font-size: 10px; line-height: 16px; text-align: center; cursor: pointer; padding: 0;">×</button>
+            `;
+            thumb.querySelector('.ref-remove-btn').addEventListener('click', () => removeRef(idx, 'syp'));
+            gallery.appendChild(thumb);
+        });
+    });
+}
+
+function saveDbtRefsToLocalStorage() {
+    try {
+        localStorage.setItem('characterAnchor_dbt', JSON.stringify(state.characterAnchorDbt));
+    } catch (err) {
+        console.warn('Could not save DBT refs to localStorage (likely size limit)', err);
+    }
+}
+
+function saveSypRefsToLocalStorage() {
+    try {
+        localStorage.setItem('characterAnchor_syp', JSON.stringify(state.characterAnchor));
+    } catch (err) {
+        console.warn('Could not save SYP refs to localStorage (likely size limit)', err);
+    }
+}
+
+function loadSavedRefs() {
+    const savedSypRaw = localStorage.getItem('characterAnchor_syp');
+    const savedDbtRaw = localStorage.getItem('characterAnchor_dbt');
+
+    if (savedSypRaw) {
+        try {
+            const parsed = JSON.parse(savedSypRaw);
+            if (Array.isArray(parsed)) {
+                state.characterAnchor = parsed;
+            } else if (typeof parsed === 'string') {
+                state.characterAnchor = [parsed];
+            }
+        } catch {
+            state.characterAnchor = [savedSypRaw];
+        }
+        renderSypRefGallery();
+    }
+
+    if (savedDbtRaw) {
+        try {
+            const parsed = JSON.parse(savedDbtRaw);
+            if (Array.isArray(parsed)) {
+                state.characterAnchorDbt = parsed;
+            } else if (typeof parsed === 'string') {
+                state.characterAnchorDbt = [parsed];
+            }
+        } catch {
+            state.characterAnchorDbt = [savedDbtRaw];
+        }
+        renderDbtRefGallery();
+    }
 }
 
 // ==========================================
@@ -1740,6 +2137,8 @@ function copyMetadata() {
 // ==========================================
 function switchService(service) {
     state.currentService = service;
+    state.staticSlides = {};
+    state.useStaticSlide1 = false;
 
     // Update buttons
     document.querySelectorAll('.service-btn').forEach(btn => {
@@ -2117,6 +2516,54 @@ function initEventListeners() {
     if (elements.generateCustomImageBtn) {
         elements.generateCustomImageBtn.addEventListener('click', generateCustomImage);
     }
+
+    if (elements.generateCustomImageBtnSyp) {
+        elements.generateCustomImageBtnSyp.addEventListener('click', generateCustomImage);
+    }
+
+    // DBT Reference Upload
+    if (elements.uploadAnchorBtnDbt) {
+        elements.uploadAnchorBtnDbt.addEventListener('click', () => elements.anchorFileInputDbt.click());
+    }
+
+    if (elements.anchorFileInputDbt) {
+        elements.anchorFileInputDbt.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                Array.from(e.target.files).forEach(file => {
+                    handleAnchorUpload(file);
+                });
+            }
+        });
+    }
+
+    if (elements.clearAnchorRefBtnDbt) {
+        elements.clearAnchorRefBtnDbt.addEventListener('click', clearCharacterAnchor);
+    }
+
+    // SYP Reference Upload (Step 2, Step 3 Custom)
+    if (elements.anchorFileInputSyp) {
+        elements.anchorFileInputSyp.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                Array.from(e.target.files).forEach(file => handleAnchorUpload(file));
+            }
+        });
+    }
+
+    if (elements.uploadAnchorBtnSypCustom) {
+        elements.uploadAnchorBtnSypCustom.addEventListener('click', () => elements.anchorFileInputSypCustom.click());
+    }
+
+    if (elements.anchorFileInputSypCustom) {
+        elements.anchorFileInputSypCustom.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                Array.from(e.target.files).forEach(file => handleAnchorUpload(file));
+            }
+        });
+    }
+
+    if (elements.clearAnchorRefBtnSypStep2) {
+        elements.clearAnchorRefBtnSypStep2.addEventListener('click', clearCharacterAnchor);
+    }
 }
 
 function initDragHandlers() {
@@ -2396,11 +2843,10 @@ function init() {
     if (elements.nativeGenTopic) {
         state.currentTopic = elements.nativeGenTopic.value;
     }
-    if (elements.includeBrandingDbt) {
-        state.includeBranding = elements.includeBrandingDbt.checked;
-    }
+    state.includeBranding = true;
 
     console.log('App initialized');
+    loadSavedRefs();
 }
 
 // Run initialization when DOM is ready

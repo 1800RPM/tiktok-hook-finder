@@ -33,25 +33,36 @@
                         <p class="section-hint">Generate viral POV-style slides based on the V2 framework.</p>
 
                         <div class="native-gen-controls">
-                            <!-- Branding Toggle for DBT-Mind -->
-                            <div class="branding-toggle-container"
-                                style="margin: 12px 0; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border: 1px solid var(--border-color);">
-                                <label class="branding-toggle"
-                                    style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                    <input type="checkbox" id="include-branding_dbt" checked
-                                        style="width: 18px; height: 18px; cursor: pointer;">
-                                    <div>
-                                        <span style="font-weight: 600; display: block;">🧠 DBT-Mind erwähnen</span>
-                                        <span style="font-size: 0.75rem; color: var(--text-muted);">Deaktivieren für
-                                            mehr Vertrauen (erscheint dann in Description)</span>
-                                    </div>
-                                </label>
+                            <!-- Topic Selection for DBT -->
+                            <div class="input-group" style="margin-bottom: 12px;">
+                                <label for="native-gen-topic_dbt"
+                                    style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Viral
+                                    topic</label>
+                                <select id="native-gen-topic_dbt" class="select-input"
+                                    style="width: 100%; border-radius: 6px; padding: 8px;">
+                                    <option value="random">🎲 Random (Viral Mix)</option>
+                                    <option value="FP Dynamics">🤝 FP Dynamics</option>
+                                    <option value="Splitting">🌓 Splitting</option>
+                                    <option value="Abandonment Panic">🏃 Abandonment Panic</option>
+                                    <option value="Relationship Cycles">🔄 Relationship Cycles</option>
+                                    <option value="Quiet BPD">😷 Quiet BPD</option>
+                                    <option value="Identity/Sense of Self">🪞 Identity/Sense of Self</option>
+                                    <option value="Emotional Dysregulation">🌋 Emotional Dysregulation</option>
+                                    <option value="Reframes/Truths">💡 Reframes/Truths</option>
+                                    <option value="DBT Skills">🛠️ DBT Skills</option>
+                                    <option value="Recovery Milestones">🏆 Recovery Milestones</option>
+                                    <option value="Therapy Truths">🛋️ Therapy Truths</option>
+                                    <option value="Rejection Sensitivity">👂 Rejection Sensitivity</option>
+                                    <option value="Digital Self-Harm">📱 Digital Self-Harm</option>
+                                </select>
                             </div>
 
                             <button class="btn btn-fire full-width" id="generate-native-slides-btn">
                                 <span>🔥 Generate Weird Therapist Hacks (Opus)</span>
                             </button>
                         </div>
+
+
 
                         <div class="content-crafting" style="margin-top: 20px;">
                             <textarea id="slide-text-input" placeholder="Slide 1: Hook Text...
@@ -123,16 +134,12 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                             <div class="input-group" style="margin-bottom: 12px;">
                                 <label for="art-style-select">Art Style</label>
                                 <select id="art-style-select" class="select-input" style="width: 100%;">
-                                    <option value="hopper">Edward Hopper (Solitude, Urban)</option>
-                                    <option value="varo">Remedios Varo (Surrealist, Mystical)</option>
-                                    <option value="jean">James Jean (Ethereal, Floral)</option>
                                     <option value="symbolic">Symbolic (Person-Free, Atmospheric)</option>
                                 </select>
                             </div>
                             <div class="input-group" style="margin-bottom: 12px;">
                                 <label for="flow-select">Flow</label>
                                 <select id="flow-select" class="select-input" style="width: 100%;">
-                                    <option value="standard">Standard Flow</option>
                                     <option value="weird_hack">Weird Hack Flow</option>
                                 </select>
                             </div>
@@ -166,6 +173,25 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                         <h2>🎨 AI Generation</h2>
                         <p class="section-hint">Produce high-quality images with Nano Banana Pro.</p>
 
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <label
+                                style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Production
+                                Aspect Ratio</label>
+                            <select id="aspect-ratio-select_dbt" class="select-input" style="width: 100%;">
+                                <option value="auto">Auto</option>
+                                <option value="1:1">1:1</option>
+                                <option value="4:3">4:3</option>
+                                <option value="16:9">16:9</option>
+                                <option value="21:9">21:9</option>
+                                <option value="5:4">5:4</option>
+                                <option value="3:2">3:2</option>
+                                <option value="2:3">2:3</option>
+                                <option value="9:16" selected>9:16</option>
+                                <option value="3:4">3:4</option>
+                                <option value="4:5">4:5</option>
+                            </select>
+                        </div>
+
                         <button class="btn btn-accent full-width" id="generate-ai-images">
                             <span>🚀 Generate All Images (API)</span>
                         </button>
@@ -188,20 +214,42 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                             </button>
                         </div>
 
-                        <!-- Custom Image Generator -->
                         <div class="sub-section"
                             style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
                             <h3 style="display: flex; align-items: center; gap: 8px;">🎨 Custom Prompt (Nano)</h3>
                             <p class="section-hint">Raw prompt generation. No styles or guidance applied.</p>
+
+                            <!-- Reference Images Gallery for DBT -->
+                            <div id="anchor-reference-display_dbt"
+                                style="display: none; margin-bottom: 12px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                <div
+                                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--text-primary);">📌
+                                        Reference Images</span>
+                                    <button class="btn btn-sm btn-secondary" id="clear-anchor-ref-btn_dbt"
+                                        style="width: auto; padding: 2px 8px; font-size: 0.7rem;">Clear All</button>
+                                </div>
+                                <div id="anchor-ref-gallery_dbt" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                </div>
+                            </div>
+
                             <div class="input-group">
                                 <textarea id="custom-prompt-input" class="text-input"
                                     style="height: 80px; width: 100%; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); padding: 8px; font-family: var(--font-family);"
                                     placeholder="e.g. A cyberpunk cat..."></textarea>
                             </div>
-                            <button class="btn btn-secondary full-width" id="generate-custom-image-btn"
-                                style="margin-top: 8px;">
-                                <span>✨ Generate Custom Image</span>
-                            </button>
+
+
+
+                            <div class="action-row" style="display: flex; gap: 8px; margin-top: 8px;">
+                                <button class="btn btn-secondary" id="generate-custom-image-btn" style="flex: 2;">
+                                    <span>✨ Generate Custom Image</span>
+                                </button>
+                                <button class="btn btn-secondary btn-sm" id="upload-anchor-btn_dbt" style="flex: 1;">
+                                    <span>📤 Upload Ref</span>
+                                </button>
+                                <input type="file" id="anchor-file-input_dbt" accept="image/*" multiple hidden>
+                            </div>
                         </div>
                     </section>
 
@@ -445,7 +493,21 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                     style="width: auto;">
                                     <span>📤 Upload Ref</span>
                                 </button>
-                                <input type="file" id="anchor-file-input_syp" accept="image/*" hidden>
+                                <input type="file" id="anchor-file-input_syp" accept="image/*" multiple hidden>
+                            </div>
+
+                            <!-- Multi-Ref Gallery for SYP (Step 2) -->
+                            <div id="anchor-reference-display_syp_step2"
+                                style="display: none; margin-bottom: 12px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                <div
+                                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--text-primary);">📌
+                                        Reference Images</span>
+                                    <button class="btn btn-sm btn-secondary" id="clear-anchor-ref-btn_syp_step2"
+                                        style="width: auto; padding: 2px 8px; font-size: 0.7rem;">Clear All</button>
+                                </div>
+                                <div id="anchor-ref-gallery_syp" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                </div>
                             </div>
                         </div>
 
@@ -465,19 +527,37 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                         <h2>🎨 AI Generation (SYP)</h2>
                         <p class="section-hint">Produce high-quality images with Nano Banana Pro.</p>
 
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <label
+                                style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Production
+                                Aspect Ratio</label>
+                            <select id="aspect-ratio-select_syp" class="select-input" style="width: 100%;">
+                                <option value="auto">Auto</option>
+                                <option value="1:1">1:1</option>
+                                <option value="4:3">4:3</option>
+                                <option value="16:9">16:9</option>
+                                <option value="21:9">21:9</option>
+                                <option value="5:4">5:4</option>
+                                <option value="3:2">3:2</option>
+                                <option value="2:3">2:3</option>
+                                <option value="9:16" selected>9:16</option>
+                                <option value="3:4">3:4</option>
+                                <option value="4:5">4:5</option>
+                            </select>
+                        </div>
+
+                        <!-- Reference Images Gallery for SYP (Step 3) -->
                         <div id="anchor-reference-display_syp"
-                            style="display: none; margin-bottom: 12px; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);">
-                            <img id="anchor-reference-img_syp" src=""
-                                style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
-                            <div style="flex: 1;">
-                                <span
-                                    style="font-size: 0.8rem; font-weight: bold; display: block; color: var(--text-color);">Active
-                                    Ref</span>
-                                <span style="font-size: 0.75rem; color: var(--text-muted);">Will be used for
-                                    generation</span>
+                            style="display: none; margin-bottom: 12px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <div
+                                style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="font-size: 0.8rem; font-weight: bold; color: var(--text-primary);">📌
+                                    Reference Images</span>
+                                <button class="btn btn-sm btn-secondary" id="clear-anchor-ref-btn_syp"
+                                    style="width: auto; padding: 2px 8px; font-size: 0.7rem;">Clear All</button>
                             </div>
-                            <button class="btn btn-sm btn-secondary" id="clear-anchor-ref-btn_syp"
-                                style="width: auto; padding: 4px 10px; font-size: 0.75rem;">Clear</button>
+                            <div id="anchor-ref-gallery_syp_step3" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            </div>
                         </div>
 
                         <button class="btn btn-accent full-width" id="generate-ai-images_syp">
@@ -500,6 +580,32 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                             <button class="btn btn-primary full-width" id="parse-images-to-slides_syp">
                                 <span>🎨 Parse to Slide Preview</span>
                             </button>
+                        </div>
+
+                        <!-- Custom Prompt Section for SYP -->
+                        <div class="sub-section"
+                            style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                            <h3 style="display: flex; align-items: center; gap: 8px;">🎨 Custom Prompt (Nano)</h3>
+                            <p class="section-hint">Raw prompt generation. No styles or guidance applied.</p>
+
+                            <div class="input-group">
+                                <textarea id="custom-prompt-input_syp" class="text-input"
+                                    style="height: 80px; width: 100%; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); padding: 8px; font-family: var(--font-family);"
+                                    placeholder="e.g. A cute dog in a park..."></textarea>
+                            </div>
+
+
+
+                            <div class="action-row" style="display: flex; gap: 8px; margin-top: 8px;">
+                                <button class="btn btn-secondary" id="generate-custom-image-btn_syp" style="flex: 2;">
+                                    <span>✨ Generate Custom Image</span>
+                                </button>
+                                <button class="btn btn-secondary btn-sm" id="upload-anchor-btn_syp_custom"
+                                    style="flex: 1;">
+                                    <span>📤 Upload Ref</span>
+                                </button>
+                                <input type="file" id="anchor-file-input_syp_custom" accept="image/*" multiple hidden>
+                            </div>
                         </div>
                     </section>
 

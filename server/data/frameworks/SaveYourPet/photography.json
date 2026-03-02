@@ -150,6 +150,9 @@
         "accuracy": "must match editorial fashion mood while feeling authentic",
         "avoid": [
             "phone/smartphone visible in hands or any phone screen showing (the phone is taking the photo!)",
+            "bathrooms",
+            "toilets",
+            "showers",
             "car interiors (not on-brand for German pet owner)",
             "clinical/veterinary settings",
             "sad or overly emotional expressions",

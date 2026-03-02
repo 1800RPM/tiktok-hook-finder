@@ -189,6 +189,42 @@ body {
     background: var(--text-muted);
 }
 
+/* Spinner & Loading States */
+.spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--accent-cyan);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-state,
+.error-state {
+    transition: all 0.3s ease;
+}
+
+.loading-state {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+    border: 1px dashed var(--border-color);
+}
+
+.error-state {
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.image-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+}
+
 /* ========================================
    App Container
    ======================================== */
@@ -1553,12 +1589,19 @@ input[type="color"]::-webkit-color-swatch {
     display: block;
     text-align: center;
     cursor: grab;
-    white-space: normal;
+    white-space: pre-line;
     line-height: 1.25;
     /* Clean TikTok line height */
     max-width: none;
     /* Controlled by slide.maxWidth in JS */
     margin: 0 auto;
+}
+
+.text-block-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
 }
 
 .text-box:hover {
@@ -1856,6 +1899,11 @@ input[type="color"]::-webkit-color-swatch {
     background: var(--bg-tertiary);
 }
 
+/* Custom images span 2 columns for bigger preview */
+.generated-image-item.custom-image-item {
+    grid-column: span 2;
+}
+
 .generated-image-item:hover {
     border-color: var(--accent-cyan);
 }
@@ -1876,6 +1924,65 @@ input[type="color"]::-webkit-color-swatch {
     border-radius: 4px;
     font-size: 0.75rem;
     font-weight: 600;
+    z-index: 2;
+}
+
+/* Custom image toolbar - always visible at the bottom */
+.custom-image-toolbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: 4px;
+    padding: 6px;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 60%, transparent 100%);
+    z-index: 2;
+}
+
+.custom-image-toolbar .btn {
+    flex: 1;
+    font-size: 0.7rem;
+    padding: 4px 6px;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+/* Custom image loading state */
+.custom-loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Custom image prompt preview */
+.custom-prompt-preview {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    padding: 24px 8px 8px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+}
+
+/* Custom image error state */
+.custom-error-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: calc(100% - 40px);
+    background: rgba(255, 0, 0, 0.08);
+    color: #ff4444;
+    font-size: 0.8rem;
+    padding: 10px;
+    text-align: center;
 }
 
 .generated-image-item .download-btn {
@@ -2255,4 +2362,34 @@ select:hover {
 
 .framing-context-text strong {
     color: var(--accent-purple);
+}
+
+/* Aspect Ratio Select Styling */
+.select-input {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    padding: 8px;
+    font-family: var(--font-family);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23a1a1aa' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: calc(100% - 12px) center;
+    padding-right: 32px;
+}
+
+.select-input:focus {
+    outline: none;
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 10px rgba(0, 242, 234, 0.2);
+}
+
+.select-input option {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 10px;
 }

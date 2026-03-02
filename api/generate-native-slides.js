@@ -45,7 +45,9 @@ export default async function handler(req, res) {
 Each series consists of exactly 7 slides:
 - **Max Words per Slide**: Each slide MUST be under 30 words for readability.
 - **Slide 1 — The Hook:** MUST follow this format: "Weird DBT hacks from my therapist for [PROBLEM] (that ACTUALLY work)" or "Weird BPD hacks from my therapist for [PROBLEM] (that ACTUALLY work)". This slide ONLY contains the hook.
-- **Slides 2-7 — The Valuable Tips:** 6 slides containing actionable, supportive DBT-based hacks or skills to help with the situation on Slide 1.
+- **Slides 2-5 — The Valuable Tips:** 4 slides containing actionable, supportive DBT-based hacks or skills to help with the situation on Slide 1.
+- **Slide 6 — App Slide:** Must follow this formula: "[personal outcome] + DBT-Mind (free) + [specific result]".
+- **Slide 7 — CTA:** Must be exactly: "i track it all on DBT-Mind. it's free."
 
 ## STYLE GUIDELINES
 - **Tone:** Gentle, supportive, and deeply validating. Use terms like "bestie," "I've been there," "it's so real," or "gentle reminder" but don't overdo it.

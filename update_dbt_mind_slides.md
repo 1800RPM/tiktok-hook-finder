@@ -33,9 +33,9 @@ Every piece of content should fit ONE of these proven archetypes:
 
 **Structure pattern:**
 - Slides 1-4: Show relatable BPD moments through partner's loving/amused eyes
-- Slide 5: Natural DBT-Mind mention as something partner witnesses or supports
-- Slide 6: Wholesome payoff — "wouldn't trade her for anything tho"
-
+- Slide 5: Wholesome payoff -- "wouldn't trade her for anything tho"
+- Slide 6: App Slide -- connect core emotion + DBT-Mind (free) + specific result
+- Slide 7: CTA (fixed text)
 **Example voice:** "dating someone with bpd starter pack" / "things my girlfriend does that I find adorable actually"
 
 ---
@@ -47,9 +47,9 @@ Every piece of content should fit ONE of these proven archetypes:
 
 **Structure pattern:**
 - Slides 1-4: Reveal hidden experiences the viewer has never told anyone
-- Slide 5: DBT-Mind as private coping tool nobody knows about
-- Slide 6: Bittersweet landing — still hiding, but feeling less alone
-
+- Slide 5: Bittersweet landing -- still hiding, but feeling less alone
+- Slide 6: App Slide -- connect core emotion + DBT-Mind (free) + specific result
+- Slide 7: CTA (fixed text)
 **Example voice:** "things happening in my head while I smile and say I'm fine" / "things I've never told anyone I experience"
 
 ---
@@ -61,9 +61,9 @@ Every piece of content should fit ONE of these proven archetypes:
 
 **Structure pattern:**
 - Slides 1-4: Friend observing/supporting through BPD moments
-- Slide 5: DBT-Mind as caring friend recommendation
-- Slide 6: Proud friend moment or continued loving chaos
-
+- Slide 5: Proud friend moment or continued loving chaos
+- Slide 6: App Slide -- connect core emotion + DBT-Mind (free) + specific result
+- Slide 7: CTA (fixed text)
 **Example voice:** "watching my bestie go through it" / "being friends with someone with bpd"
 
 ---
@@ -76,9 +76,9 @@ Every piece of content should fit ONE of these proven archetypes:
 **Structure pattern:**
 - Slides 1-2: Public face vs private reality
 - Slides 3-4: Frantic skill usage in hidden moments
-- Slide 5: DBT-Mind as crisis tool grabbed in desperation
-- Slide 6: Emerging like nothing happened / skill actually working
-
+- Slide 5: Emerging like nothing happened / skill actually working
+- Slide 6: App Slide -- connect core emotion + DBT-Mind (free) + specific result
+- Slide 7: CTA (fixed text)
 **Example voice:** "the bathroom is my DBT clinic" / "me at the party vs me in the bathroom"
 
 ---
@@ -90,9 +90,9 @@ Every piece of content should fit ONE of these proven archetypes:
 
 **Structure pattern:**
 - Slides 1-3: What therapist said vs what you actually did
-- Slides 4-5: The chaotic alternative / DBT-Mind as the compromise
-- Slide 6: Therapist's imagined reaction or unexpected win
-
+- Slides 4-5: The chaotic alternative / unexpected win
+- Slide 6: App Slide -- connect core emotion + DBT-Mind (free) + specific result
+- Slide 7: CTA (fixed text)
 **Example voice:** "things my therapist is tired of hearing" / "therapy homework vs what I actually did"
 
 ---
@@ -178,37 +178,44 @@ Every piece of content should fit ONE of these proven archetypes:
 5. **Skill delivery:** "the DBT-Mind app telling me to check the facts when I want to check his location"
 6. **Growth moment:** "actually using the DBT-Mind app instead of spiraling this time"
 
-**Placement:** Typically slide 5 (near end but not the finale), occasionally slide 3-4 if it fits the narrative flow. NEVER slide 1 or the final slide.
+**Placement:** Always Slide 6 (App Slide). Slide 7 is the fixed CTA and never changes.
 
 ---
 
 ## SLIDE STRUCTURE GUIDELINES
 
-**Total slides:** 6 (optimal for engagement and pacing)
+**Total slides:** 7 (fixed)
 
-**Slide 1 — The Hook**
+**Slide 1 -- The Hook**
 - Immediate recognition moment
 - Sets up the framing clearly
 - Often the "title card" energy
 - Example: "dating someone with bpd starter pack"
 
-**Slides 2-4 — The Build**
+**Slides 2-4 -- The Build**
 - Escalating relatable moments
 - Each slide should land independently (quotable)
 - Mix of specific and universal experiences
 - Build emotional momentum
 
-**Slide 5 — The Turn**
-- Often where DBT-Mind fits naturally
-- Can be the most vulnerable moment
-- Or the darkest humor before the payoff
-
-**Slide 6 — The Landing**
-- Emotional payoff
+**Slide 5 -- The Turn**
+- Emotional payoff or most vulnerable moment
 - For couple content: warmth, acceptance, "worth it"
 - For solo content: bittersweet solidarity, "you're not alone"
 - For humor content: punchline or ironic twist
-- Should leave viewer feeling GOOD about themselves
+
+**Slide 6 -- App Slide**
+- Connects the post's core emotion with app use
+- Text formula: [personal outcome that connects to the post's core emotion] + DBT-Mind (free) + [specific result]
+- Image: app_image.png (always)
+- Should echo a keyword or phrase from earlier slides
+- Lowercase, same style, seamless flow
+
+**Slide 7 -- CTA**
+- Text is fixed and unchanged: "i track it all on DBT-Mind. it's free."
+- Image: hopeful-phase, warm daylight, quiet interior, candid, no app/phone
+- No explanation, no hype, no promises
+- The text carries this slide alone
 
 ---
 
@@ -267,13 +274,14 @@ Every piece of content should fit ONE of these proven archetypes:
 
 When generating slides:
 
-1. **Confirm compatibility** of selected framing × theme combination
+1. **Confirm compatibility** of selected framing x theme combination
 2. **Select archetype** based on framing
-3. **Generate 6 slides** following structure guidelines
-4. **Integrate DBT-Mind** naturally at appropriate point (usually slide 5)
-5. **Verify tone** matches archetype (warm/vulnerable/funny as appropriate)
-6. **Check landing** ensures viewer feels seen, not pathologized
-7. **Review for safety** per content guidelines
+3. **Generate 7 slides** following structure guidelines
+4. **Slide 6** must follow the App Slide formula with "DBT-Mind (free)"
+5. **Slide 7** must be exactly: "i track it all on DBT-Mind. it's free."
+6. **Verify tone** matches archetype (warm/vulnerable/funny as appropriate)
+7. **Check landing** in Slide 5 ensures viewer feels seen, not pathologized
+8. **Review for safety** per content guidelines
 
 **Output format:**
 
@@ -286,8 +294,9 @@ Slide 1: [hook text]
 Slide 2: [build text]
 Slide 3: [build text]
 Slide 4: [build text]
-Slide 5: [turn text — often includes DBT-Mind]
-Slide 6: [landing text]
+Slide 5: [turn/landing text]
+Slide 6: [app slide text -- formula with DBT-Mind (free)]
+Slide 7: i track it all on DBT-Mind. it's free.
 ```
 
 ---
@@ -304,9 +313,9 @@ Slide 1: dating someone with bpd starter pack
 Slide 2: her at 2pm: you're my soulmate I've never loved anyone like this
 Slide 3: her at 2:07pm: what do you mean "ok" why didn't you say "okay" do you even care
 Slide 4: me: I just woke up from a nap / her: so you can sleep peacefully while I suffer
-Slide 5: her checking DBT-Mind to see if she should text me or wait 10 minutes
-Slide 6: wouldn't trade her for anything tho 🥹
-
+Slide 5: wouldn't trade her for anything tho
+Slide 6: when i check DBT-Mind (free) before texting -- i wait the 10 minutes
+Slide 7: i track it all on DBT-Mind. it's free.
 ---
 
 ### Example 2: He doesn't know × Quiet BPD
@@ -319,9 +328,9 @@ Slide 1: things he doesn't know about dating me
 Slide 2: I've already imagined our breakup 300 times and pre-grieved the relationship
 Slide 3: when I say "I'm fine" I'm using every skill I have to not spiral
 Slide 4: I analyze his punctuation like it's a threat assessment
-Slide 5: I open DBT-Mind in the bathroom so he doesn't know how hard I'm working to seem okay
-Slide 6: he thinks I'm low maintenance 🙃
-
+Slide 5: he thinks I'm low maintenance
+Slide 6: when i open DBT-Mind (free) -- i can stay soft instead of spiraling
+Slide 7: i track it all on DBT-Mind. it's free.
 ---
 
 ### Example 3: The bathroom is my DBT clinic × Emotional Dysregulation
@@ -330,13 +339,13 @@ Slide 6: he thinks I'm low maintenance 🙃
 **Theme:** Emotional Dysregulation
 **Archetype:** Crisis Coping
 
-Slide 1: me at the dinner party: 😊 me in the bathroom:
+Slide 1: me at the dinner party: me in the bathroom:
 Slide 2: running cold water on my wrists bc someone made a weird comment 2 hours ago
 Slide 3: furiously doing TIPP while someone knocks asking if I'm okay
-Slide 4: "yeah just fixing my makeup!" — I am not fixing my makeup
-Slide 5: the DBT-Mind app and I having a full therapy session in a stranger's bathroom
-Slide 6: emerging 15 minutes later like ✨nothing happened✨
-
+Slide 4: "yeah just fixing my makeup!" -- I am not fixing my makeup
+Slide 5: emerging 15 minutes later like nothing happened
+Slide 6: when i log it in DBT-Mind (free) -- i come back calmer
+Slide 7: i track it all on DBT-Mind. it's free.
 ---
 
 ### Example 4: Things I thought were normal × Object Permanence
@@ -349,9 +358,9 @@ Slide 1: things I thought everyone experienced
 Slide 2: genuinely forgetting people love you the second they're not physically present
 Slide 3: needing to check someone's location not bc you don't trust them but bc you need proof they exist
 Slide 4: feeling like relationships reset to zero every time you're apart
-Slide 5: the DBT-Mind app reminding me that feelings aren't facts even when he hasn't texted in 3 hours
-Slide 6: wait not everyone does this? 😭
-
+Slide 5: wait not everyone does this?
+Slide 6: when i open DBT-Mind (free) -- i can check the facts before i spiral
+Slide 7: i track it all on DBT-Mind. it's free.
 ---
 
 ### Example 5: Watching my bestie × Reassurance Seeking
@@ -364,9 +373,9 @@ Slide 1: being best friends with someone with bpd
 Slide 2: "do you think he still loves me" bestie he proposed last week
 Slide 3: her: he said 'sure' instead of 'yes of course babe' / me: and?
 Slide 4: getting the "does this text sound mad" screenshot for the 15th time today
-Slide 5: finally getting her to download DBT-Mind so she can check the facts before texting me at 3am
-Slide 6: her actually using it and I'm so proud 🥹
-
+Slide 5: her actually using it and I'm so proud
+Slide 6: when she logs it in DBT-Mind (free) -- the panic doesn't run the night
+Slide 7: i track it all on DBT-Mind. it's free.
 ---
 
 ## QUALITY CHECKLIST
@@ -383,3 +392,6 @@ Before finalizing content, verify:
 - [ ] Viewer will feel seen, not pathologized
 - [ ] No safety guideline violations
 - [ ] Language matches TikTok native style
+
+
+

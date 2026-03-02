@@ -22,14 +22,15 @@
 ## Purpose
 Validation content. Makes viewers feel seen. Drives comments like "this is me" and "I feel so called out."
 
-## Structure (5-6 slides)
+## Structure (7 slides)
 
 | Slide | Function | Text Style |
 |-------|----------|------------|
 | 1 | **HOOK** | Curiosity gap, max 12 words |
 | 2-4 | **Relatable content** | First-person, hyper-specific experiences |
 | 5 | **Emotional landing** | The "and that's why..." or deeper realization |
-| 6 (optional) | **Soft app hook** | Only on 1 in 5 posts |
+| 6 | **App Slide** | Connect core emotion + DBT-Mind (free) + specific result |
+| 7 | **CTA** | Fixed text: "i track it all on DBT-Mind. it's free." |
 
 ## Hook Formulas
 
@@ -108,23 +109,23 @@ Creates instant emotional connection
 
 ## App Mention Strategy (Relatable Posts)
 
-**Use on:** 1 in 5 relatable posts maximum
-**Placement:** Last slide only
+**Use on:** Every post (Slide 6 is standardized)
+**Placement:** Slide 6 (App Slide). Slide 7 is the fixed CTA.
 **Tone:** Personal discovery, not promotion
 
-### Last Slide Text Options:
+### Slide 6 App Slide Text Options:
 
 **For splitting posts:**
-"my DBT app calls this 'wise mind' and it's the first thing that actually helped"
+"when i name it in DBT-Mind (free) -- it finally makes sense"
 
 **For FP/attachment posts:**
-"the DBT app I use has a whole module on this and it finally made sense"
+"when i log it in DBT-Mind (free) -- i can come back to myself"
 
 **For emotional spiral posts:**
-"my DBT app has a skill for stopping this mid-spiral, wish I knew it sooner"
+"when i use DBT-Mind (free) -- i stop the spiral before it takes over"
 
 **For quiet BPD posts:**
-"the app I use for DBT actually explains what to do instead of just 'feel your feelings'"
+"when i write it in DBT-Mind (free) -- i know what to do next"
 
 **For abandonment posts:**
 "my DBT app breaks this down step by step and it's the only thing that's worked"
@@ -215,14 +216,15 @@ If you must mention: Do it in the description, not the slides.
 ## Purpose
 Actionable value content. Positions you as experienced AND helpful. Drives saves and follows. Natural app integration.
 
-## Structure (5-6 slides)
+## Structure (7 slides)
 
 | Slide | Function |
 |-------|----------|
 | 1 | **Hook** | Promise of practical value |
 | 2-4 | **The tips** | DBT skills explained simply, one per slide |
-| 5 | **App integration** | Natural "and here's how to practice" |
-| 6 (optional) | **Soft CTA** | Save for later, follow for more |
+| 5 | **Emotional landing** | Quick, human reinforcement of the struggle |
+| 6 | **App Slide** | Connect core emotion + DBT-Mind (free) + specific result |
+| 7 | **CTA** | Fixed text: "i track it all on DBT-Mind. it's free." |
 
 ## Hook Formulas
 
@@ -531,9 +533,13 @@ Higgsfield Nano Banana Pro can add subtle movement to generated images:
 - Text: "finding out this has a name and there's actually something you can do about it"
 - Image prompt: `Edward Hopper style interior of a sun-drenched room, a woman sitting perfectly still in a chair, hands folded, looking at a patch of light on the floor`
 
-**Slide 6 (App mention - use on 1 in 5 posts):**
-- Text: "my DBT app calls this 'wise mind' and it's the first thing that actually helped"
+**Slide 6 (App Slide):**
+- Text: "when i track it in DBT-Mind (free) -- i can come back to myself faster"
 - Image prompt: `Edward Hopper style painting of a woman sitting in a sun-filled room, morning light, peaceful but solitary contemplation, sense of quiet resolve`
+
+**Slide 7 (CTA):**
+- Text: "i track it all on DBT-Mind. it's free."
+- Image prompt: `Edward Hopper style painting of a quiet sunlit interior, warm daylight, calm and hopeful atmosphere, no phone or screens`
 
 ---
 

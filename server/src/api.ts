@@ -29,12 +29,12 @@ let OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 let GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY) {
-    console.log("⚠️ Keys not found in process.env, attempting manual load...");
+    console.log("Ã¢Å¡Â Ã¯Â¸Â Keys not found in process.env, attempting manual load...");
     async function loadEnv(pathStr: string) {
         try {
             if (!existsSync(pathStr)) return;
             const envText = await file(pathStr).text();
-            console.log(`📝 Loading keys from ${pathStr}`);
+            console.log(`Ã°Å¸â€œÂ Loading keys from ${pathStr}`);
             const anthropicMatch = envText.match(/ANTHROPIC_API_KEY=(.*)/);
             const openaiMatch = envText.match(/OPENAI_API_KEY=(.*)/);
             const geminiMatch = envText.match(/GEMINI_API_KEY=(.*)/);
@@ -43,7 +43,7 @@ if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY) {
             if (openaiMatch && openaiMatch[1]) OPENAI_API_KEY = openaiMatch[1].trim();
             if (geminiMatch && geminiMatch[1]) GEMINI_API_KEY = geminiMatch[1].trim();
         } catch (e) {
-            console.error(`❌ Failed to load ${pathStr}`);
+            console.error(`Ã¢ÂÅ’ Failed to load ${pathStr}`);
         }
     }
 
@@ -55,25 +55,25 @@ if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY) {
 
 const PORT = 3001; // Using 3001 to avoid conflicts
 
-console.log(`🚀 Hook Bridge API starting on http://localhost:${PORT}`);
-console.log(`📂 Working Directory: ${process.cwd()}`);
-console.log(`🔑 Anthropic Key: ${!!ANTHROPIC_API_KEY}`);
-console.log(`🔑 OpenAI Key: ${!!OPENAI_API_KEY}`);
-console.log(`🖼️ Gemini Key: ${!!GEMINI_API_KEY}`);
+console.log(`Ã°Å¸Å¡â‚¬ Hook Bridge API starting on http://localhost:${PORT}`);
+console.log(`Ã°Å¸â€œâ€š Working Directory: ${process.cwd()}`);
+console.log(`Ã°Å¸â€â€˜ Anthropic Key: ${!!ANTHROPIC_API_KEY}`);
+console.log(`Ã°Å¸â€â€˜ OpenAI Key: ${!!OPENAI_API_KEY}`);
+console.log(`Ã°Å¸â€“Â¼Ã¯Â¸Â Gemini Key: ${!!GEMINI_API_KEY}`);
 
 // Pre-load embeddings at startup
 try {
     const embeddings = loadEmbeddings();
-    console.log(`🧠 Semantic search ready with ${embeddings.length} hooks`);
+    console.log(`Ã°Å¸Â§Â  Semantic search ready with ${embeddings.length} hooks`);
 } catch (e) {
-    console.log("⚠️ Semantic search not available, falling back to archetype-based");
+    console.log("Ã¢Å¡Â Ã¯Â¸Â Semantic search not available, falling back to archetype-based");
 }
 
 try {
     const test = db.query("SELECT 1").get();
-    console.log(`✅ Database connected: ${JSON.stringify(test)}`);
+    console.log(`Ã¢Å“â€¦ Database connected: ${JSON.stringify(test)}`);
 } catch (e) {
-    console.error(`❌ Database connection failed:`, e);
+    console.error(`Ã¢ÂÅ’ Database connection failed:`, e);
 }
 
 // Load UGC Base Prompts for realistic Slide 1 generation
@@ -85,14 +85,32 @@ try {
     const ugcBasePath = path.join(DATA_DIR, "ugc_base_prompts.json");
     if (existsSync(ugcBasePath)) {
         ugcBasePrompts = JSON.parse(readFileSync(ugcBasePath, 'utf-8'));
-        console.log(`📸 UGC Base Prompts loaded with ${Object.keys(ugcBasePrompts.settings).length} settings`);
+        console.log(`Ã°Å¸â€œÂ¸ UGC Base Prompts loaded with ${Object.keys(ugcBasePrompts.settings).length} settings`);
     }
 } catch (e) {
-    console.log("⚠️ UGC Base Prompts not loaded, using legacy prompts");
+    console.log("Ã¢Å¡Â Ã¯Â¸Â UGC Base Prompts not loaded, using legacy prompts");
 }
 
 // (Moved to common/prompt_utils.ts)
 
+
+function formatDbtSlide1Hook(rawHook: string, fallbackProblem = "this pattern"): string {
+    const source = String(rawHook || "").trim();
+    const useDbtPrefix = /^weird\s+dbt\s+hacks/i.test(source);
+    const prefix = useDbtPrefix
+        ? "Weird DBT hacks from my therapist for"
+        : "Weird BPD hacks from my therapist for";
+
+    let problem = source
+        .replace(/^slide\s*1\s*:\s*/i, "")
+        .replace(/^["']|["']$/g, "")
+        .replace(/^weird\s+(dbt|bpd)\s+hacks\s+from\s+my\s+therapist\s+for\s*/i, "")
+        .replace(/\(\s*that\s+actually\s+work\s*\)\s*$/i, "")
+        .trim();
+
+    if (!problem) problem = fallbackProblem;
+    return `${prefix} ${problem}\n\n(that ACTUALLY work)`;
+}
 
 
 // buildUGCSlide1Prompt now returns a string directly.
@@ -215,10 +233,10 @@ CRITICAL RULES:
 THE GOAL: Make the viewer stop scrolling and immediately want to see the next slide.
 
 HOOK RULES:
-1. MAX 15 WORDS — shorter is almost always better
-2. NO QUESTIONS — statements hit harder than questions
-3. NO EMOJIS — breaks the tone
-4. LOWERCASE — feels intimate, not performative`;
+1. MAX 15 WORDS Ã¢â‚¬â€ shorter is almost always better
+2. NO QUESTIONS Ã¢â‚¬â€ statements hit harder than questions
+3. NO EMOJIS Ã¢â‚¬â€ breaks the tone
+4. LOWERCASE Ã¢â‚¬â€ feels intimate, not performative`;
 
                     systemPrompt = `You are a viral TikTok hook writer. Your task is to generate 3 hooks in JSON format.
 CRITICAL RULES:
@@ -280,8 +298,13 @@ ${hookRequirementsPrompt}`;
                     return sendJSON({ error: "Failed to generate hooks" }, 500);
                 }
 
+                const normalizedHooks = hooks.map((h: string) => String(h || "").trim()).slice(0, 3);
+                const finalHooks = isDbt
+                    ? normalizedHooks.map((h: string) => formatDbtSlide1Hook(h))
+                    : normalizedHooks.map((h: string) => h.toLowerCase());
+
                 return sendJSON({
-                    hooks: hooks.map(h => h.toLowerCase()).slice(0, 3)
+                    hooks: finalHooks
                 });
             } catch (e) {
                 console.error("[Banger Hooks] Error:", e);
@@ -311,13 +334,13 @@ The Problem You're Solving:
 The final slide often breaks the emotional flow by shifting into "solution mode" or "recommendation mode." This kills the authenticity that made the earlier slides hit. Your job is to fix this.
 
 Rules for the Integrated Slide:
-1. Maintain first-person confessional voice — The slide must sound like a whispered admission, not advice
-2. Use "my dbt app" — Never "a dbt app" or "this dbt app I found." "My" signals personal ownership, like mentioning "my therapist" or "my journal"
-3. Connect to earlier slide language — Reference a feeling, behavior, or phrase from the previous slides to create continuity
-4. Show the action, don't explain the skill — Instead of "it has this skill called opposite action," say what you actually do: "do the opposite of what my brain wants"
-5. Keep it imperfect — Avoid toxic positivity. Words like "sometimes," "trying to," or "it's hard but" maintain honesty
-6. No CTA energy — Never "you should try" or "it really helps." The slide is about you, not them
-7. Preserve the rhythm — Match the sentence length and cadence of the other slides. Short lines. Breath between thoughts.
+1. Maintain first-person confessional voice Ã¢â‚¬â€ The slide must sound like a whispered admission, not advice
+2. Use "my dbt app" Ã¢â‚¬â€ Never "a dbt app" or "this dbt app I found." "My" signals personal ownership, like mentioning "my therapist" or "my journal"
+3. Connect to earlier slide language Ã¢â‚¬â€ Reference a feeling, behavior, or phrase from the previous slides to create continuity
+4. Show the action, don't explain the skill Ã¢â‚¬â€ Instead of "it has this skill called opposite action," say what you actually do: "do the opposite of what my brain wants"
+5. Keep it imperfect Ã¢â‚¬â€ Avoid toxic positivity. Words like "sometimes," "trying to," or "it's hard but" maintain honesty
+6. No CTA energy Ã¢â‚¬â€ Never "you should try" or "it really helps." The slide is about you, not them
+7. Preserve the rhythm Ã¢â‚¬â€ Match the sentence length and cadence of the other slides. Short lines. Breath between thoughts.
 8. Lowercase only. No exclamation points.
 9. Return ONLY a JSON array of 3 strings: ["option 1", "option 2", "option 3"].`;
 
@@ -566,7 +589,7 @@ Based on the context above, generate three options for the integrated app mentio
                 const scrollStoppers = JSON.parse(readFileSync(scrollStoppersPath, 'utf-8'));
 
                 // Determine framing context for image generation (DBT-Mind only - SYP is always solo + pet)
-                const friendFramings = ["watching_my_bestie"];
+                const friendFramings = ["watching_my_friend"];
                 // Friend content is ONLY for DBT-Mind, never for SYP
                 const isFriendContent = !isSypProject && friendFramings.includes(framing);
 
@@ -577,74 +600,135 @@ Based on the context above, generate three options for the integrated app mentio
                     const isWeirdHackFlow = flow === 'weird_hack';
                     console.log(`[Image Prompts] Generating ${selectedArtStyle.name} prompts for DBT-Mind with ${slides.length} slides${isSymbolic ? ' (Symbolic Mode)' : ''}${isWeirdHackFlow ? ' (Weird Hack Flow)' : ''}`);
 
-                    const dbtSystemPrompt = `You are generating image prompts for TikTok slideshow art in the style of ${selectedArtStyle.name}. Your job is to translate slide text into a visual scene — NOT to illustrate metaphors literally.
+                    const normalizedSlides = slides.map((s: any) => String(s || '').trim());
+                    const staticSlides: Record<number, string> = {};
+                    if (isSymbolic) staticSlides[1] = 'slide1.png';
+                    if (isDbtProject && slides.length >= 6) staticSlides[6] = 'app_image.png';
 
-CORE PRINCIPLE:
-${isSymbolic
-                            ? 'Every image is a candid, spontaneous snapshot. Point-and-shoot iPhone realism focused on quiet intimacy. NO STAGING. NO PINTEREST SYMBOLS. NO rocks with words. STRICTLY NO PEOPLE, NO HANDS, NO FACES.'
-                            : 'Every image is "a person in a moment of quiet introspection" — never "a woman with a concept." Even in surreal styles like James Jean or Remedios Varo, the core must be a human figure engaged in a specific physical act or posture.'}
+                    const targetSlideIndices = normalizedSlides
+                        .map((_, i) => i + 1)
+                        .filter((i) => !staticSlides[i]);
+                    const targetSlides = targetSlideIndices.map((i) => normalizedSlides[i - 1]);
+                    const allSlidesLower = normalizedSlides.join('\n').toLowerCase();
+                    const dbtSkillLexicon = [
+                        "tipp", "stop", "wise mind", "opposite action", "radical acceptance",
+                        "check the facts", "name the emotion", "urge surfing", "self-soothe",
+                        "distress tolerance", "emotion regulation", "interpersonal effectiveness"
+                    ];
+                    const mentionedSkills = dbtSkillLexicon.filter(skill => allSlidesLower.includes(skill));
+                    const emotionalSignals = [
+                        allSlidesLower.match(/anx|panic|overwhelm|urge|spiral|late|abandon|leave|rejection/) ? "anxiety_abandonment" : null,
+                        allSlidesLower.match(/split|all-or-nothing|hate|love|switch flip/) ? "splitting_instability" : null,
+                        allSlidesLower.match(/skill|name|regulate|track|pattern|dbt/) ? "skill_building_reflection" : null
+                    ].filter(Boolean);
 
-${isWeirdHackFlow ? `NARRATIVE FLOW: WEIRD THERAPIST HACKS
-The slides describe "weird" or unconventional therapist advice. 
-Visual focus: The scenes should feel like "insider secrets" or "hidden knowledge." 
-Incorporate objects that suggest a clinical but unconventional setting (e.g., a therapeutic sandbox, a complex mechanical watch, an unusual botanical specimen, a stack of handwritten journals). 
-The lighting should feel slightly more mysterious or "revelatory."` : ''}
+                    const dbtPostContext = {
+                        project: "DBT-Mind",
+                        platform: "TikTok slideshow",
+                        niche: "BPD/DBT psychoeducation",
+                        flow: isWeirdHackFlow ? "weird_therapist_hacks" : "standard",
+                        visual_style: selectedArtStyle.name,
+                        hook_slide: normalizedSlides[0] || "",
+                        detected_signals: emotionalSignals,
+                        detected_dbt_skills: mentionedSkills
+                    };
 
-TRANSLATION RULES:
+                    const darkMotifs = [
+                        "rainy street with cars",
+                        "rainy driver car window",
+                        "foggy field",
+                        "foggy sea",
+                        "foggy forest path"
+                    ];
+                    const shuffledDarkMotifs = [...darkMotifs].sort(() => Math.random() - 0.5);
+                    const darkMotifBySlide: Record<number, string> = {
+                        2: shuffledDarkMotifs[0],
+                        3: shuffledDarkMotifs[1]
+                    };
 
-1. IGNORE METAPHORS IN THE TEXT
-The slide text will contain metaphors like "spiral," "filling in the blanks," "the urge is loud." 
-DO NOT visualize these literally (e.g., no literal spirals).
-Instead, ask: what is the PHYSICAL SETTING or INTIMATE SPACE${isSymbolic ? ' (using zero-staging real world objects)' : ''} this person is in?
+                    const getDbtSlideStyleOverride = (slideNumber: number) => {
+                        if (slideNumber === 2 || slideNumber === 3) {
+                            const motif = darkMotifBySlide[slideNumber];
+                            return `DARK: night, rain, isolation, artificial light sources, emotionally heavy. MOTIF ONLY: ${motif}. No other motifs.`;
+                        }
+                        if (slideNumber === 4) {
+                            return "TRANSITION: neither dark nor bright; dark-to-warm gradient background, abstract minimal, no distinct scene.";
+                        }
+                        if (slideNumber === 5) {
+                            return "HOPEFUL: warm daylight, quiet morning moment, candid but alive. If a notebook is present, its contents must be empty or directly related to Slide 5 text.";
+                        }
+                        return "";
+                    };
 
-Examples:
-- "checking the facts / naming the emotion" → ${isSymbolic ? 'a candid, spontaneous snapshot of a simple closed journal with a textured leather cover resting casually on a wooden bedside table, soft morning light filtering through a window' : 'person writing at a desk, or staring at a single object in their hands.'}
-- "spiral / emptiness / void" → ${isSymbolic ? 'a candid, spontaneous snapshot of a half-empty glass of water on a dusty wooden shelf, low natural light casting a long shadow across the grain' : 'person with head in hands, or looking out a window at a complex landscape.'}
-- "opposite action / skill use" → ${isSymbolic ? 'a candid, spontaneous snapshot of a single metallic pen lying next to a pair of glasses on a sun-drenched wooden surface, natural highlights and reflections' : 'person walking away from something, or methodically tidying a space.'}
+                    const dbtSystemPrompt = `You generate image prompts for DBT-Mind TikTok slideshow posts in the BPD/DBT niche.
 
-2. STYLE PRINCIPLES FOR ${selectedArtStyle.name.toUpperCase()}:
+CRITICAL:
+- You will receive FULL-CAROUSEL context and per-slide text.
+- Each image must match the target slide while still fitting the same post narrative.
+- Do NOT create random aesthetic scenes that ignore the line.
+- Do NOT illustrate metaphors literally.
+- All images must feel like candid, spontaneous photos taken on an iPhone 12 (natural framing, imperfect realism).
+- If a notebook is visible, its contents must be empty or directly related to the slide text.
+- Slide 7 MUST always be first-person POV perspective.
+
+CONTEXT INTEGRATION WORKFLOW:
+1. Read the full carousel context first (hook, emotional arc, DBT skills if present).
+2. Determine each slide role: validation, pattern naming, behavior consequence, DBT skill, or grounded reframe.
+3. Build a scene that matches that role and the exact line's emotional meaning.
+4. Ensure the set feels coherent as one post.
+
+SEMANTIC FIT RULES:
+- The image must be interpretable as the same emotional moment as the text.
+- Prefer psychologically legible scenes over random props.
+- If the line describes behavior ("testing", "pushing away", "checking"), show physical traces of that behavior.
+- If the line describes nervous-system state, show environmental cues (light, space, object tension) consistent with that state.
+
+${isSymbolic ? `SYMBOLIC MODE (NO PEOPLE):
+- STRICTLY NO PEOPLE, NO BODY PARTS, NO FACES.
+- Use candid iPhone-photo language with tasteful, clean-real aesthetics.
+- Aesthetic floor: harmonious color palette, believable natural/practical light, clear focal object, no grime.
+- Hard bans: trash, stains, cracked/damaged fixtures, random gross clutter, or ugly shock details.
+- Diversity with coherence: avoid repeating the same setup template across slides.
+- Allowed archetypes: threshold/entry, kitchen ritual, couch pause, bedside reset, shelf memory, desk reflection, window-weather moment, soft outdoor nature edge (path/trees/shoreline) when text supports it.
+- Nature is optional support, not a generic backdrop. Use it only when it reinforces the slide meaning.` : `HUMAN-FIGURE MODE:
+- Keep the figure grounded in a specific physical action.
+- Avoid generic model-pose compositions.`}
+
+STYLE RULES FOR ${selectedArtStyle.name.toUpperCase()}:
 ${selectedArtStyle.systemPromptPrinciples}
 
-3. AVOID THE "AI LOOK":
-- **NO 3D RENDERING**: For ${selectedArtStyle.name}, ensure the prompt describes it as a ${selectedArtStyle.id === 'hopper' ? 'painting' : 'drawing/illustration'}.
-- **NO VOLUMETRIC LIGHT**: Unless it's Hopper, avoid ray-tracing or cinematic fog. Use "flat light" or "illustrative shading".
-- **NO CGI FACES**: Describe faces as "drawn", "painterly", or "stylized".
+OUTPUT FORMAT:
+- Return ONLY JSON with keys ${targetSlideIndices.map((i) => `"image${i}"`).join(', ')}.
+- Each value must be ONE short prompt sentence.
+- Keep prompts minimal and practical.
+- Do NOT include extra styling directives, strict-rule boilerplate, or bullet-style add-ons.
+- Do NOT add markdown.
+- Do NOT add any style suffix/footer text.`;
 
-4. PROMPT STRUCTURE
+                    const userPrompt = `Generate ${targetSlides.length} DBT-Mind image prompts.
 
-Use this format for each prompt:
+FULL CAROUSEL CONTEXT:
+${normalizedSlides.map((s: string, i: number) => `Slide ${i + 1}: "${s}"`).join('\n')}
 
-"${selectedArtStyle.name} style. Subject: [physical description${isSymbolic ? ' of objects or nature' : ' of woman + what she\'s doing + body language'}]. Setting: [location based on style principles + dramatic lighting]. Atmosphere: [1-2 words for mood]. Composition: [geometric or organic framing details]."
+POST CONTEXT JSON:
+${JSON.stringify(dbtPostContext, null, 2)}
 
-Then add this exact style suffix to every prompt:
+STYLE OVERRIDES (DBT-MIND ONLY):
+- Slide 2 and Slide 3: DARK. night, rain, isolation, artificial light sources, emotionally heavy.
+- Slide 4: TRANSITION. neither dark nor bright; a punch slide that should read as a dark-to-warm gradient background. abstract, minimal, no distinct scene.
+- Slide 5: HOPEFUL. warm daylight, quiet morning moment, candid but alive.
+- Slide 7: HOPEFUL CTA and ALWAYS POV (first-person) perspective.
 
-${selectedArtStyle.suffix}
+TARGET SLIDES TO PROMPT:
+${targetSlideIndices.map((i) => {
+                        const override = getDbtSlideStyleOverride(i);
+                        return `Image ${i} uses Slide ${i}: "${normalizedSlides[i - 1]}"${override ? ` | STYLE OVERRIDE: ${override}` : ''}`;
+                    }).join('\n')}
 
-4. EXAMPLES
-
-Slide text: "when i catch myself setting little traps like not texting first to see if they'll reach out i have to stop and name what i'm actually doing"
-Resulting prompt: "${selectedArtStyle.name} style. Subject: ${isSymbolic ? 'An unlit candle sitting on an empty wooden table, a single matchstick lying next to it' : `A young woman ${selectedArtStyle.id === 'jean' ? 'dissolving into a swirling mass of petals and vines, her posture showing lonely hesitation' : 'seated at a table at night, staring at her phone, posture of lonely hesitation'}`}. Setting: ${selectedArtStyle.id === 'hopper' ? 'empty room, harsh overhead light, large window' : 'a luminous, dreamlike space where architecture flows into nature'}. Atmosphere: quiet tension. Composition: ${isSymbolic ? 'close-up shot on the table surface' : `figure ${selectedArtStyle.id === 'jean' ? 'merged with a dense, fractal organic background' : 'framed by the vertical line of a doorway'}`}." [plus style suffix]
-
-Return JSON:
-{
-  ${isSymbolic ? '' : '"image1": "...",'}
-  "image2": "...",
-  "image3": "...",
-  "image4": "...",
-  "image5": "...",
-  "image6": "...",
-  "image7": "..."
-} (If symbolic mode, skip image1 entirely)`;
-
-
-                    const targetSlides = isSymbolic ? slides.slice(1) : slides;
-                    const startIndex = isSymbolic ? 1 : 0;
-
-                    const userPrompt = `Follow the Translation Rules to generate ${targetSlides.length} image prompts based on these specific slide texts:
-
-${targetSlides.map((s: string, i: number) => `Image ${startIndex + i + 1} (Context from Slide ${startIndex + i + 1} text): "${s}"`).join('\n')}
-
-Return a JSON object with keys ${targetSlides.map((_, i) => `"image${startIndex + i + 1}"`).join(', ')}. Ensure each prompt translates the physical situation of that specific slide's text as per the rules.`;
+QUALITY CHECK BEFORE FINAL OUTPUT:
+- For each target slide, quickly verify "Would this still make sense if the text overlay was removed?"
+- If no, rewrite that prompt.
+${isSymbolic ? '- Also verify the set is aesthetically pleasing and semantically aligned; no random gritty domestic details.' : ''}`;
 
                     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
                         method: 'POST',
@@ -678,14 +762,40 @@ Return a JSON object with keys ${targetSlides.map((_, i) => `"image${startIndex 
                         return sendJSON({ error: "Failed to parse image prompts" }, 500);
                     }
 
-                    // Append the global style to all generated image prompts
-                    const styleOverlay = selectedArtStyle.suffix;
+                    const candidStylePrefix = "iPhone 12 candid style photo, spontanesouly taken. Medium quality, authentic Tiktok asthetic. ";
+                    const noPersonSuffix = " No person visibile, no UI elements";
+                    const ctaPrompt = isSymbolic
+                        ? `${candidStylePrefix}first-person POV in a cozy living room, only crossed legs visible on a footstool by a reading chair, warm daylight, plants, no phone or screens.`
+                        : `${candidStylePrefix}first-person POV resting moment in a quiet warm daylight room, no phone or screens.`;
+                    if (normalizedSlides.length >= 7 && !staticSlides[7]) {
+                        parsed.image7 = ctaPrompt;
+                    }
 
-                    Object.keys(parsed).forEach(key => {
-                        if (key.startsWith('image') && typeof parsed[key] === 'string' && !parsed[key].includes("FACE RULES:")) {
-                            parsed[key] += styleOverlay;
-                        }
+                    // Enforce requested style prefix at the beginning of slides 2, 3, 5, and 7.
+                    [2, 3, 5, 7].forEach((slideNumber) => {
+                        const key = `image${slideNumber}`;
+                        if (typeof parsed[key] !== 'string') return;
+                        const current = parsed[key].trim();
+                        const withPrefix = current.startsWith(candidStylePrefix)
+                            ? current
+                            : `${candidStylePrefix}${current}`;
+                        parsed[key] = withPrefix.endsWith(noPersonSuffix)
+                            ? withPrefix
+                            : `${withPrefix}${noPersonSuffix}`;
                     });
+
+                    // Slide 4 is the gradient transition slide: remove any leading iPhone-style prefix.
+                    if (typeof parsed.image4 === 'string') {
+                        parsed.image4 = parsed.image4
+                            .replace(/^iPhone\s*12[^.]*photo[^.]*\.\s*/i, '')
+                            .replace(/^iPhone\s*12[^.]*\.\s*/i, '')
+                            .trim();
+                    }
+                    if (normalizedSlides.length >= 4 && (!parsed.image4 || !String(parsed.image4).trim())) {
+                        parsed.image4 = "dark-to-warm gradient background, abstract minimal transition, no distinct scene.";
+                    }
+
+                    // DBT prompts stay minimal: no appended style footer/boilerplate.
 
                     // Convert object to array for frontend
                     const prompts = Object.keys(parsed)
@@ -697,7 +807,8 @@ Return a JSON object with keys ${targetSlides.map((_, i) => `"image${startIndex 
                         prompts: prompts,
                         image_prompts: parsed,
                         is_painting_style: true,
-                        useStaticSlide1: isSymbolic
+                        useStaticSlide1: isSymbolic,
+                        staticSlides: staticSlides
                     });
                 } else {
                     // UGC Style (SYP and regular DBT if ever used)
@@ -709,10 +820,10 @@ Return a JSON object with keys ${targetSlides.map((_, i) => `"image${startIndex 
                     if (isSypProject) {
                         const saveyourpetKeywords = [
                             'saveyourpet.de', 'saveyourpet',
-                            'absicherung', 'vorsorge', 'schutz für',
+                            'absicherung', 'vorsorge', 'schutz fÃƒÂ¼r',
                             'was wenn er mal krank wird', 'was wenn sie mal krank wird',
                             'bin ich auf einen notfall vorbereitet', 'sollte ich mich besser absichern',
-                            'hat vorgesorgt', 'hat sich um absicherung gekümmert'
+                            'hat vorgesorgt', 'hat sich um absicherung gekÃƒÂ¼mmert'
                         ];
 
                         const saveyourpetSlideIndices: number[] = [];
@@ -738,7 +849,7 @@ Return a JSON object with keys ${targetSlides.map((_, i) => `"image${startIndex 
 
                             saveyourpetSlideInstruction = `
 
-## ⚠️ CRITICAL: SAVEYOURPET.DE SLIDE SPECIAL TREATMENT
+## Ã¢Å¡Â Ã¯Â¸Â CRITICAL: SAVEYOURPET.DE SLIDE SPECIAL TREATMENT
 For slide(s) ${saveyourpetSlideIndices.join(', ')} (contains saveyourpet.de / Absicherung / Vorsorge content):
 
 **DO NOT use iPhone selfie format for these slides!**
@@ -770,8 +881,8 @@ This is the ONLY slide type where a device screen is shown prominently.`;
                     let framingContextSection = '';
                     if (isFriendContent) {
                         framingContextSection = `
-## 👯 FRIEND POV FRAMING
-This is "watching my bestie" content - the narrator is a FRIEND observing.
+## Ã°Å¸â€˜Â¯ FRIEND POV FRAMING
+This is "watching my friend" content - the narrator is a FRIEND observing.
 
 **SLIDE ANALYSIS:**
 - The friend (narrator) is watching/reacting to the girl's BPD moments
@@ -805,10 +916,10 @@ ${framingContextSection}${saveyourpetSlideInstruction}
 - No ring light, no professional lighting
 - ${isSypProject ? 'Authentic pet owner energy, theatrical comedy vibe' : 'Authentic mental health creator energy'}
 - Raw UGC aesthetic, not polished
-- ⚠️ SELFIE HAND LOGIC: ONE HAND MUST HOLD THE PHONE to take the photo!
-- ❌ NEVER: phone in hands showing something, both hands on face/mouth, hands together in prayer, any pose requiring BOTH hands
-- ❌ NEVER SHOW A PET ON A COUNTER: No pets on kitchen counters, tables, or raised surfaces. Pet must be on floor, bed, or couch.
-- ✅ VALID: One hand gesturing, touching face, petting pet, etc. (the other hand holds phone - never mention it)
+- Ã¢Å¡Â Ã¯Â¸Â SELFIE HAND LOGIC: ONE HAND MUST HOLD THE PHONE to take the photo!
+- Ã¢ÂÅ’ NEVER: phone in hands showing something, both hands on face/mouth, hands together in prayer, any pose requiring BOTH hands
+- Ã¢ÂÅ’ NEVER SHOW A PET ON A COUNTER: No pets on kitchen counters, tables, or raised surfaces. Pet must be on floor, bed, or couch.
+- Ã¢Å“â€¦ VALID: One hand gesturing, touching face, petting pet, etc. (the other hand holds phone - never mention it)
 
 ## EXPRESSION OPTIONS (pick appropriate one for each slide's emotion):
 ${expressionList}
@@ -860,8 +971,15 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
 
                     const rawData = await claudeResponse.json() as any;
                     const resultText = rawData.content?.[0]?.text || '';
-                    const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-                    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : resultText);
+                    let parsed;
+                    try {
+                        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+                        parsed = JSON.parse(jsonMatch ? jsonMatch[0] : resultText);
+                    } catch (parseErr) {
+                        console.error("[UGC Image Prompts] JSON Parse Error:", parseErr);
+                        console.info("[UGC Image Prompts] Raw AI Response:", resultText);
+                        return sendJSON({ error: "Failed to parse image prompts", details: String(parseErr), raw: resultText.substring(0, 1000) }, 500);
+                    }
                     parsed.image1 = ugcSlide1Prompt;
 
                     // Convert to array
@@ -932,7 +1050,7 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
                 const isDbt = service === 'dbt';
                 const isSyp = service === 'syp';
 
-                // DBT-Mind: Use the new branding openers
+                // DBT-Mind: caption framework is enforced via dedicated prompt rules
                 const needsDbtBrandingInDescription = isDbt;
 
                 // SYP: branding in description when brandingMode is 'soft'
@@ -944,51 +1062,74 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
                 let brandingInstruction = '';
                 if (isDbt) {
                     brandingInstruction = `
-## ⚠️ CRITICAL: DBT-MIND DESCRIPTION FORMAT
-The description MUST start with exactly one of these three openers (choose one at random):
-1. "@dbtmind is the app I use every single day to navigate my BPD recovery. ❤️🩹"
-2. "@dbtmind app makes practicing DBT skills actually doable outside of the therapy room. 📱"
-3. "@dbtmind app helps me stay consistent with my mental health goals even on the hard days."
+## CRITICAL: DBT-MIND CAPTION FRAMEWORK (4 PARTS, IN THIS ORDER)
+Write the description as exactly four parts:
+1) Emotional hook (exactly 1 line)
+- Summarize the post's emotional core as an "afterthought" feeling.
+- Must complement slide 1, not repeat it.
+- No label, no announcement, lowercase.
 
-After the opener, add one or two sentences related to the specific slide content.
+2) Personal insight (1-2 sentences)
+- Rephrase the main message for viewers who did not read all slides.
+- Personal, raw, lowercase, no clinical tone.
+- Keep emotional tension; do not sound solution-first.
+
+3) App mention (exactly 1 sentence)
+- Casual, personal recommendation tone.
+- Must include "@dbtmind".
+- If possible, mention the concrete skill/feature from the slides (for example: stop, wise mind, check the facts, diary, logging, urge surfing).
+- No ad tone, no "check out", no sales language.
+
+4) Hashtags (final line only)
+- Always include: #bpd #dbtskills #bpdrecovery
+- Add 1-2 topic-specific hashtags based on the slide topic.
+
+## GLOBAL RULES FOR DBT CAPTIONS
+- Lowercase only.
+- No "link in bio".
+- Must read like a personal post, not a brand account.
+- Keep phrasing colloquial and lived-in, not polished or poetic.
+- Prefer everyday language (example style: "too in it to think", not "apply it").
+- Gen-Z casual style is allowed where natural (short sentences, imperfect grammar, "bc", "rn").
+- Self-ironic hyperbole humor is allowed, especially in part 1, when it fits the topic.
 `;
                 } else if (needsSypBrandingInDescription) {
                     brandingInstruction = `
-## ⚠️ CRITICAL: SAVEYOURPET.DE MUSS AM ANFANG DER DESCRIPTION STEHEN!
+## Ã¢Å¡Â Ã¯Â¸Â CRITICAL: SAVEYOURPET.DE MUSS AM ANFANG DER DESCRIPTION STEHEN!
 
-Die Slides erwähnen Absicherung/Vorsorge thematisch, aber nicht saveyourpet.de direkt.
-Du MUSST saveyourpet.de in der Description erwähnen - und zwar **AM ANFANG**, nicht am Ende!
+Die Slides erwÃƒÂ¤hnen Absicherung/Vorsorge thematisch, aber nicht saveyourpet.de direkt.
+Du MUSST saveyourpet.de in der Description erwÃƒÂ¤hnen - und zwar **AM ANFANG**, nicht am Ende!
 
 ### WICHTIGSTE REGELN:
 1. **saveyourpet.de ZUERST** - direkt im ersten Satz, BEVOR der Rest der Beschreibung kommt
 2. **Kreativ & Authentisch** - soll wie ein echtes Statement klingen, NICHT wie Werbung
 3. **Emotional/Humorvoll** - die Person teilt ihre ECHTE Erfahrung
 
-### ✅ GUTE BEISPIELE (nutze diesen Stil):
-- "saveyourpet.de hat mir meinen A*sch gerettet 😂 [REST DER DESCRIPTION]"
+### Ã¢Å“â€¦ GUTE BEISPIELE (nutze diesen Stil):
+- "saveyourpet.de hat mir meinen A*sch gerettet Ã°Å¸Ëœâ€š [REST DER DESCRIPTION]"
 - "saveyourpet.de - bester Move ever. [REST DER DESCRIPTION]"
-- "Dank saveyourpet.de kann ich endlich wieder schlafen 🐕 [REST DER DESCRIPTION]"
-- "saveyourpet.de gecheckt → Panik weg 💆‍♀️ [REST DER DESCRIPTION]"
+- "Dank saveyourpet.de kann ich endlich wieder schlafen Ã°Å¸Ââ€¢ [REST DER DESCRIPTION]"
+- "saveyourpet.de gecheckt Ã¢â€ â€™ Panik weg Ã°Å¸â€™â€ Ã¢â‚¬ÂÃ¢â„¢â‚¬Ã¯Â¸Â [REST DER DESCRIPTION]"
 - "saveyourpet.de war die beste Entscheidung. Punkt. [REST DER DESCRIPTION]"
-- "hätte ich saveyourpet.de mal früher gefunden 🥲 [REST DER DESCRIPTION]"
-- "saveyourpet.de = endlich ruhig schlafen 😴 [REST DER DESCRIPTION]"
+- "hÃƒÂ¤tte ich saveyourpet.de mal frÃƒÂ¼her gefunden Ã°Å¸Â¥Â² [REST DER DESCRIPTION]"
+- "saveyourpet.de = endlich ruhig schlafen Ã°Å¸ËœÂ´ [REST DER DESCRIPTION]"
 
-### ❌ SCHLECHTE BEISPIELE (VERMEIDE DIESE):
-- "Tierkrankenversicherung vergleichen auf saveyourpet.de" → zu werblich!
-- "mehr auf saveyourpet.de" → zu formal, zu werblich
-- "alles zu Absicherung: saveyourpet.de" → klingt wie ein Slogan
-- "[Description]... Jetzt endlich abgesichert – hätte ich mal früher gemacht." → saveyourpet.de muss VOR diesem Satz kommen!
+### Ã¢ÂÅ’ SCHLECHTE BEISPIELE (VERMEIDE DIESE):
+- "Tierkrankenversicherung vergleichen auf saveyourpet.de" Ã¢â€ â€™ zu werblich!
+- "mehr auf saveyourpet.de" Ã¢â€ â€™ zu formal, zu werblich
+- "alles zu Absicherung: saveyourpet.de" Ã¢â€ â€™ klingt wie ein Slogan
+- "[Description]... Jetzt endlich abgesichert Ã¢â‚¬â€œ hÃƒÂ¤tte ich mal frÃƒÂ¼her gemacht." Ã¢â€ â€™ saveyourpet.de muss VOR diesem Satz kommen!
 
 ### FORMAT:
-"saveyourpet.de [kreatives Statement]. [1-2 Sätze zur Story/Emotion] [2-3 Emojis] [3-5 Hashtags]"
+"saveyourpet.de [kreatives Statement]. [1-2 SÃƒÂ¤tze zur Story/Emotion] [2-3 Emojis] [3-5 Hashtags]"
 `;
                 } else if (isSyp && brandingMode === 'none') {
                     brandingInstruction = `
-## ⚠️ WICHTIG: KEIN BRANDING (KEIN saveyourpet.de)
-- ❌ Erwähne saveyourpet.de NIEMALS in der Description!
-- ✅ Aber: Nutze Begriffe wie "Tierkrankenversicherung", "Absicherung" oder "OP-Schutz" in der Caption, um das Thema der Slides aufzugreifen.
-- ✅ Die Regel "Verwende niemals das Wort Versicherung" ist für diesen Post AUFGEHOBEN.
-- ✅ Beispiel: "Bin so froh, dass ich das Thema Tierkrankenversicherung endlich angegangen bin 🐕🙏"
+## Ã¢Å¡Â Ã¯Â¸Â WICHTIG: KEIN BRANDING (KEIN saveyourpet.de)
+- Ã¢ÂÅ’ ErwÃƒÂ¤hne saveyourpet.de NIEMALS in der Description!
+- Ã¢Å“â€¦ Aber: Nutze Begriffe wie "Tierkrankenversicherung", "Absicherung" oder "OP-Schutz" in der Caption, um das Thema der Slides aufzugreifen.
+- Ã¢Å“â€¦ Die Regel "Verwende niemals das Wort Versicherung" ist fÃƒÂ¼r diesen Post AUFGEHOBEN.
+- Ã¢Å“â€¦ Beispiel: "Bin so froh, dass ich das Thema Tierkrankenversicherung endlich angegangen bin Ã°Å¸Ââ€¢Ã°Å¸â„¢Â"
 `;
                 }
 
@@ -996,12 +1137,11 @@ Du MUSST saveyourpet.de in der Description erwähnen - und zwar **AM ANFANG**, n
                 const languageInstructions = isDbt ? `
 ## LANGUAGE: ENGLISH
 - Write everything in English
-- Natural, authentic, helpful, and supportive tone
-- Relatable and warm, with a slight Gen-Z touch (e.g., "bestie", "vibes", "real", "lowkey")
-- Simple, clear language that anyone can understand
-- Focus on delivering value and making the viewer feel seen
+- Tone target: young person with BPD, raw and fragmentary, not reflective and polished.
+- Keep it conversational, imperfect, emotionally immediate.
+- Avoid self-help-book voice and poetic writing.
 
-Example output: {"title": "when they go from soulmate to enemy in 5 minutes", "description": "@dbtmind is the app I use every single day to navigate my BPD recovery. ❤️🩹 the split was so fast I got whiplash. it's so real. #bpd #bpdawareness #mentalhealth #dbt #splitting"}` : `
+Example output: {"title":"my brain wrote the breakup in 3 seconds","description":"one dry text and my brain already wrote the breakup, the funeral, and the part where i was wrong about everything.\ntook me too long to realize the feeling is real but the story i build from it usually isn't.\nmy therapist taught me stop and i actually use it now bc @dbtmind walks me through it when i'm too in it to think.\n#bpd #dbtskills #bpdrecovery #anxietyspiral #drytext"}` : `
 ## LANGUAGE: GERMAN
 - Write everything in German
 - Natural, authentic, conversational tone
@@ -1012,19 +1152,19 @@ Example output: {"title": "when they go from soulmate to enemy in 5 minutes", "d
 - English hashtags are fine
 
 ## STYLE EXAMPLES:
-❌ BAD: "die 3am anxiety hits different wenn..." (too Gen-Z)
-✅ GOOD: "3 Uhr nachts und ich google wieder..." (natural German)
+Ã¢ÂÅ’ BAD: "die 3am anxiety hits different wenn..." (too Gen-Z)
+Ã¢Å“â€¦ GOOD: "3 Uhr nachts und ich google wieder..." (natural German)
 
-❌ BAD: "when your dog is lowkey your therapist fr" (too slang-heavy)
-✅ GOOD: "wenn dein Hund besser schläft als du" (simple, relatable)
+Ã¢ÂÅ’ BAD: "when your dog is lowkey your therapist fr" (too slang-heavy)
+Ã¢Å“â€¦ GOOD: "wenn dein Hund besser schlÃƒÂ¤ft als du" (simple, relatable)
 
-Example output: {"title": "wenn dein hund besser schläft als du", "description": "Er schnarcht. Ich google. So läuft das hier. 🐕😅 #hundemama #haustier #schlaflos"}`;
+Example output: {"title": "wenn dein hund besser schlÃƒÂ¤ft als du", "description": "Er schnarcht. Ich google. So lÃƒÂ¤uft das hier. Ã°Å¸Ââ€¢Ã°Å¸Ëœâ€¦ #hundemama #haustier #schlaflos"}`;
 
                 // Reminder for description branding
                 const brandingReminder = needsDbtBrandingInDescription
-                    ? ' Remember to start the description with one of the @dbtmind openers!'
+                    ? ' Follow the 4-part DBT caption framework exactly.'
                     : needsSypBrandingInDescription
-                        ? ' KRITISCH: saveyourpet.de MUSS AM ANFANG der Description stehen (z.B. "saveyourpet.de hat mir den A*sch gerettet 😂") - kreativ, nicht werblich!'
+                        ? ' KRITISCH: saveyourpet.de MUSS AM ANFANG der Description stehen (z.B. "saveyourpet.de hat mir den A*sch gerettet Ã°Å¸Ëœâ€š") - kreativ, nicht werblich!'
                         : '';
 
                 const systemPrompt = `You are a TikTok Content Strategist. Your job is to write a catchy title (1-line) and a relatable description (caption) for a photo carousel.
@@ -1033,7 +1173,7 @@ ${brandingInstruction}
 ## YOUR TASK:
 Based on the provided slide texts, generate:
 1. A catchy Title for the post (one line, lowercase is fine).
-2. A Description/Caption for the post (1-2 sentences max, 2-3 emojis, 3-5 relevant hashtags).${brandingReminder}
+2. A Description/Caption for the post.${brandingReminder}` + (isDbt ? `\n\nFor DBT captions: output 4 parts with line breaks and hashtags on the final line only.` : `\n\nFor non-DBT captions: keep it to 1-2 sentences max, 1-2 emojis used wisely, 3-5 relevant hashtags.`) + `
 
 OUTPUT: Return ONLY a JSON object with "title" and "description" fields. No markdown, no explanation.`;
 
@@ -1066,9 +1206,19 @@ OUTPUT: Return ONLY a JSON object with "title" and "description" fields. No mark
                 // Resilient JSON extraction
                 let cleanedText = resultText.trim();
                 const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-                if (jsonMatch) cleanedText = jsonMatch[0];
 
-                const parsed = JSON.parse(cleanedText);
+                let parsed;
+                try {
+                    parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleanedText);
+                } catch (parseErr) {
+                    console.error("[Metadata Gen] JSON Parse Error:", parseErr);
+                    console.info("[Metadata Gen] Raw AI Response:", resultText);
+                    return sendJSON({
+                        error: "Failed to parse metadata JSON",
+                        details: String(parseErr),
+                        rawText: resultText.substring(0, 1000)
+                    }, 500);
+                }
                 return sendJSON({
                     title: parsed.title,
                     description: parsed.description
@@ -1139,12 +1289,12 @@ SPECIFIC ANGLE: ${randomAngle}
 - Slide 3: Deepen the point.Explain WHY.
 - Slide 4: The turn / realization.The "aha" moment.
 - Slide 5: Continue the insight.Casually mention DBT - Mind app as a TOOL, not the hero.
-- Slide 6: Hopeful close.End with 💜 emoji.Grounded, not fake - happy.
+- Slide 6: Hopeful close.End with Ã°Å¸â€™Å“ emoji.Grounded, not fake - happy.
 
 ---
 
 ## CRITICAL RULES:
-            1. NO EMOJIS on Slides 2 - 5. ONLY 💜 on Slide 6.
+            1. NO EMOJIS on Slides 2 - 5. ONLY Ã°Å¸â€™Å“ on Slide 6.
             2. Each slide = 1 - 2 SHORT, PUNCHY sentences.MAX 30 words per slide.
 3. Tone: "Subtle Gen-Z" = authentic, validating, slightly raw.NOT cringe.
 4. Use BPD - specific language: splitting, FP, dysregulated, nervous system, trauma bond, etc.
@@ -1156,12 +1306,12 @@ SPECIFIC ANGLE: ${randomAngle}
 ## APP MENTION RULES(Slide 5):
 The app should feel like an AFTERTHOUGHT, not the main point.The insight comes first.
 
-✅ NATIVE PHRASING(USE THESE):
+Ã¢Å“â€¦ NATIVE PHRASING(USE THESE):
 - "The pattern was always there (tracking in DBT-Mind app made it obvious)."
     - "I didn't see it until I started logging triggers in apps like DBT-Mind app."
     - "Mood tracking changed everything - something like DBT-Mind app to see patterns."
 
-❌ SALESY(NEVER USE - sounds like an ad):
+Ã¢ÂÅ’ SALESY(NEVER USE - sounds like an ad):
 - "DBT-Mind app helped me..."
     - "Tracking in DBT-Mind app showed me..."
     - "DBT-Mind app taught me..."
@@ -1174,7 +1324,7 @@ The app should feel like an AFTERTHOUGHT, not the main point.The insight comes f
     - Generic self - help advice that applies to everyone
         - Clinical / therapist tone("It's important to remember...")
             - Hashtags or calls to action like "follow for more"
-                - Multiple emojis or any emoji except 💜 on Slide 6
+                - Multiple emojis or any emoji except Ã°Å¸â€™Å“ on Slide 6
 
 ---
 
@@ -1184,7 +1334,7 @@ The app should feel like an AFTERTHOUGHT, not the main point.The insight comes f
     "It's not a choice. Your brain literally can't hold both truths at once.",
     "The gray area doesn't exist when your nervous system is in survival mode.",
     "The triggers were always there - I just couldn't see them until I tried mood tracking (apps like DBT-Mind app).",
-    "You're not crazy. You're running on a dysregulated system. And you can learn to catch it. 💜"
+    "You're not crazy. You're running on a dysregulated system. And you can learn to catch it. Ã°Å¸â€™Å“"
 ]
 
 ## EXAMPLE OUTPUT(FP Dynamics topic):
@@ -1193,7 +1343,7 @@ The app should feel like an AFTERTHOUGHT, not the main point.The insight comes f
     "Your brain got addicted to the emotional highs and now their absence feels like death.",
     "FP attachment isn't love. It's your nervous system using someone else to regulate.",
     "I finally saw my pattern when I started journaling it - something like DBT-Mind app makes it hard to ignore.",
-    "Real love doesn't feel like survival. You can learn the difference. 💜"
+    "Real love doesn't feel like survival. You can learn the difference. Ã°Å¸â€™Å“"
 ]
 
 ---
@@ -1206,7 +1356,16 @@ Output format: JSON array of 5 strings ONLY.No markdown, no explanation.`
                 });
 
                 const slideData = await slideResponse.json() as any;
-                const slidesText = JSON.parse(slideData.content[0].text.replace(/```json | ```/g, '').trim());
+                const slideRawText = slideData.content?.[0]?.text || '';
+                let slidesText;
+                try {
+                    const slideJsonMatch = slideRawText.match(/\[[\s\S]*\]/);
+                    slidesText = JSON.parse(slideJsonMatch ? slideJsonMatch[0] : slideRawText.replace(/```json | ```/g, '').trim());
+                } catch (e) {
+                    console.error("[Full Gen] Failed to parse slides:", e);
+                    console.info("[Full Gen] Raw Slides Text:", slideRawText);
+                    throw new Error("Failed to parse generated slides");
+                }
 
                 console.log(`[Full Gen] Generated 5 slides for ${selectedTopic.name}`);
 
@@ -1268,7 +1427,20 @@ ${slidesText.map((s: string, i: number) => `Slide ${i + 2}: ${s}`).join('\n')}
                 });
 
                 const hookDataRes = await hookResponse.json() as any;
-                const hooks = JSON.parse(hookDataRes.content[0].text.replace(/```json | ```/g, '').trim());
+                const hookRawText = hookDataRes.content?.[0]?.text || '';
+                let hooks;
+                try {
+                    const hookJsonMatch = hookRawText.match(/\[[\s\S]*\]/);
+                    hooks = JSON.parse(hookJsonMatch ? hookJsonMatch[0] : hookRawText.replace(/```json | ```/g, '').trim());
+                } catch (e) {
+                    console.error("[Full Gen] Failed to parse hooks:", e);
+                    console.info("[Full Gen] Raw Hooks Text:", hookRawText);
+                    throw new Error("Failed to parse generated hooks");
+                }
+                if (Array.isArray(hooks) && hooks.length > 0) {
+                    const fallbackProblem = String(selectedTopic?.name || "this pattern").toLowerCase();
+                    hooks = hooks.map((h: string) => formatDbtSlide1Hook(h, fallbackProblem));
+                }
 
                 console.log(`[Full Gen] Generated 3 hooks for ${selectedTopic.name}`);
 
@@ -1332,7 +1504,7 @@ These elements make the image interesting and scroll - stopping while staying au
 
 ---
 
-## SETTING VARIETY(DO NOT always use bathroom):
+## SETTING VARIETY(STRICTLY NO BATHROOMS):
 Choose settings based on topic, but VARY them:
 - Bedroom: bed visible, natural daylight or lamp
     - Living room couch: relaxed, blanket, warm lighting
@@ -1342,21 +1514,24 @@ Choose settings based on topic, but VARY them:
 
 ---
 
-## CORE INSTRUCTION (ULTRA-REALISM)
+## CORE INSTRUCTION (AMATEUR SNAPCHAT VIBE)
 Preserve exact facial identity (bone structure, eyes, nose, lips). Adapt style/mood without altering identity.
-Vibe: Ultra-realistic fashion photo shoot, cinematic realism, modern mirror selfie fashion aesthetic, soft grunge + urban femininity.
+Vibe: Spontaneous candid photo someone sends to a friend on Snapchat. Amateur quality, slightly raw, 100% unposed. NO UI elements or text in the image. Brighter, everyday lighting.
 
 ## REALISM RULES(CRITICAL):
 1. Skin is NEVER smooth or filtered. Include visible micro-pores, natural oils, and peach fuzz. NO plastic skin.
 2. Makeup: Sharp elegant black winged eyeliner, defined lashes, muted lips with satin finish. Natural glow.
 3. Clothes: Fashion-forward outfit (jacket/zip-up with graphic prints). Realistic fabric folds.
 4. Overall vibe: "Pretty but comedically overwhelmed" German pet owner. CUTE MESSY, not distressed.
+5. NO MIRRORS: Strictly avoid any mention of mirrors, reflects in glass, or looking into a mirror.
+6. NO BATHROOMS: Strictly avoid any mention of bathrooms, toilets, or showers.
+7. NO TEXT/UI: Strictly avoid any text overlays, buttons, or UI elements in the image itself.
 
-## CAMERA TYPE(selfies only):
-Handheld smartphone camera style (iPhone-like lens), slight wide-angle distortion, handheld feel.
-Ultra-high resolution, photo-real texture, 9:16 vertical.
-Natural imperfection: subtle noise, soft highlights, realistic reflections.
-No ring light, no professional polish, no beauty filters.
+## CAMERA TYPE(Amateur Selfie):
+Standard smartphone camera style, casual eye-level or slightly tilted angle.
+DEEP FOCUS: Everything in the image must be sharp and clear. NO background blur, NO bokeh, NO unsharpness.
+Natural lighting, clear and bright. No ring light, no professional polish, no beauty filters.
+Vertical 9:16 format.
 
 
 ---
@@ -1449,12 +1624,12 @@ Output ONLY the JSON object.No markdown, no explanation.`
                         if (anchor) {
                             result = await generateImageWithReferences(flatPrompt, [anchor], GEMINI_API_KEY, {
                                 aspectRatio: aspect_ratio,
-                                imageSize: "2K"
+                                imageSize: "0.5K"
                             });
                         } else {
                             result = await generateImage(flatPrompt, GEMINI_API_KEY, {
                                 aspectRatio: aspect_ratio,
-                                imageSize: "2K"
+                                imageSize: "0.5K"
                             });
                         }
 
@@ -1489,7 +1664,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
             } else {
                 try {
                     const body = await req.json() as any;
-                    const { imagePrompts, character_id, service, brandingMode } = body;
+                    const { imagePrompts, character_id, service, brandingMode, referenceImages = [] } = body;
 
                     if (!imagePrompts) {
                         return sendJSON({ error: "imagePrompts object is required" }, 400);
@@ -1501,12 +1676,13 @@ Output ONLY the JSON object.No markdown, no explanation.`
 
                         console.log(`[Carousel Images] Generating ${imageKeys.length} carousel images for character: ${character_id || 'unspecified'}...`);
 
-                        const promptsWithIndices: { prompt: string, index: number }[] = [];
+                        const promptsWithIndices: { prompt: string, index: number, originalPrompt: string }[] = [];
                         for (const key of imageKeys) {
                             if (imagePrompts[key]) {
                                 const index = parseInt(key.replace('image', '')) - 1; // 0-indexed
                                 promptsWithIndices.push({
                                     prompt: flattenImagePrompt(imagePrompts[key], { includeUgcStyle: service !== 'dbt' }),
+                                    originalPrompt: imagePrompts[key],
                                     index: index
                                 });
                             }
@@ -1515,41 +1691,52 @@ Output ONLY the JSON object.No markdown, no explanation.`
                         if (promptsWithIndices.length === 0) {
                             return sendJSON({ error: "No valid image prompts found" }, 400);
                         } else {
-                            // ONLY load anchor if this is the SYP service
-                            // DBT-Mind must be pure prompt-based to achieve the classical painting style
-                            let anchor = null;
-                            if (service === 'syp' && character_id) {
-                                console.log(`[Carousel Images] Looking for anchor for character_id: "${character_id}" (Service: SYP)`);
-                                anchor = getAnchorImage(character_id, ANCHORS_DIR);
-                                if (anchor) {
-                                    console.log(`[Carousel Images] ✅ ANCHOR FOUND - data length: ${anchor.data?.length}, mimeType: ${anchor.mimeType}`);
-                                } else {
-                                    console.log(`[Carousel Images] ⚠️ NO ANCHOR FOUND for "${character_id}"`);
-                                }
-                            } else {
-                                console.log(`[Carousel Images] Skipping anchor load for service: ${service || 'unknown'} (DBT uses pure prompting)`);
+                            // Prepare base references: user provided + optional character anchor
+                            const baseReferences = referenceImages.map((ref: any) => ({
+                                data: ref.data,
+                                mimeType: ref.mimeType || ref.mime_type || "image/png"
+                            }));
+
+                            // If no user references, check for anchor (SYP only)
+                            if (baseReferences.length === 0 && service === 'syp' && character_id) {
+                                const anchor = getAnchorImage(character_id, ANCHORS_DIR);
+                                if (anchor) baseReferences.push(anchor);
                             }
 
-                            // Generate images one by one or using the batch logic
-                            // To preserve indices correctly, we'll map them back
+                            // Generate images one by one
                             const results = [];
                             for (const item of promptsWithIndices) {
                                 console.log(`[Carousel Images] Generating slide ${item.index + 1}/${imageKeys.length}...`);
 
-                                let anchorToUse = anchor;
-                                // DBT uses pure prompting, no anchor
-                                if (service === 'dbt') anchorToUse = null;
+                                let finalPrompt = item.prompt;
+                                let finalReferences = [...baseReferences];
 
-                                const result = anchorToUse
-                                    ? await generateImageWithReferences(item.prompt, [anchorToUse], GEMINI_API_KEY, { aspectRatio: "9:16", imageSize: "2K" })
-                                    : await generateImage(item.prompt, GEMINI_API_KEY, { aspectRatio: "9:16", imageSize: "2K" });
+                                // Website screenshot injection for SYP
+                                const isSypProject = service === 'syp';
+                                const saveyourpetKeywords = ['saveyourpet.de', 'saveyourpet', 'absicherung', 'vorsorge', 'schutz fÃƒÂ¼r', 'laptop screen showing'];
+                                const lowerPrompt = (finalPrompt + ' ' + item.originalPrompt).toLowerCase();
+                                const needsWebsiteScreenshot = isSypProject && brandingMode === 'full' && saveyourpetKeywords.some(kw => lowerPrompt.includes(kw));
+
+                                if (needsWebsiteScreenshot) {
+                                    const websiteScreenshotPath = path.join(DATA_DIR, "anchors", "saveyourpet", "website_screenshot_laptop.png");
+                                    if (existsSync(websiteScreenshotPath)) {
+                                        try {
+                                            const screenshotData = readFileSync(websiteScreenshotPath).toString('base64');
+                                            finalReferences.push({ data: screenshotData, mimeType: "image/png" });
+                                            finalPrompt += "\n\nCRITICAL: The laptop screen MUST display the saveyourpet.de website exactly as shown in the reference image.";
+                                        } catch (e) { console.warn("Failed to load SYP screenshot", e); }
+                                    }
+                                }
+
+                                const result = finalReferences.length > 0
+                                    ? await generateImageWithReferences(finalPrompt, finalReferences, GEMINI_API_KEY, { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize: "0.5K" })
+                                    : await generateImage(finalPrompt, GEMINI_API_KEY, { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize: "0.5K" });
 
                                 results.push({
                                     slideIndex: item.index,
                                     result: result
                                 });
 
-                                // Small delay between requests to be nice to the API
                                 await new Promise(resolve => setTimeout(resolve, 500));
                             }
 
@@ -1595,16 +1782,30 @@ Output ONLY the JSON object.No markdown, no explanation.`
                 return sendJSON({ error: "Gemini API Key not configured" }, 500);
             } else {
                 try {
-                    const { prompt, aspectRatio = "9:16" } = await req.json() as any;
+                    const body = await req.json() as any;
+                    const { prompt, aspectRatio = "9:16", referenceImages = [] } = body;
+
                     if (!prompt) {
                         return sendJSON({ error: "Prompt is required" }, 400);
                     } else {
-                        console.log(`[Custom Image] Generating with raw prompt: ${prompt.substring(0, 50)}...`);
+                        console.log(`[Custom Image] Generating with raw prompt and ${referenceImages.length} refs: ${prompt.substring(0, 50)}...`);
 
-                        const result = await generateImage(prompt, GEMINI_API_KEY, {
-                            aspectRatio: aspectRatio,
-                            imageSize: "2K"
-                        });
+                        let result;
+                        if (referenceImages && referenceImages.length > 0) {
+                            const finalReferences = referenceImages.map((ref: any) => ({
+                                data: ref.data,
+                                mimeType: ref.mimeType || ref.mime_type || "image/png"
+                            }));
+                            result = await generateImageWithReferences(prompt, finalReferences, GEMINI_API_KEY, {
+                                aspectRatio: aspectRatio,
+                                imageSize: "0.5K"
+                            });
+                        } else {
+                            result = await generateImage(prompt, GEMINI_API_KEY, {
+                                aspectRatio: aspectRatio,
+                                imageSize: "0.5K"
+                            });
+                        }
 
                         if (result.success && result.images && result.images.length > 0) {
                             const firstImage = result.images[0];
@@ -1662,7 +1863,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                         const isSypProject = service === 'syp';
                         const saveyourpetKeywords = [
                             'saveyourpet.de', 'saveyourpet',
-                            'absicherung', 'vorsorge', 'schutz für',
+                            'absicherung', 'vorsorge', 'schutz fÃƒÂ¼r',
                             'laptop screen showing', 'laptop.*saveyourpet'
                         ];
                         const lowerPrompt = (flatPrompt + ' ' + slideText).toLowerCase();
@@ -1699,12 +1900,12 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                 flatPrompt,
                                 finalReferences,
                                 GEMINI_API_KEY,
-                                { aspectRatio: "9:16", imageSize: "2K" }
+                                { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize: "0.5K" }
                             );
                         } else {
                             result = await generateImage(flatPrompt, GEMINI_API_KEY, {
-                                aspectRatio: "9:16",
-                                imageSize: "2K"
+                                aspectRatio: (body.aspectRatio || "9:16") as any,
+                                imageSize: "0.5K"
                             });
                         }
 

@@ -42,32 +42,40 @@
         }
     },
     "lighting": {
-        "primary_light": "soft natural daylight entering from the right side, creating long gentle rays across the wall",
-        "secondary_light": "faint reflection from the lamp adding tiny highlights",
-        "shadows": "deep but soft shadows on the bed, walls, and subject, matching the mood of the reference",
-        "face_lighting": "soft flattering light that enhances facial features without harsh shadows"
+        "primary_light": "Bright everyday lighting, either clear daylight or normal overhead room lights",
+        "secondary_light": "Natural reflections from white walls, no dramatic shadows",
+        "shadows": "Minimal and flat shadows, nothing moody or cinematic",
+        "face_lighting": "Even, bright light on the face, like a standard front-camera selfie"
     },
     "photography": {
-        "camera_angle": "mirror-reflected selfie angle identical to the reference",
-        "framing": "wide view capturing the whole scene from mid-bed to top wall trim",
-        "focus": "slightly soft overall, matching the moody low-light feel",
-        "color_profile": "warm-toned shadows with subtle cool daylight streaks",
-        "skin_rendering": "soft-focus on skin, minimizing texture while maintaining realism"
+        "camera_angle": "Standard handheld mobile phone angle, slightly tilted or casual eye-level",
+        "framing": "Simple candid snapshot, slightly messy framing, not perfectly centered",
+        "focus": "Deep focus, EVERYTHING in the image should be sharp and clear (no blur, no bokeh)",
+        "color_profile": "Standard vibrant mobile camera colors, un-edited and slightly raw",
+        "skin_rendering": "Real skin with natural imperfections, visible texture, no soft-focus or plastic look"
     },
     "vibe": {
-        "energy": "quiet, cozy, early-morning mood",
-        "tone": "soft, cinematic, minimalist aesthetic",
-        "beauty_aesthetic": "naturally beautiful, approachable, relatable despite being gorgeous"
+        "energy": "Casual, daily life, spontaneous",
+        "tone": "A real, unedited Snapchat photo sent to a close friend. Amateur quality, slightly raw, 100% unposed.",
+        "beauty_aesthetic": "Naturally attractive but looks like a regular person on a normal day"
     },
     "restrictions": {
         "content": "strictly non-sexual; all curves and shadows interpreted as natural posture and lighting only",
         "tattoos": "none",
-        "accuracy": "must match the reference composition and lighting with very high fidelity",
+        "accuracy": "must feel like a real, unposed moment shared privately",
         "avoid": [
-            "visible pores or skin texture",
+            "bathrooms",
+            "toilets",
+            "showers",
+            "mirrors",
+            "reflections in glass",
+            "visible pores or skin texture blurring",
             "harsh or unflattering angles",
             "overly glamorous or editorial looks",
-            "artificial or plastic appearance"
+            "artificial or plastic appearance",
+            "text overlays",
+            "UI elements",
+            "buttons"
         ]
     }
 }
