@@ -166,7 +166,7 @@ export async function runDbtJob(db: Database, jobId: string, keys: DbtJobRunnerK
                     ANTHROPIC_API_KEY: keys.anthropicApiKey,
                     topic: selectedTopic,
                     includeBranding: input.includeBranding !== false,
-                    artStyle: input.artStyle || "varo"
+                    artStyle: "symbolic"
                 });
             },
             {

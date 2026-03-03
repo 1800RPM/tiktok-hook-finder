@@ -575,6 +575,8 @@ Based on the context above, generate three options for the integrated app mentio
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
                 const { slides, character_id, setting_override, framing, theme, partner_anchor, service, brandingMode, artStyle, flow } = await req.json() as any;
+                const effectiveArtStyle = service === 'dbt' ? 'symbolic' : artStyle;
+                const effectiveFlow = service === 'dbt' ? 'weird_hack' : flow;
 
                 if (!slides || !Array.isArray(slides) || slides.length === 0) {
                     return sendJSON({ error: "Slides array is required" }, 400);
@@ -665,9 +667,9 @@ Based on the context above, generate three options for the integrated app mentio
 
                 // If DBT project, we use a completely different system prompt (Classical Paintings)
                 if (isDbtProject) {
-                    const selectedArtStyle = (ART_STYLES[artStyle] || ART_STYLES.varo) as any;
+                    const selectedArtStyle = (ART_STYLES[effectiveArtStyle] || ART_STYLES.symbolic) as any;
                     const isSymbolic = selectedArtStyle.id === 'symbolic';
-                    const isWeirdHackFlow = flow === 'weird_hack';
+                    const isWeirdHackFlow = effectiveFlow === 'weird_hack';
                     console.log(`[Image Prompts] Generating ${selectedArtStyle.name} prompts for DBT-Mind with ${slides.length} slides${isSymbolic ? ' (Symbolic Mode)' : ''}${isWeirdHackFlow ? ' (Weird Hack Flow)' : ''}`);
 
                     const normalizedSlides = slides.map((s: any) => String(s || '').trim());
