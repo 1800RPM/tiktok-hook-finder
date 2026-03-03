@@ -2,6 +2,8 @@ import type { Database } from "bun:sqlite";
 import { generateImage } from "../../image_generator";
 import { generateDbtSlides } from "./dbt_service";
 import sharp from "sharp";
+import path from "path";
+import { existsSync, readFileSync } from "fs";
 
 export type DbtTopicMode = "random" | "fixed";
 
@@ -193,6 +195,7 @@ export async function runDbtJob(db: Database, jobId: string, keys: DbtJobRunnerK
             const prompts = orderedPromptList(native.image_prompts || {});
             const images = [];
             const maxRetries = clampRetries(input.imageMaxRetries);
+            const staticTemplates = getDbtStaticTemplateMap(output.slides || []);
             output.image_progress = {
                 total: prompts.length,
                 completed: 0,
@@ -209,12 +212,15 @@ export async function runDbtJob(db: Database, jobId: string, keys: DbtJobRunnerK
             });
 
             for (let i = 0; i < prompts.length; i++) {
-                const result = await generateImageWithRetry(
-                    prompts[i] || "",
-                    keys.geminiApiKey,
-                    input.aspectRatio || "9:16",
-                    maxRetries
-                );
+                const templateFilename = staticTemplates[i];
+                const result = templateFilename
+                    ? loadStaticTemplateImage(templateFilename, i)
+                    : await generateImageWithRetry(
+                        prompts[i] || "",
+                        keys.geminiApiKey,
+                        input.aspectRatio || "9:16",
+                        maxRetries
+                    );
                 images.push({
                     slideIndex: i,
                     success: result.success,
@@ -333,6 +339,43 @@ function clampRetries(value: number | undefined): number {
     const fallback = 2;
     if (typeof value !== "number" || Number.isNaN(value)) return fallback;
     return Math.max(0, Math.min(5, Math.floor(value)));
+}
+
+function getDbtStaticTemplateMap(slides: string[]): Record<number, string> {
+    const map: Record<number, string> = {};
+    if (slides.length >= 1) map[0] = "slide1.png";
+    if (slides.length >= 6) map[5] = "app_image.png";
+    return map;
+}
+
+function loadStaticTemplateImage(
+    filename: string,
+    slideIndex: number
+): { success: boolean; image: { data: string; mime_type: string } | null; error?: string; attempts: number } {
+    const candidates = [
+        path.join(process.cwd(), "data", "templates", filename),
+        path.join(process.cwd(), "server", "data", "templates", filename),
+        path.join(process.cwd(), "client", filename),
+        path.join(process.cwd(), "..", "client", filename),
+        path.join(process.cwd(), filename)
+    ];
+
+    const found = candidates.find((p) => existsSync(p));
+    if (!found) {
+        return {
+            success: false,
+            image: null,
+            error: `static template not found for slide ${slideIndex + 1}: ${filename}`,
+            attempts: 1
+        };
+    }
+
+    const data = readFileSync(found).toString("base64");
+    return {
+        success: true,
+        image: { data, mime_type: "image/png" },
+        attempts: 1
+    };
 }
 
 async function generateImageWithRetry(

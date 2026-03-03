@@ -184,11 +184,26 @@ Return a JSON object with a "slides" key containing an array of 6 strings.`;
     const stylePrefix = selectedArtStyle.prefix + ". ";
     const styleSuffix = selectedArtStyle.suffix;
 
-    // Use fallback generic prompts
+    // Weird Hack symbolic flow:
+    // - slide 2-3: dark/heavy
+    // - slide 4: transition gradient + punch
+    // - slide 5: hopeful
+    // slide 1 and 6 are templates in job pipeline, but we still provide prompts as fallback.
     for (let i = 1; i <= slides.length; i++) {
-        // Fallback generic prompts if no specific ArtStyle logic is applied
-        const basePrompt = i === 1 ? "Dramatic painting of woman in a crisis moment, intense shadows, solitary figure" :
-            "Solitary woman in an emotional moment, painterly style, atmospheric lighting";
+        let basePrompt = "Solitary woman in an emotional moment, painterly style, atmospheric lighting";
+        if (i === 1) {
+            basePrompt = "Minimal symbolic emotional scene, no people, contemplative atmosphere";
+        } else if (i === 2) {
+            basePrompt = "Dark symbolic scene, rainy night mood, isolation, harsh shadows, no people";
+        } else if (i === 3) {
+            basePrompt = "Dark symbolic scene, emotional heaviness, artificial light, moody and tense, no people";
+        } else if (i === 4) {
+            basePrompt = "Abstract transition scene, dark-to-warm gradient background, no people, minimal composition";
+        } else if (i === 5) {
+            basePrompt = "Hopeful symbolic morning scene, warm daylight, gentle optimism, no people";
+        } else if (i === 6) {
+            basePrompt = "Clean app-focused symbolic scene, no people, calm neutral lighting";
+        }
 
         imagePrompts[`slide${i}`] = stylePrefix + basePrompt + styleSuffix;
     }
