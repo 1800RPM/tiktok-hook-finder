@@ -166,7 +166,7 @@ export async function runDbtJob(db: Database, jobId: string, keys: DbtJobRunnerK
                     ANTHROPIC_API_KEY: keys.anthropicApiKey,
                     topic: selectedTopic,
                     includeBranding: input.includeBranding !== false,
-                    artStyle: input.artStyle || "hopper"
+                    artStyle: input.artStyle || "varo"
                 });
             },
             {
@@ -258,6 +258,7 @@ export async function runDbtJob(db: Database, jobId: string, keys: DbtJobRunnerK
 
                 const renderedImages = await renderSlidesWithTextOverlays(output.slides || [], images);
                 output.rendered_images = renderedImages;
+                output.images_with_text = renderedImages;
 
                 completeStep(db, jobId, "render_overlays", {
                     rendered_count: renderedImages.length

@@ -665,7 +665,7 @@ Based on the context above, generate three options for the integrated app mentio
 
                 // If DBT project, we use a completely different system prompt (Classical Paintings)
                 if (isDbtProject) {
-                    const selectedArtStyle = (ART_STYLES[artStyle] || ART_STYLES.hopper) as any;
+                    const selectedArtStyle = (ART_STYLES[artStyle] || ART_STYLES.varo) as any;
                     const isSymbolic = selectedArtStyle.id === 'symbolic';
                     const isWeirdHackFlow = flow === 'weird_hack';
                     console.log(`[Image Prompts] Generating ${selectedArtStyle.name} prompts for DBT-Mind with ${slides.length} slides${isSymbolic ? ' (Symbolic Mode)' : ''}${isWeirdHackFlow ? ' (Weird Hack Flow)' : ''}`);

@@ -13,9 +13,9 @@ export interface DbtGenerateParams {
 
 
 export async function generateDbtSlides(params: DbtGenerateParams) {
-    const { ANTHROPIC_API_KEY, includeBranding = true, artStyle = 'hopper', topic } = params;
+    const { ANTHROPIC_API_KEY, includeBranding = true, artStyle = 'varo', topic } = params;
 
-    const selectedArtStyle = (ART_STYLES[artStyle] || ART_STYLES.hopper) as ArtStyle;
+    const selectedArtStyle = (ART_STYLES[artStyle] || ART_STYLES.varo) as ArtStyle;
     console.log(`[Native Slides - DBT] Generating with new Weird Hacks format, style: ${selectedArtStyle.name}, branding: ${includeBranding ? 'ON' : 'OFF'}`);
 
     const viralTopics = [

@@ -484,7 +484,7 @@ async function generateNativeSlides() {
             body: JSON.stringify({
                 service: 'dbt',
                 includeBranding,
-                artStyle: elements.artStyleSelect?.value || 'hopper',
+                artStyle: elements.artStyleSelect?.value || 'varo',
                 topic: elements.nativeGenTopicDbt?.value || 'random'
             })
         });
@@ -564,7 +564,7 @@ async function generateImagePromptsFromSlides(slidesToUse) {
                 topic: state.currentTopic,
                 service: state.currentService,
                 brandingMode,
-                artStyle: elements.artStyleSelect?.value || 'hopper',
+                artStyle: elements.artStyleSelect?.value || 'varo',
                 flow: elements.flowSelect?.value || 'standard'
             })
         });
