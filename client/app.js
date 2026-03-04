@@ -31,21 +31,36 @@ function normalizeApiBase(base) {
 }
 
 function resolveApiBase() {
+    const PRODUCTION_API_BASE = 'https://tiktokhookfinder-production.up.railway.app';
     const fromQuery = new URLSearchParams(window.location.search).get('apiBase');
     const fromStorage = localStorage.getItem('TIKTOK_API_BASE');
     const fromWindow = window.__API_BASE__;
+    const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 
     const configured = fromQuery || fromStorage || fromWindow;
     if (configured) {
         const normalized = normalizeApiBase(configured);
         if (normalized) {
-            localStorage.setItem('TIKTOK_API_BASE', normalized);
-            return normalized;
+            // Safety guard: do not use a stale localhost API base on non-local deployments.
+            // Keep localhost overrides only when running locally or when explicitly set via query param.
+            try {
+                const parsed = new URL(normalized);
+                const configuredIsLocal = ['localhost', '127.0.0.1'].includes(parsed.hostname);
+                if (!isLocalHost && configuredIsLocal && !fromQuery) {
+                    localStorage.removeItem('TIKTOK_API_BASE');
+                } else {
+                    localStorage.setItem('TIKTOK_API_BASE', normalized);
+                    return normalized;
+                }
+            } catch (_e) {
+                // Non-URL values (rare): keep previous behavior.
+                localStorage.setItem('TIKTOK_API_BASE', normalized);
+                return normalized;
+            }
         }
     }
 
-    const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    return isLocal ? 'http://localhost:3001' : `${window.location.origin}/api`;
+    return isLocalHost ? 'http://localhost:3001' : PRODUCTION_API_BASE;
 }
 
 const API_BASE = resolveApiBase();
