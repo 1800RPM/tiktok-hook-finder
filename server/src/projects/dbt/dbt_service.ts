@@ -129,7 +129,7 @@ Return a JSON object with a "slides" key containing an array of 6 strings.`;
             'content-type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'claude-opus-4-6',
+            model: 'claude-sonnet-4-6',
             max_tokens: 1500,
             system: systemPrompt,
             messages: [{ role: 'user', content: userPrompt }]

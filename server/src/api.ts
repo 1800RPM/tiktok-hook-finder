@@ -810,7 +810,7 @@ ${isSymbolic ? '- Also verify the set is aesthetically pleasing and semantically
                             'content-type': 'application/json'
                         },
                         body: JSON.stringify({
-                            model: 'claude-opus-4-6',
+                            model: 'claude-sonnet-4-6',
                             max_tokens: 2500,
                             system: dbtSystemPrompt,
                             messages: [{ role: 'user', content: userPrompt }]
@@ -1028,7 +1028,7 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
                             'content-type': 'application/json'
                         },
                         body: JSON.stringify({
-                            model: 'claude-opus-4-6',
+                            model: 'claude-sonnet-4-6',
                             max_tokens: 2500,
                             system: systemPrompt,
                             messages: [{ role: 'user', content: userPrompt }]
@@ -1342,7 +1342,7 @@ OUTPUT: Return ONLY a JSON object with "title" and "description" fields. No mark
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'claude-opus-4-6',
+                        model: 'claude-sonnet-4-6',
                         max_tokens: 1200,
                         messages: [{
                             role: 'user',
@@ -1537,7 +1537,7 @@ ${slidesText.map((s: string, i: number) => `Slide ${i + 2}: ${s}`).join('\n')}
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'claude-opus-4-6',
+                        model: 'claude-sonnet-4-6',
                         max_tokens: 2500,
                         messages: [{
                             role: 'user',

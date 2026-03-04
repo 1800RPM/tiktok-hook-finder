@@ -318,7 +318,7 @@ MANDATORY INSTRUCTION:
             'content-type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'claude-opus-4-6',
+            model: 'claude-sonnet-4-6',
             max_tokens: 2000,
             system: systemPrompt,
             messages: [{ role: 'user', content: userPrompt }]
@@ -488,7 +488,7 @@ Pet: ${selectedProfile.vars.NAME} (${persona.pet.description})${saveyourpetImage
             'content-type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'claude-opus-4-6',
+            model: 'claude-sonnet-4-6',
             max_tokens: 2000,
             system: sypImageSystemPrompt,
             messages: [{ role: 'user', content: `Generate JSON prompts image2 to image${cleanedSlides.length}:\n${cleanedSlides.join('\n')}` }]
