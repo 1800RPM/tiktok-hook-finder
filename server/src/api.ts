@@ -13,10 +13,109 @@ import { ART_STYLES } from "./projects/dbt/art_styles";
 const DATA_DIR = existsSync(path.join(process.cwd(), "server", "data"))
     ? path.join(process.cwd(), "server", "data")
     : path.join(process.cwd(), "data");
+const PROJECT_ROOT = existsSync(path.join(process.cwd(), "server"))
+    ? process.cwd()
+    : path.resolve(process.cwd(), "..");
 
 const ANCHORS_DIR = path.join(DATA_DIR, "anchors");
 if (!existsSync(ANCHORS_DIR)) {
     mkdirSync(ANCHORS_DIR, { recursive: true });
+}
+
+const DBT_CHARACTER_REFERENCE_PATHS: Record<string, { slide2: string[]; slide3: string[]; slide5: string[] }> = {
+    hannahbpd: {
+        slide2: [
+            path.join(PROJECT_ROOT, "client", "slide2_ref_2.png")
+        ],
+        slide3: [
+            path.join(PROJECT_ROOT, "client", "slide3_ref_2.png")
+        ],
+        slide5: [
+            path.join(PROJECT_ROOT, "client", "slide5_ref_1.png"),
+            path.join(PROJECT_ROOT, "client", "slide5_ref_2.png")
+        ]
+    },
+    brendabpd: {
+        slide2: [
+            path.join(PROJECT_ROOT, "client", "assets", "dbt-templates", "brendabpd", "slide2.png")
+        ],
+        slide3: [
+            path.join(PROJECT_ROOT, "client", "assets", "dbt-templates", "brendabpd", "slide3.jpg")
+        ],
+        slide5: [
+            path.join(PROJECT_ROOT, "client", "assets", "dbt-templates", "brendabpd", "slide5.jpg")
+        ]
+    }
+};
+
+function getMimeTypeForReferencePath(refPath: string): string {
+    const ext = path.extname(refPath).toLowerCase();
+    if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+    return "image/png";
+}
+
+function loadFixedReferenceImages(refPaths: string[], logLabel: string): ReferenceImage[] {
+    const references: ReferenceImage[] = [];
+
+    for (const refPath of refPaths) {
+        if (!existsSync(refPath)) {
+            console.warn(`[${logLabel}] Reference image missing: ${refPath}`);
+            continue;
+        }
+
+        try {
+            references.push({
+                data: readFileSync(refPath).toString("base64"),
+                mimeType: getMimeTypeForReferencePath(refPath)
+            });
+        } catch (error) {
+            console.warn(`[${logLabel}] Failed to load reference image ${refPath}:`, error);
+        }
+    }
+
+    return references;
+}
+
+function getDbtCharacterReferenceConfig(characterId?: string) {
+    return DBT_CHARACTER_REFERENCE_PATHS[characterId || ""] || DBT_CHARACTER_REFERENCE_PATHS.hannahbpd;
+}
+
+function getDbtSlide2References(characterId?: string): ReferenceImage[] {
+    const config = getDbtCharacterReferenceConfig(characterId);
+    return loadFixedReferenceImages(config.slide2, `DBT Slide 2:${characterId || "hannahbpd"}`);
+}
+
+function getDbtSlide3References(characterId?: string): ReferenceImage[] {
+    const config = getDbtCharacterReferenceConfig(characterId);
+    return loadFixedReferenceImages(config.slide3, `DBT Slide 3:${characterId || "hannahbpd"}`);
+}
+
+function getDbtSlide5References(characterId?: string): ReferenceImage[] {
+    const config = getDbtCharacterReferenceConfig(characterId);
+    return loadFixedReferenceImages(config.slide5, `DBT Slide 5:${characterId || "hannahbpd"}`);
+}
+
+function getDbtFixedSlide2Prompt(characterId?: string): string {
+    const basePrompt = "Create another version of the reference image with the same vibe but in a different dark setting. No face visible of person in the image, only shot from a side angle or from behind. Candid iPhone 12 shot. No text in image. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
+    if (characterId === "brendabpd") {
+        return "Create another version of the reference image with the same vibe but in a different dark setting, keep the sky shot the same tho. No face visible of person in the image, only shot from a side angle or from behind. Candid iPhone 12 shot. No text in image. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
+    }
+    return basePrompt;
+}
+
+function getDbtFixedSlide3Prompt(characterId?: string): string {
+    const basePrompt = "Create another version of the reference image with the same vibe but in different dark rainy setting. It should rain. Candid iPhone 12 shot. No text in image.";
+    if (characterId === "brendabpd") {
+        return `${basePrompt} Face of the person is not visible. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.`;
+    }
+    return basePrompt;
+}
+
+function getDbtFixedSlide5Prompt(characterId?: string): string | null {
+    if (characterId === "brendabpd") {
+        return "Create another version of the reference image with the same vibe, keep the faceless person motive with the over the shoulder shot out of the drivers window while parked. Candid iPhone 12 shot. No text in image. Same medium quality, hopeful authentic Tiktok asthetic.";
+    }
+    return null;
 }
 
 const db = new Database(path.join(DATA_DIR, "hooks.db"));
@@ -59,6 +158,7 @@ if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !API_KEYS_RAW) {
 }
 
 const PORT = parseInt(process.env.PORT || "3001", 10); // Railway/hosted platforms inject PORT
+const IMAGE_GEN_CONCURRENCY = Math.max(1, Math.min(4, parseInt(process.env.IMAGE_GEN_CONCURRENCY || "2", 10) || 2));
 const API_KEYS = new Set(
     String(API_KEYS_RAW || "")
         .split(",")
@@ -574,7 +674,8 @@ Based on the context above, generate three options for the integrated app mentio
         else if (cleanPath === "/generate-image-prompts" && method === "POST") {
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
-                const { slides, character_id, setting_override, framing, theme, partner_anchor, service, brandingMode, artStyle, flow } = await req.json() as any;
+                const { slides, character_id, character, setting_override, framing, theme, partner_anchor, service, brandingMode, artStyle, flow } = await req.json() as any;
+                const resolvedCharacterId = character_id || character;
                 const effectiveArtStyle = service === 'dbt' ? 'symbolic' : artStyle;
                 const effectiveFlow = service === 'dbt' ? 'weird_hack' : flow;
 
@@ -592,8 +693,8 @@ Based on the context above, generate three options for the integrated app mentio
 
                 // Map SYP profile IDs to correct persona based on profile
                 // lisa_milo uses the new 'lisa' persona, cats use 'luna', other dogs use 'mia'
-                let effectiveCharacterId = character_id;
-                if (isSypProject && character_id) {
+                let effectiveCharacterId = resolvedCharacterId;
+                if (isSypProject && resolvedCharacterId) {
                     const sypProfileMapping: { [key: string]: { personaId: string; type: string; petDesc: string } } = {
                         'lisa_milo': { personaId: 'lisa', type: 'dog', petDesc: 'fluffy golden retriever named Milo looking curious and playful' },
                         'anna_simba': { personaId: 'luna', type: 'cat', petDesc: 'orange tabby cat named Simba looking regal and slightly judgy' },
@@ -601,24 +702,24 @@ Based on the context above, generate three options for the integrated app mentio
                         'julia_balu': { personaId: 'mia', type: 'dog', petDesc: 'happy labrador named Balu with tongue out' }
                     };
 
-                    const sypProfile = sypProfileMapping[character_id];
+                    const sypProfile = sypProfileMapping[resolvedCharacterId];
                     if (sypProfile) {
                         effectiveCharacterId = sypProfile.personaId;
-                        console.log(`[Image Prompts] SYP profile '${character_id}' mapped to persona '${effectiveCharacterId}' (${sypProfile.type})`);
+                        console.log(`[Image Prompts] SYP profile '${resolvedCharacterId}' mapped to persona '${effectiveCharacterId}' (${sypProfile.type})`);
                     }
                 }
 
                 let persona = personasData.personas.find((p: any) => p.id === effectiveCharacterId) || personasData.personas[0];
 
                 // Override pet description for SYP profiles to match the specific pet
-                if (isSypProject && character_id) {
+                if (isSypProject && resolvedCharacterId) {
                     const sypProfiles: { [key: string]: { type: string; petDesc: string } } = {
                         'lisa_milo': { type: 'dog', petDesc: 'fluffy golden retriever named Milo looking curious and playful' },
                         'anna_simba': { type: 'cat', petDesc: 'orange tabby cat named Simba looking regal and slightly judgy' },
                         'sarah_luna': { type: 'cat', petDesc: 'elegant gray cat named Luna with piercing green eyes' },
                         'julia_balu': { type: 'dog', petDesc: 'happy labrador named Balu with tongue out' }
                     };
-                    const sypProfile = sypProfiles[character_id];
+                    const sypProfile = sypProfiles[resolvedCharacterId];
                     if (sypProfile && persona.pet) {
                         // Create a copy with the correct pet for this SYP profile
                         persona = {
@@ -709,7 +810,7 @@ Based on the context above, generate three options for the integrated app mentio
                         "rainy street with cars",
                         "rainy driver car window",
                         "foggy field",
-                        "foggy sea",
+                        "rainy roadside at night",
                         "foggy forest path"
                     ];
                     const shuffledDarkMotifs = [...darkMotifs].sort(() => Math.random() - 0.5);
@@ -719,9 +820,12 @@ Based on the context above, generate three options for the integrated app mentio
                     };
 
                     const getDbtSlideStyleOverride = (slideNumber: number) => {
-                        if (slideNumber === 2 || slideNumber === 3) {
+                        if (slideNumber === 2) {
                             const motif = darkMotifBySlide[slideNumber];
                             return `DARK: night, rain, isolation, artificial light sources, emotionally heavy. MOTIF ONLY: ${motif}. No other motifs.`;
+                        }
+                        if (slideNumber === 3) {
+                            return "DARK: night rain, isolation, emotionally heavy. Create a new variation of the reference vibe, not a copy. Show a woman inside a car in a dark rainy setting with her hand or forearm reaching out of the open window into the rain. Keep it road-based and cinematic, but change the surrounding setting, framing, lighting, or background details. NOT ocean, NOT lake, NOT coast, NOT open water, NOT boat.";
                         }
                         if (slideNumber === 4) {
                             return "TRANSITION: neither dark nor bright; dark-to-warm gradient background, abstract minimal, no distinct scene.";
@@ -836,6 +940,9 @@ ${isSymbolic ? '- Also verify the set is aesthetically pleasing and semantically
 
                     const candidStylePrefix = "iPhone 12 candid style photo, spontanesouly taken. Medium quality, authentic Tiktok asthetic. ";
                     const noPersonSuffix = " No person visibile, no UI elements";
+                    const fixedSlide2ReferencePrompt = getDbtFixedSlide2Prompt(resolvedCharacterId);
+                    const fixedSlide3ReferencePrompt = getDbtFixedSlide3Prompt(resolvedCharacterId);
+                    const fixedSlide5ReferencePrompt = getDbtFixedSlide5Prompt(resolvedCharacterId);
                     const ctaPrompt = isSymbolic
                         ? `${candidStylePrefix}first-person POV in a cozy living room, only crossed legs visible on a footstool by a reading chair, warm daylight, plants, no phone or screens.`
                         : `${candidStylePrefix}first-person POV resting moment in a quiet warm daylight room, no phone or screens.`;
@@ -855,6 +962,17 @@ ${isSymbolic ? '- Also verify the set is aesthetically pleasing and semantically
                             ? withPrefix
                             : `${withPrefix}${noPersonSuffix}`;
                     });
+
+                    // Slide 2 and 3 should remain fixed even after prompt regeneration/refresh.
+                    if (normalizedSlides.length >= 2) {
+                        parsed.image2 = fixedSlide2ReferencePrompt;
+                    }
+                    if (normalizedSlides.length >= 3) {
+                        parsed.image3 = fixedSlide3ReferencePrompt;
+                    }
+                    if (normalizedSlides.length >= 5 && fixedSlide5ReferencePrompt) {
+                        parsed.image5 = fixedSlide5ReferencePrompt;
+                    }
 
                     // Slide 4 is the gradient transition slide: remove any leading iPhone-style prefix.
                     if (typeof parsed.image4 === 'string') {
@@ -917,7 +1035,7 @@ ${isSymbolic ? '- Also verify the set is aesthetically pleasing and semantically
                                 'sarah_luna': 'Luna',
                                 'julia_balu': 'Balu'
                             };
-                            const petName = petNames[character_id] || 'the pet';
+                            const petName = petNames[resolvedCharacterId] || 'the pet';
 
                             saveyourpetSlideInstruction = `
 
@@ -1291,9 +1409,101 @@ OUTPUT: Return ONLY a JSON object with "title" and "description" fields. No mark
                         rawText: resultText.substring(0, 1000)
                     }, 500);
                 }
+
+                const formatMetadataDescription = (rawDescription: string, dbtMode: boolean): string => {
+                    const text = String(rawDescription || "")
+                        .replace(/\r\n/g, '\n')
+                        .replace(/[ \t]+\n/g, '\n')
+                        .trim();
+
+                    if (!text) return "";
+
+                    const lines = text
+                        .split('\n')
+                        .map((line: string) => line.trim())
+                        .filter(Boolean);
+
+                    if (dbtMode) {
+                        let mentionSeen = false;
+                        const normalized: string[] = [];
+
+                        for (const line of lines) {
+                            if (line.startsWith('#')) {
+                                normalized.push(line);
+                                continue;
+                            }
+
+                            if (/@dbtmind/i.test(line)) {
+                                if (mentionSeen) {
+                                    const withoutMention = line
+                                        .replace(/\s*@dbtmind\b/ig, '')
+                                        .replace(/\s{2,}/g, ' ')
+                                        .trim();
+                                    if (withoutMention) normalized.push(withoutMention);
+                                    continue;
+                                }
+
+                                mentionSeen = true;
+                                normalized.push(
+                                    line
+                                        .replace(/(?:@dbtmind\s*)+/ig, '@dbtmind ')
+                                        .replace(/\s{2,}/g, ' ')
+                                        .trim()
+                                );
+                                continue;
+                            }
+
+                            normalized.push(line);
+                        }
+
+                        const bodyLines = normalized.filter((line: string) => !line.startsWith('#'));
+                        const hashtags = normalized
+                            .filter((line: string) => line.startsWith('#'))
+                            .flatMap((line: string) => line.split(/\s+/))
+                            .filter((tag: string) => tag.startsWith('#'))
+                            .map((tag: string) => tag.toLowerCase());
+
+                        const uniqueHashtags = [...new Set(hashtags)];
+                        const body = bodyLines.join('\n').trim();
+                        const hashtagLine = uniqueHashtags.join(' ').trim();
+
+                        return hashtagLine ? `${body}\n${hashtagLine}`.trim() : body;
+                    }
+
+                    const hashtagTokens = lines
+                        .filter((line: string) => line.startsWith('#'))
+                        .flatMap((line: string) => line.split(/\s+/))
+                        .filter((tag: string) => tag.startsWith('#'))
+                        .map((tag: string) => tag.toLowerCase());
+
+                    const uniqueHashtags = [...new Set(hashtagTokens)];
+                    const bodyLines = lines.filter((line: string) => !line.startsWith('#'));
+                    let body = bodyLines.join('\n').trim();
+
+                    if (!body && uniqueHashtags.length > 0) {
+                        return uniqueHashtags.join(' ');
+                    }
+
+                    // If there are many sentences in one block, add a paragraph break for readability.
+                    const sentences = body
+                        .split(/(?<=[.!?])\s+/)
+                        .map((s: string) => s.trim())
+                        .filter(Boolean);
+
+                    if (sentences.length >= 3 && !body.includes('\n')) {
+                        const splitAt = Math.ceil(sentences.length / 2);
+                        body = `${sentences.slice(0, splitAt).join(' ')}\n${sentences.slice(splitAt).join(' ')}`.trim();
+                    }
+
+                    return uniqueHashtags.length > 0 ? `${body}\n${uniqueHashtags.join(' ')}`.trim() : body;
+                };
+
+                const normalizedTitle = String(parsed.title || '').trim();
+                const normalizedDescription = formatMetadataDescription(String(parsed.description || ''), isDbt);
+
                 return sendJSON({
-                    title: parsed.title,
-                    description: parsed.description
+                    title: normalizedTitle,
+                    description: normalizedDescription
                 });
             } catch (e) {
                 console.error("Metadata Generation Error:", e);
@@ -1696,12 +1906,12 @@ Output ONLY the JSON object.No markdown, no explanation.`
                         if (anchor) {
                             result = await generateImageWithReferences(flatPrompt, [anchor], GEMINI_API_KEY, {
                                 aspectRatio: aspect_ratio,
-                                imageSize: "0.5K"
+                                imageSize: "1K"
                             });
                         } else {
                             result = await generateImage(flatPrompt, GEMINI_API_KEY, {
                                 aspectRatio: aspect_ratio,
-                                imageSize: "0.5K"
+                                imageSize: "1K"
                             });
                         }
 
@@ -1775,13 +1985,51 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                 if (anchor) baseReferences.push(anchor);
                             }
 
-                            // Generate images one by one
-                            const results = [];
-                            for (const item of promptsWithIndices) {
-                                console.log(`[Carousel Images] Generating slide ${item.index + 1}/${imageKeys.length}...`);
+                            // Generate images in parallel (capped)
+                            const workerCount = Math.min(IMAGE_GEN_CONCURRENCY, promptsWithIndices.length);
+                            const results: Array<{ slideIndex: number; result: any }> = [];
+                            let nextIndex = 0;
+                            const workers = Array.from({ length: workerCount }, async () => {
+                                while (true) {
+                                    const current = nextIndex++;
+                                    if (current >= promptsWithIndices.length) break;
+                                    const item = promptsWithIndices[current];
+                                    if (!item) continue;
+                                    console.log(`[Carousel Images] Generating slide ${item.index + 1}/${imageKeys.length}...`);
 
                                 let finalPrompt = item.prompt;
                                 let finalReferences = [...baseReferences];
+
+                                if (service === 'dbt' && item.index === 1) {
+                                    const slide2References = getDbtSlide2References(character_id);
+                                    if (slide2References.length > 0) {
+                                        finalReferences.push(...slide2References);
+                                        finalPrompt += `\n\nCRITICAL: ${getDbtFixedSlide2Prompt(character_id)}`;
+                                        console.log(`[Carousel Images] Added ${slide2References.length} fixed reference(s) for DBT slide 2`);
+                                    }
+                                }
+
+                                if (service === 'dbt' && item.index === 2) {
+                                    const slide3References = getDbtSlide3References(character_id);
+                                    if (slide3References.length > 0) {
+                                        finalReferences.push(...slide3References);
+                                        finalPrompt += `\n\nCRITICAL: ${getDbtFixedSlide3Prompt(character_id)}`;
+                                        console.log(`[Carousel Images] Added ${slide3References.length} fixed reference(s) for DBT slide 3`);
+                                    }
+                                }
+
+                                // Slide 5 in DBT uses fixed visual references to avoid the generic AI look.
+                                if (service === 'dbt' && item.index === 4) {
+                                    const slide5References = getDbtSlide5References(character_id);
+                                    if (slide5References.length > 0) {
+                                        finalReferences.push(...slide5References);
+                                        const fixedSlide5Prompt = getDbtFixedSlide5Prompt(character_id);
+                                        if (fixedSlide5Prompt) {
+                                            finalPrompt += `\n\nCRITICAL: ${fixedSlide5Prompt}`;
+                                        }
+                                        console.log(`[Carousel Images] Added ${slide5References.length} fixed reference(s) for DBT slide 5`);
+                                    }
+                                }
 
                                 // Website screenshot injection for SYP
                                 const isSypProject = service === 'syp';
@@ -1800,17 +2048,19 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                     }
                                 }
 
-                                const result = finalReferences.length > 0
-                                    ? await generateImageWithReferences(finalPrompt, finalReferences, GEMINI_API_KEY, { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize: "0.5K" })
-                                    : await generateImage(finalPrompt, GEMINI_API_KEY, { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize: "0.5K" });
+                                    const result = finalReferences.length > 0
+                                        ? await generateImageWithReferences(finalPrompt, finalReferences, GEMINI_API_KEY!, { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize: "1K" })
+                                        : await generateImage(finalPrompt, GEMINI_API_KEY!, { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize: "1K" });
 
                                 results.push({
                                     slideIndex: item.index,
                                     result: result
                                 });
 
-                                await new Promise(resolve => setTimeout(resolve, 500));
-                            }
+                                }
+                            });
+
+                            await Promise.all(workers);
 
                             const images = results.map(r => {
                                 const firstImage = r.result.images?.[0];
@@ -1870,12 +2120,12 @@ Output ONLY the JSON object.No markdown, no explanation.`
                             }));
                             result = await generateImageWithReferences(prompt, finalReferences, GEMINI_API_KEY, {
                                 aspectRatio: aspectRatio,
-                                imageSize: "0.5K"
+                                imageSize: "1K"
                             });
                         } else {
                             result = await generateImage(prompt, GEMINI_API_KEY, {
                                 aspectRatio: aspectRatio,
-                                imageSize: "0.5K"
+                                imageSize: "1K"
                             });
                         }
 
@@ -1907,7 +2157,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
             } else {
                 try {
                     const body = await req.json() as any;
-                    const { prompt, referenceImages = [], slideIndex = 0, service, slideText = '', brandingMode } = body;
+                    const { prompt, referenceImages = [], slideIndex = 0, service, slideText = '', brandingMode, character_id } = body;
 
                     if (!prompt) {
                         return sendJSON({ error: "Prompt is required" }, 400);
@@ -1928,6 +2178,36 @@ Output ONLY the JSON object.No markdown, no explanation.`
                         if (finalReferences.length === 0 && body.character_id && service !== 'dbt') {
                             const anchor = getAnchorImage(body.character_id, ANCHORS_DIR);
                             if (anchor) finalReferences.push(anchor);
+                        }
+
+                        if (service === 'dbt' && slideIndex === 1) {
+                            const slide2References = getDbtSlide2References(character_id);
+                            if (slide2References.length > 0) {
+                                finalReferences.push(...slide2References);
+                                flatPrompt += `\n\nCRITICAL: ${getDbtFixedSlide2Prompt(character_id)}`;
+                                console.log(`[Image Gen] Added ${slide2References.length} fixed reference(s) for DBT slide 2`);
+                            }
+                        }
+
+                        if (service === 'dbt' && slideIndex === 4) {
+                            const slide5References = getDbtSlide5References(character_id);
+                            if (slide5References.length > 0) {
+                                finalReferences.push(...slide5References);
+                                const fixedSlide5Prompt = getDbtFixedSlide5Prompt(character_id);
+                                if (fixedSlide5Prompt) {
+                                    flatPrompt += `\n\nCRITICAL: ${fixedSlide5Prompt}`;
+                                }
+                                console.log(`[Image Gen] Added ${slide5References.length} fixed reference(s) for DBT slide 5`);
+                            }
+                        }
+
+                        if (service === 'dbt' && slideIndex === 2) {
+                            const slide3References = getDbtSlide3References(character_id);
+                            if (slide3References.length > 0) {
+                                finalReferences.push(...slide3References);
+                                flatPrompt += `\n\nCRITICAL: ${getDbtFixedSlide3Prompt(character_id)}`;
+                                console.log(`[Image Gen] Added ${slide3References.length} fixed reference(s) for DBT slide 3`);
+                            }
                         }
 
                         // ===== SAVEYOURPET.DE WEBSITE SCREENSHOT INJECTION =====
@@ -1972,12 +2252,12 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                 flatPrompt,
                                 finalReferences,
                                 GEMINI_API_KEY,
-                                { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize: "0.5K" }
+                                { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize: "1K" }
                             );
                         } else {
                             result = await generateImage(flatPrompt, GEMINI_API_KEY, {
                                 aspectRatio: (body.aspectRatio || "9:16") as any,
-                                imageSize: "0.5K"
+                                imageSize: "1K"
                             });
                         }
 

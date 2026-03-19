@@ -453,6 +453,13 @@ body {
     margin-bottom: var(--spacing-md);
 }
 
+.character-template-hint {
+    margin-top: 6px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
 /* Context Awareness */
 .context-status {
     display: flex;
@@ -2019,6 +2026,26 @@ input[type="color"]::-webkit-color-swatch {
 
 .download-all-images-btn {
     margin-top: var(--spacing-sm);
+}
+
+/* Keep primary export action always reachable */
+#download-all,
+#download-all_syp {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1200;
+    width: min(320px, calc(100vw - 48px));
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 768px) {
+    #download-all,
+    #download-all_syp {
+        right: 12px;
+        bottom: 12px;
+        width: calc(100vw - 24px);
+    }
 }
 
 /* Reference Selection */

@@ -37,33 +37,43 @@ function resolveApiBase() {
     const fromWindow = window.__API_BASE__;
     const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 
+    // Production safety: do not trust persisted API base overrides on non-local hosts.
+    // This prevents stale localhost values from breaking live deployments.
+    if (!isLocalHost) {
+        if (fromStorage) localStorage.removeItem('TIKTOK_API_BASE');
+        return PRODUCTION_API_BASE;
+    }
+
     const configured = fromQuery || fromStorage || fromWindow;
     if (configured) {
         const normalized = normalizeApiBase(configured);
         if (normalized) {
-            // Safety guard: do not use a stale localhost API base on non-local deployments.
-            // Keep localhost overrides only when running locally or when explicitly set via query param.
-            try {
-                const parsed = new URL(normalized);
-                const configuredIsLocal = ['localhost', '127.0.0.1'].includes(parsed.hostname);
-                if (!isLocalHost && configuredIsLocal && !fromQuery) {
-                    localStorage.removeItem('TIKTOK_API_BASE');
-                } else {
-                    localStorage.setItem('TIKTOK_API_BASE', normalized);
-                    return normalized;
-                }
-            } catch (_e) {
-                // Non-URL values (rare): keep previous behavior.
-                localStorage.setItem('TIKTOK_API_BASE', normalized);
-                return normalized;
-            }
+            localStorage.setItem('TIKTOK_API_BASE', normalized);
+            return normalized;
         }
     }
 
-    return isLocalHost ? 'http://localhost:3001' : PRODUCTION_API_BASE;
+    return 'http://localhost:3001';
 }
 
 const API_BASE = resolveApiBase();
+
+const dbtCharacterTemplates = {
+    hannahbpd: {
+        label: 'hannahbpd',
+        staticSlides: {
+            0: 'slide1.png',
+            5: 'app_image.png'
+        }
+    },
+    brendabpd: {
+        label: 'brendabpd (iPhone)',
+        staticSlides: {
+            0: 'assets/dbt-templates/brendabpd/slide1.png',
+            5: 'assets/dbt-templates/brendabpd/slide6.png'
+        }
+    }
+};
 
 function getApiAuthHeaders() {
     const fromStorage = localStorage.getItem('TIKTOK_API_KEY') || localStorage.getItem('TIKTOK_API_PASSWORD');
@@ -296,6 +306,58 @@ function getDefaultSlidePosition(index) {
     return { x: 50, y: 50 };
 }
 
+function getSelectedDbtCharacter() {
+    return elements.characterPreset?.value || 'hannahbpd';
+}
+
+function getDbtCharacterTemplate(character = getSelectedDbtCharacter()) {
+    return dbtCharacterTemplates[character] || dbtCharacterTemplates.hannahbpd;
+}
+
+function getDefaultDbtStaticSlide(index, character = getSelectedDbtCharacter()) {
+    return getDbtCharacterTemplate(character).staticSlides[index] || null;
+}
+
+function getStaticSlideFallback(index) {
+    return getDefaultDbtStaticSlide(index, 'hannahbpd');
+}
+
+function getStaticSlideNoticeLabel(index) {
+    if (state.currentService !== 'dbt') return 'this setup';
+    return getDbtCharacterTemplate().label;
+}
+
+function buildStaticImageMarkup(index, imagePath) {
+    const fallbackImage = getStaticSlideFallback(index);
+    const fallbackAttr = fallbackImage && fallbackImage !== imagePath
+        ? ` onerror="this.onerror=null;this.src='${fallbackImage}'"`
+        : '';
+
+    return `<img src="${imagePath}" alt="Slide ${index + 1} Static"${fallbackAttr}>`;
+}
+
+function syncDbtStaticSlides(slideCount = state.slides.length) {
+    if (state.currentService !== 'dbt') return;
+
+    if (slideCount >= 6) {
+        const slide6Image = getDefaultDbtStaticSlide(5);
+        if (slide6Image) {
+            state.staticSlides[5] = slide6Image;
+        }
+    } else {
+        delete state.staticSlides[5];
+    }
+
+    if (state.useStaticSlide1) {
+        const slide1Image = getDefaultDbtStaticSlide(0);
+        if (slide1Image) {
+            state.staticSlides[0] = slide1Image;
+        }
+    } else {
+        delete state.staticSlides[0];
+    }
+}
+
 function normalizeStaticSlides(staticSlides, useStaticSlide1) {
     const normalized = {};
 
@@ -310,7 +372,7 @@ function normalizeStaticSlides(staticSlides, useStaticSlide1) {
     }
 
     if (useStaticSlide1) {
-        normalized[0] = 'slide1.png';
+        normalized[0] = getDefaultDbtStaticSlide(0) || 'slide1.png';
     }
 
     return normalized;
@@ -359,8 +421,9 @@ function buildImagePromptsArray(imagePrompts, slideCount) {
  * Ensures slides are parsed from the active textarea if state.slides is empty.
  * Returns true if slides exist or were successfully parsed.
  */
-function ensureSlidesParsed() {
-    if (state.slides && state.slides.length > 0) return true;
+function ensureSlidesParsed(options = {}) {
+    const { forceFromText = false, notify = true } = options;
+    if (!forceFromText && state.slides && state.slides.length > 0) return true;
 
     const isSyp = state.currentService === 'syp';
     const textInput = isSyp ? elements.slideTextInputSyp : elements.slideTextInput;
@@ -381,12 +444,12 @@ function ensureSlidesParsed() {
                 scale: slide.scale || 1.5,
                 maxWidth: slide.maxWidth || 120
             }));
-            if (state.currentService === 'dbt' && state.slides.length >= 6) {
-                if (!state.staticSlides[5]) state.staticSlides[5] = 'app_image.png';
-            }
+            syncDbtStaticSlides();
             applyStaticSlides();
             renderSlidesPreview();
-            showNotification(`Using ${state.slides.length} slides from text box`, 'success');
+            if (notify) {
+                showNotification(`Using ${state.slides.length} slides from text box`, 'success');
+            }
             return true;
         }
     }
@@ -517,6 +580,18 @@ async function generateNativeSlides() {
 
             showNotification(`Generated ${data.slides.length} slides! Click 'Parse & Apply' to preview.`, 'success');
 
+            // Force-parse newly generated text so follow-up automation always uses fresh slides.
+            const parsedFreshSlides = ensureSlidesParsed({ forceFromText: true, notify: false });
+            if (!parsedFreshSlides) {
+                throw new Error('Could not parse generated slides');
+            }
+
+            const metadataPromise = generateMetadata({ skipEnsureSlides: true, suppressSuccessNotification: true });
+            const promptsPromise = generateImagePromptsFromSlides(state.slides, {
+                autoGenerateImageIndices: [1, 2, 3, 4]
+            });
+            await Promise.allSettled([metadataPromise, promptsPromise]);
+
             // Update context status
             if (elements.hookContextStatus) {
                 elements.hookContextStatus.style.display = 'flex';
@@ -547,11 +622,11 @@ async function generateImagePrompts() {
     generateImagePromptsFromSlides(state.slides);
 }
 
-async function generateImagePromptsFromSlides(slidesToUse) {
+async function generateImagePromptsFromSlides(slidesToUse, options = {}) {
+    const { autoGenerateImageIndices = null } = options;
     const isSyp = state.currentService === 'syp';
     const characterPresetEl = isSyp ? elements.characterPresetSyp : elements.characterPreset;
-    // For DBT, explicitly send NULL for character to avoid persona injection
-    const character = isSyp ? (characterPresetEl?.value || 'luna') : null;
+    const character = characterPresetEl?.value || (isSyp ? 'luna' : 'hannahbpd');
     const promptsLoadingEl = isSyp ? elements.promptsLoadingSyp || elements.promptsLoading : elements.promptsLoading;
     const promptsSectionEl = isSyp ? elements.imagePromptsSectionSyp || elements.imagePromptsSection : elements.imagePromptsSection;
     const genBtn = isSyp ? elements.generateImagePromptsBtnSyp : elements.generateImagePromptsBtn;
@@ -575,6 +650,7 @@ async function generateImagePromptsFromSlides(slidesToUse) {
             body: JSON.stringify({
                 slides: slidesToUse.map(s => s.text),
                 character,
+                character_id: character,
                 format: state.currentFormat,
                 topic: state.currentTopic,
                 service: state.currentService,
@@ -593,9 +669,7 @@ async function generateImagePromptsFromSlides(slidesToUse) {
         if (data.image_prompts || data.prompts) {
             state.useStaticSlide1 = data.useStaticSlide1 || false;
             state.staticSlides = normalizeStaticSlides(data.staticSlides, state.useStaticSlide1);
-            if (state.currentService === 'dbt' && slidesToUse.length >= 6) {
-                if (!state.staticSlides[5]) state.staticSlides[5] = 'app_image.png';
-            }
+            syncDbtStaticSlides(slidesToUse.length);
 
             if (data.image_prompts && typeof data.image_prompts === 'object') {
                 state.imagePrompts = buildImagePromptsArray(data.image_prompts, slidesToUse.length);
@@ -610,6 +684,13 @@ async function generateImagePromptsFromSlides(slidesToUse) {
             initializeImageGenerationGrid(); // Initialize the slots in Step 3
             renderSlidesPreview(); // Update preview immediately
             showNotification('Image prompts generated!', 'success');
+
+            if (Array.isArray(autoGenerateImageIndices) && autoGenerateImageIndices.length > 0) {
+                await generateAiImages({
+                    indices: autoGenerateImageIndices,
+                    suppressSuccessNotification: true
+                });
+            }
         } else {
             throw new Error('Invalid response format');
         }
@@ -640,7 +721,7 @@ function renderImagePrompts() {
                     <span class="prompt-number">Slide ${index + 1} (Static)</span>
                 </div>
                 <div class="static-image-notice" style="padding: 10px; color: var(--text-muted); font-style: italic;">
-                    Slide ${index + 1} uses a static image (${staticImage}). No AI prompt needed.
+                    Slide ${index + 1} uses a static image for ${getStaticSlideNoticeLabel(index)} (${staticImage}). No AI prompt needed.
                 </div>
             `;
             container.appendChild(staticEl);
@@ -697,7 +778,8 @@ function renderImagePrompts() {
 // ==========================================
 // AI IMAGE GENERATION
 // ==========================================
-async function generateAiImages() {
+async function generateAiImages(options = {}) {
+    const { indices = null, suppressSuccessNotification = false } = options;
     if (state.imagePrompts.length === 0) {
         showNotification('Please generate image prompts first!', 'error');
         return;
@@ -714,6 +796,22 @@ async function generateAiImages() {
     if (containerEl) containerEl.style.display = 'none';
 
     try {
+        const allowedIndices = Array.isArray(indices)
+            ? [...new Set(indices.filter(i => Number.isInteger(i) && i >= 0 && i < state.imagePrompts.length))]
+            : null;
+
+        const imagePromptsPayload = state.imagePrompts.reduce((acc, prompt, i) => {
+            if (!prompt) return acc;
+            if (allowedIndices && !allowedIndices.includes(i)) return acc;
+            acc[`image${i + 1}`] = prompt;
+            return acc;
+        }, {});
+
+        if (Object.keys(imagePromptsPayload).length === 0) {
+            showNotification('No valid image prompts for the selected slides.', 'error');
+            return;
+        }
+
         const referenceImages = getServiceReferenceImages(isSyp);
 
         const response = await fetch(`${API_BASE}/generate-ai-images`, {
@@ -722,10 +820,7 @@ async function generateAiImages() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                imagePrompts: state.imagePrompts.reduce((acc, prompt, i) => {
-                    if (prompt) acc[`image${i + 1}`] = prompt;
-                    return acc;
-                }, {}),
+                imagePrompts: imagePromptsPayload,
                 referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
                 aspectRatio: (isSyp ? elements.aspectRatioSelectSyp : elements.aspectRatioSelectDbt)?.value || '9:16',
                 character_id: characterPresetEl?.value || 'luna',
@@ -755,7 +850,9 @@ async function generateAiImages() {
 
             renderGeneratedImages();
             renderSlidesPreview();
-            showNotification('Images generated successfully!', 'success');
+            if (!suppressSuccessNotification) {
+                showNotification('Images generated successfully!', 'success');
+            }
         } else {
             throw new Error('Invalid response format');
         }
@@ -1379,7 +1476,7 @@ function renderSlidesPreview() {
 
         const staticImage = getStaticSlideImage(index);
         const slideImageMarkup = staticImage
-            ? `<img src="${staticImage}" alt="Slide ${index + 1} Static">`
+            ? buildStaticImageMarkup(index, staticImage)
             : (slide.image ? `<img src="${slide.image}" alt="Slide ${index + 1}">` : '<div class="no-image">No Image</div>');
 
         slideEl.innerHTML = `
@@ -1435,6 +1532,20 @@ function renderSlideToCanvas(slide, canvas) {
             const img = new Image();
             img.onload = () => {
                 ctx.drawImage(img, 0, 0, width, height);
+                drawTextOverlay(ctx, slide.text, width, height, slide.position, slide.scale, slide.maxWidth);
+                resolve();
+            };
+            img.onerror = () => {
+                const fallbackImage = staticImage ? getStaticSlideFallback(slideIndex) : null;
+                if (fallbackImage && fallbackImage !== imgToDraw) {
+                    img.onerror = () => {
+                        drawTextOverlay(ctx, slide.text, width, height, slide.position, slide.scale, slide.maxWidth);
+                        resolve();
+                    };
+                    img.src = fallbackImage;
+                    return;
+                }
+
                 drawTextOverlay(ctx, slide.text, width, height, slide.position, slide.scale, slide.maxWidth);
                 resolve();
             };
@@ -2109,8 +2220,10 @@ async function improveAppMentionFromSlides(slidesToUse) {
 // ==========================================
 // METADATA GENERATION
 // ==========================================
-async function generateMetadata() {
-    if (!ensureSlidesParsed()) {
+async function generateMetadata(options = {}) {
+    const { skipEnsureSlides = false, suppressSuccessNotification = false } = options;
+
+    if (!skipEnsureSlides && !ensureSlidesParsed()) {
         showNotification('Please provide slide text first (paste it or generate it)!', 'error');
         return;
     }
@@ -2158,7 +2271,9 @@ async function generateMetadata() {
             if (titleEl) titleEl.textContent = data.title;
             if (descEl) descEl.textContent = data.description;
             if (outputEl) outputEl.style.display = 'block';
-            showNotification('Metadata generated!', 'success');
+            if (!suppressSuccessNotification) {
+                showNotification('Metadata generated!', 'success');
+            }
         } else {
             throw new Error('Invalid response format');
         }
@@ -2206,6 +2321,10 @@ function switchService(service) {
     elements.servicePanels.forEach(panel => {
         panel.classList.toggle('active', panel.id === `panel-${service}`);
     });
+
+    syncDbtStaticSlides();
+    applyStaticSlides();
+    renderSlidesPreview();
 }
 
 // ==========================================
@@ -2412,6 +2531,8 @@ function initEventListeners() {
                 scale: 1.5,
                 maxWidth: 120
             }));
+            syncDbtStaticSlides();
+            applyStaticSlides();
             renderSlidesPreview();
 
             if (elements.hookContextStatus) {
@@ -2421,6 +2542,16 @@ function initEventListeners() {
             }
 
             showNotification(`Parsed ${state.slides.length} slides`, 'success');
+        });
+    }
+
+    if (elements.characterPreset) {
+        elements.characterPreset.addEventListener('change', () => {
+            syncDbtStaticSlides();
+            applyStaticSlides();
+            renderImagePrompts();
+            renderSlidesPreview();
+            showNotification(`DBT character switched to ${getDbtCharacterTemplate().label}`, 'success');
         });
     }
 
@@ -2845,6 +2976,8 @@ function parseImagesToSlides() {
         };
     });
 
+    syncDbtStaticSlides();
+    applyStaticSlides();
     renderSlidesPreview();
     const count = state.generatedImages.filter(img => img).length;
     showNotification(`Applied ${count} images to preview`, 'success');
