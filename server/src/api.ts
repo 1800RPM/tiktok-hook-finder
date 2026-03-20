@@ -129,7 +129,7 @@ function getDbtSlide5References(characterId?: string): ReferenceImage[] {
 }
 
 function getDbtFixedSlide2Prompt(characterId?: string): string {
-    const basePrompt = "Create another version of the reference image with the same vibe and image filter, but in a different dark setting. No face visible of person in the image, only shot from a side angle or from behind. Candid iPhone 12 shot. No text in image. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
+    const basePrompt = "Create another version of the reference image with the same foggy vibe and same blurry image filter, but in a different dark setting. No face visible of person in the image, only shot from a side angle or from behind. Person should hold a cigarette, not a vape. Candid iPhone 12 shot. No text in image. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
     if (characterId === "brendabpd") {
         return "Create another version of the reference image with the same vibe but in a different dark setting, keep the sky shot the same tho. No face visible of person in the image, only shot from a side angle or from behind. Candid iPhone 12 shot. No text in image. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
     }
