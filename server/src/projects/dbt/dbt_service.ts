@@ -67,6 +67,54 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
         return `${prefix} ${problem}\n\n(that ACTUALLY work)`;
     };
 
+    const detectDbtSkill = (text: string) => {
+        const normalized = String(text || "").toLowerCase();
+        if (normalized.includes("wise mind")) return "wise_mind";
+        if (/\bstop\b/.test(normalized)) return "stop";
+        if (normalized.includes("tipp")) return "tipp";
+        if (normalized.includes("opposite action")) return "opposite_action";
+        if (normalized.includes("radical acceptance")) return "radical_acceptance";
+        if (normalized.includes("check the facts")) return "check_the_facts";
+        if (normalized.includes("self-soothe") || normalized.includes("self soothe")) return "self_soothe";
+        if (/\bplease\b/.test(normalized)) return "please";
+        return null;
+    };
+
+    const skillSlideTemplates: Record<string, string> = {
+        wise_mind: "Wise Mind check-in\n\nwhat am I feeling?\nwhat do I need right now?",
+        stop: "Use STOP\n\npause first.\nstep back.\nchoose your next move.",
+        tipp: "Try TIPP\n\ncold water.\nslow exhale.\nlet your body come down first.",
+        opposite_action: "Use Opposite Action\n\nurge says hide?\ndo one small thing anyway.",
+        radical_acceptance: "Try Radical Acceptance\n\nthis hurts.\nit's real.\nfighting it harder won't help.",
+        check_the_facts: "Check the facts\n\nwhat actually happened?\nwhat story is my panic adding?",
+        self_soothe: "Self-soothe first\n\nsoft light.\nmusic.\na texture that calms your body.",
+        please: "Use PLEASE\n\neat.\nrest.\nnotice what your body needs."
+    };
+
+    const formatSlide5Skill = (rawSlide: string) => {
+        const cleaned = String(rawSlide || "")
+            .replace(/^slide\s*5\s*:\s*/i, "")
+            .replace(/^dbt\s*skill\s*:\s*/i, "")
+            .replace(/^skill\s*:\s*/i, "")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        const detectedSkill = detectDbtSkill(cleaned);
+        const wordCount = cleaned.split(/\s+/).filter(Boolean).length;
+        const sentenceCount = cleaned.split(/[.!?]/).map(part => part.trim()).filter(Boolean).length;
+        const feelsTooDense =
+            wordCount > 18 ||
+            cleaned.includes(":") ||
+            cleaned.includes("?") ||
+            sentenceCount > 2;
+
+        if (detectedSkill && feelsTooDense) {
+            return skillSlideTemplates[detectedSkill];
+        }
+
+        return cleaned;
+    };
+
     const systemPrompt = `You are an expert DBT/BPD content creator on TikTok, that knows exactly what goes viral. You speak as a supportive, slightly older mentor figure who has been through the absolute trenches of BPD and finished DBT. Your vibe is supportive, validating, and helpful, but grounded in actual clinical DBT skills.
 
 CORE STYLE GUIDELINES:
@@ -91,7 +139,7 @@ CONTENT STRUCTURE:
   - **The [PROBLEM]** must be a generic, immediately identifiable label (e.g., "splitting in public", "FP dynamics", "abandonment panic"). Avoid long, specific scenarios in the hook. People must identify themselves in 3 seconds.
 - **Slides 2-3**: Empathy & Naming. Deeply validate the struggle. Describe how it feels physically and emotionally. Use "I've been there" energy. Name the experience so the viewer feels understood.
 - **Slide 4 (Punch Slide)**: EXACTLY two sentences. Each sentence max 5 words. It must nail the core pattern behind the topic (e.g., "it's not them.\nit's the pattern."). Must be directly related to the topic and feel like the emotional turning point.
-- **Slide 5**: Actual DBT Skill. Provide 1 slide that uses a real DBT skill (e.g. TIPP, Opposite Action, STOP, Radical Acceptance, Wise Mind). Explain the skill simply and how to apply it to the struggle.
+- **Slide 5**: Actual DBT Skill. Provide 1 slide that uses a real DBT skill (e.g. TIPP, Opposite Action, STOP, Radical Acceptance, Wise Mind). Keep it visually short and clean: max 18 words, 2-4 very short lines, no long explanations, no quoted self-talk, no prefixes like "DBT skill:".
 - **Slide 6 (App Slide)**: Must be EXACTLY this text, unchanged:
   "my therapist recommended DBT-Mind (free) — that's where the skill finally clicked for me."
 MANDATORY BRANDING:
@@ -174,6 +222,9 @@ Return a JSON object with a "slides" key containing an array of 6 strings.`;
     if (slides.length >= 1) {
         const fallbackProblem = (selectedTopic?.topic || "this pattern").toLowerCase();
         slides[0] = formatSlide1Hook(slides[0], fallbackProblem);
+    }
+    if (slides.length >= 5) {
+        slides[4] = formatSlide5Skill(slides[4]);
     }
     if (slides.length >= 6) {
         slides[5] = "my therapist recommended DBT-Mind (free) — that's where the skill finally clicked for me.";
