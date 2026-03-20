@@ -22,28 +22,30 @@ if (!existsSync(ANCHORS_DIR)) {
     mkdirSync(ANCHORS_DIR, { recursive: true });
 }
 
+const DBT_REFERENCE_IMAGE_DIR = path.join(DATA_DIR, "reference-images", "dbt");
+
 const DBT_CHARACTER_REFERENCE_PATHS: Record<string, { slide2: string[]; slide3: string[]; slide5: string[] }> = {
     hannahbpd: {
         slide2: [
-            path.join(PROJECT_ROOT, "client", "slide2_ref_2.png")
+            path.join(DBT_REFERENCE_IMAGE_DIR, "hannahbpd", "slide2_ref_2.png")
         ],
         slide3: [
-            path.join(PROJECT_ROOT, "client", "slide3_ref_2.png")
+            path.join(DBT_REFERENCE_IMAGE_DIR, "hannahbpd", "slide3_ref_2.png")
         ],
         slide5: [
-            path.join(PROJECT_ROOT, "client", "slide5_ref_1.png"),
-            path.join(PROJECT_ROOT, "client", "slide5_ref_2.png")
+            path.join(DBT_REFERENCE_IMAGE_DIR, "hannahbpd", "slide5_ref_1.png"),
+            path.join(DBT_REFERENCE_IMAGE_DIR, "hannahbpd", "slide5_ref_2.png")
         ]
     },
     brendabpd: {
         slide2: [
-            path.join(PROJECT_ROOT, "client", "assets", "dbt-templates", "brendabpd", "slide2.png")
+            path.join(DBT_REFERENCE_IMAGE_DIR, "brendabpd", "slide2.png")
         ],
         slide3: [
-            path.join(PROJECT_ROOT, "client", "assets", "dbt-templates", "brendabpd", "slide3.jpg")
+            path.join(DBT_REFERENCE_IMAGE_DIR, "brendabpd", "slide3.jpg")
         ],
         slide5: [
-            path.join(PROJECT_ROOT, "client", "assets", "dbt-templates", "brendabpd", "slide5.jpg")
+            path.join(DBT_REFERENCE_IMAGE_DIR, "brendabpd", "slide5.jpg")
         ]
     }
 };
@@ -86,7 +88,7 @@ function getRandomItem<T>(items: T[]): T | null {
 }
 
 function getHannahSlide5ReferencePaths(): string[] {
-    const clientDir = path.join(PROJECT_ROOT, "client");
+    const clientDir = path.join(DBT_REFERENCE_IMAGE_DIR, "hannahbpd");
     const fallbackPaths = getDbtCharacterReferenceConfig("hannahbpd").slide5;
 
     if (!existsSync(clientDir)) {
