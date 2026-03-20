@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import path from "path";
-import { readFileSync, existsSync, writeFileSync, mkdirSync, unlinkSync } from "fs";
+import { readFileSync, existsSync, writeFileSync, mkdirSync, unlinkSync, readdirSync } from "fs";
 import { searchHooksHybrid, loadEmbeddings } from "./semantic_search";
 import { generateImage, generateCarouselImages, flattenImagePrompt, generateImageWithReferences } from "./image_generator";
 import type { ReferenceImage } from "./image_generator";
@@ -80,6 +80,32 @@ function getDbtCharacterReferenceConfig(characterId?: string) {
     return DBT_CHARACTER_REFERENCE_PATHS[characterId || ""] || DBT_CHARACTER_REFERENCE_PATHS.hannahbpd;
 }
 
+function getRandomItem<T>(items: T[]): T | null {
+    if (items.length === 0) return null;
+    return items[Math.floor(Math.random() * items.length)] ?? null;
+}
+
+function getHannahSlide5ReferencePaths(): string[] {
+    const clientDir = path.join(PROJECT_ROOT, "client");
+    const fallbackPaths = getDbtCharacterReferenceConfig("hannahbpd").slide5;
+
+    if (!existsSync(clientDir)) {
+        return fallbackPaths;
+    }
+
+    try {
+        const candidates = readdirSync(clientDir)
+            .filter((fileName) => /^slide5_ref_\d+\.(png|jpe?g|webp)$/i.test(fileName))
+            .map((fileName) => path.join(clientDir, fileName));
+
+        const randomReference = getRandomItem(candidates);
+        return randomReference ? [randomReference] : fallbackPaths;
+    } catch (error) {
+        console.warn("[DBT Slide 5:hannahbpd] Failed to resolve random reference image:", error);
+        return fallbackPaths;
+    }
+}
+
 function getDbtSlide2References(characterId?: string): ReferenceImage[] {
     const config = getDbtCharacterReferenceConfig(characterId);
     return loadFixedReferenceImages(config.slide2, `DBT Slide 2:${characterId || "hannahbpd"}`);
@@ -91,12 +117,17 @@ function getDbtSlide3References(characterId?: string): ReferenceImage[] {
 }
 
 function getDbtSlide5References(characterId?: string): ReferenceImage[] {
-    const config = getDbtCharacterReferenceConfig(characterId);
-    return loadFixedReferenceImages(config.slide5, `DBT Slide 5:${characterId || "hannahbpd"}`);
+    const normalizedCharacterId = characterId || "hannahbpd";
+    const config = getDbtCharacterReferenceConfig(normalizedCharacterId);
+    const slide5Paths = normalizedCharacterId === "hannahbpd"
+        ? getHannahSlide5ReferencePaths()
+        : config.slide5;
+
+    return loadFixedReferenceImages(slide5Paths, `DBT Slide 5:${normalizedCharacterId}`);
 }
 
 function getDbtFixedSlide2Prompt(characterId?: string): string {
-    const basePrompt = "Create another version of the reference image with the same vibe but in a different dark setting. No face visible of person in the image, only shot from a side angle or from behind. Candid iPhone 12 shot. No text in image. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
+    const basePrompt = "Create another version of the reference image with the same vibe and image filter, but in a different dark setting. No face visible of person in the image, only shot from a side angle or from behind. Candid iPhone 12 shot. No text in image. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
     if (characterId === "brendabpd") {
         return "Create another version of the reference image with the same vibe but in a different dark setting, keep the sky shot the same tho. No face visible of person in the image, only shot from a side angle or from behind. Candid iPhone 12 shot. No text in image. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
     }
@@ -115,7 +146,27 @@ function getDbtFixedSlide5Prompt(characterId?: string): string | null {
     if (characterId === "brendabpd") {
         return "Create another version of the reference image with the same vibe, keep the faceless person motive with the over the shoulder shot out of the drivers window while parked. Candid iPhone 12 shot. No text in image. Same medium quality, hopeful authentic Tiktok asthetic.";
     }
+    if (!characterId || characterId === "hannahbpd") {
+        return "Create another version of the reference image with the same vibe and image filter. No face visible of person in the image, only shot from a side angle or from behind when person is included. Only include a person when the reference image has one in it. Candid iPhone 12 shot. No text in image. Same medium quality, authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
+    }
     return null;
+}
+
+function isTrustedFrontendOrigin(origin: string | null): boolean {
+    if (!origin) return false;
+
+    try {
+        const { hostname, protocol } = new URL(origin);
+        if (protocol !== "https:") return false;
+
+        if (hostname === "tiktok-hook-finder.vercel.app") {
+            return true;
+        }
+
+        return hostname.startsWith("tiktok-hook-finder-") && hostname.endsWith(".vercel.app");
+    } catch {
+        return false;
+    }
 }
 
 const db = new Database(path.join(DATA_DIR, "hooks.db"));
@@ -261,13 +312,15 @@ const server = Bun.serve({
 
         // Optional API key auth for public deployments
         if (API_KEYS.size > 0) {
+            const originHeader = req.headers.get("Origin") || req.headers.get("origin");
             const authHeader = req.headers.get("Authorization") || req.headers.get("authorization") || "";
             const xApiKey = req.headers.get("X-API-Key") || req.headers.get("x-api-key") || "";
             const bearer = authHeader.toLowerCase().startsWith("bearer ")
                 ? authHeader.slice(7).trim()
                 : "";
             const provided = (xApiKey || bearer).trim();
-            if (!API_KEYS.has(provided)) {
+            const isTrustedOrigin = isTrustedFrontendOrigin(originHeader);
+            if (!API_KEYS.has(provided) && !isTrustedOrigin) {
                 return sendJSON({ error: "Unauthorized" }, 401);
             }
         }
