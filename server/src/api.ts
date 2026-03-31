@@ -50,6 +50,75 @@ const DBT_CHARACTER_REFERENCE_PATHS: Record<string, { slide2: string[]; slide3: 
     }
 };
 
+function getDbtReferenceDir(characterId?: string, flow = "weird_hack"): string {
+    return path.join(DBT_REFERENCE_IMAGE_DIR, characterId || "hannahbpd", flow);
+}
+
+function getLegacyDbtReferenceDir(characterId?: string): string {
+    return path.join(DBT_REFERENCE_IMAGE_DIR, characterId || "hannahbpd");
+}
+
+function getDbtStaticTemplateDir(characterId?: string, flow = "weird_hack"): string {
+    return path.join(PROJECT_ROOT, "client", "assets", "dbt-templates", characterId || "hannahbpd", flow);
+}
+
+function getDbtStaticSlidePath(characterId?: string, slideNumber = 1): string {
+    const normalizedCharacterId = characterId || "hannahbpd";
+
+    if (normalizedCharacterId === "brendabpd") {
+        return slideNumber === 6
+            ? "assets/dbt-templates/brendabpd/slide6.png"
+            : "assets/dbt-templates/brendabpd/slide1.png";
+    }
+
+    return slideNumber === 6 ? "app_image.png" : "slide1.png";
+}
+
+function toClientAssetPath(fullPath: string): string {
+    const relativePath = path.relative(path.join(PROJECT_ROOT, "client"), fullPath);
+    return relativePath.split(path.sep).join("/");
+}
+
+function getRandomDbtSlide1TemplatePath(characterId?: string, flow = "weird_hack"): string | null {
+    if (flow !== "three_tips") return null;
+
+    const templateDir = getDbtStaticTemplateDir(characterId, flow);
+    if (!existsSync(templateDir)) {
+        return null;
+    }
+
+    try {
+        const candidates = readdirSync(templateDir)
+            .filter((fileName) => /^slide1_ref_\d+\.(png|jpe?g|webp)$/i.test(fileName))
+            .map((fileName) => path.join(templateDir, fileName));
+        const selected = getRandomItem(candidates);
+        return selected ? toClientAssetPath(selected) : null;
+    } catch (error) {
+        console.warn(`[DBT Slide 1] Failed to resolve random static template for ${characterId || "hannahbpd"}:${flow}`, error);
+        return null;
+    }
+}
+
+function getRandomDbtClientReferencePath(characterId: string | undefined, flow: string, slideNumber: number): string | null {
+    if (flow !== "three_tips") return null;
+
+    const templateDir = getDbtStaticTemplateDir(characterId, flow);
+    if (!existsSync(templateDir)) {
+        return null;
+    }
+
+    try {
+        const pattern = new RegExp(`^slide${slideNumber}_ref_\\d+\\.(png|jpe?g|webp)$`, "i");
+        const candidates = readdirSync(templateDir)
+            .filter((fileName) => pattern.test(fileName))
+            .map((fileName) => path.join(templateDir, fileName));
+        return getRandomItem(candidates);
+    } catch (error) {
+        console.warn(`[DBT Slide ${slideNumber}] Failed to resolve random client reference for ${characterId || "hannahbpd"}:${flow}`, error);
+        return null;
+    }
+}
+
 function getMimeTypeForReferencePath(refPath: string): string {
     const ext = path.extname(refPath).toLowerCase();
     if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
@@ -87,48 +156,108 @@ function getRandomItem<T>(items: T[]): T | null {
     return items[Math.floor(Math.random() * items.length)] ?? null;
 }
 
-function getHannahSlide5ReferencePaths(): string[] {
-    const clientDir = path.join(DBT_REFERENCE_IMAGE_DIR, "hannahbpd");
-    const fallbackPaths = getDbtCharacterReferenceConfig("hannahbpd").slide5;
-
-    if (!existsSync(clientDir)) {
-        return fallbackPaths;
+function getSlide5ReferenceCandidates(referenceDir: string): string[] {
+    if (!existsSync(referenceDir)) {
+        return [];
     }
 
     try {
-        const candidates = readdirSync(clientDir)
+        return readdirSync(referenceDir)
             .filter((fileName) => /^slide5_ref_\d+\.(png|jpe?g|webp)$/i.test(fileName))
-            .map((fileName) => path.join(clientDir, fileName));
-
-        const randomReference = getRandomItem(candidates);
-        return randomReference ? [randomReference] : fallbackPaths;
+            .map((fileName) => path.join(referenceDir, fileName));
     } catch (error) {
-        console.warn("[DBT Slide 5:hannahbpd] Failed to resolve random reference image:", error);
-        return fallbackPaths;
+        console.warn(`[DBT Slide 5] Failed to resolve random reference images in ${referenceDir}:`, error);
+        return [];
     }
 }
 
-function getDbtSlide2References(characterId?: string): ReferenceImage[] {
-    const config = getDbtCharacterReferenceConfig(characterId);
-    return loadFixedReferenceImages(config.slide2, `DBT Slide 2:${characterId || "hannahbpd"}`);
+function getHannahSlide5ReferencePaths(flow = "weird_hack"): string[] {
+    const flowDir = getDbtReferenceDir("hannahbpd", flow);
+    const legacyDir = getLegacyDbtReferenceDir("hannahbpd");
+    const fallbackPaths = getDbtCharacterReferenceConfig("hannahbpd").slide5;
+
+    const candidates = [
+        ...getSlide5ReferenceCandidates(flowDir),
+        ...getSlide5ReferenceCandidates(legacyDir)
+    ];
+
+    const randomReference = getRandomItem(candidates);
+    return randomReference ? [randomReference] : fallbackPaths;
 }
 
-function getDbtSlide3References(characterId?: string): ReferenceImage[] {
-    const config = getDbtCharacterReferenceConfig(characterId);
-    return loadFixedReferenceImages(config.slide3, `DBT Slide 3:${characterId || "hannahbpd"}`);
-}
-
-function getDbtSlide5References(characterId?: string): ReferenceImage[] {
+function getDbtSlide2References(characterId?: string, flow = "weird_hack"): ReferenceImage[] {
     const normalizedCharacterId = characterId || "hannahbpd";
+    const randomClientRef = getRandomDbtClientReferencePath(normalizedCharacterId, flow, 2);
+    if (randomClientRef) {
+        return loadFixedReferenceImages([randomClientRef], `DBT Slide 2:${normalizedCharacterId}:${flow}`);
+    }
     const config = getDbtCharacterReferenceConfig(normalizedCharacterId);
-    const slide5Paths = normalizedCharacterId === "hannahbpd"
-        ? getHannahSlide5ReferencePaths()
-        : config.slide5;
-
-    return loadFixedReferenceImages(slide5Paths, `DBT Slide 5:${normalizedCharacterId}`);
+    const flowPath = path.join(getDbtReferenceDir(normalizedCharacterId, flow), "slide2.png");
+    const refPaths = existsSync(flowPath) ? [flowPath] : config.slide2;
+    return loadFixedReferenceImages(refPaths, `DBT Slide 2:${normalizedCharacterId}:${flow}`);
 }
 
-function getDbtFixedSlide2Prompt(characterId?: string): string {
+function getDbtSlide1References(characterId?: string, flow = "weird_hack"): ReferenceImage[] {
+    const normalizedCharacterId = characterId || "hannahbpd";
+    const randomClientRef = getRandomDbtClientReferencePath(normalizedCharacterId, flow, 1);
+    if (randomClientRef) {
+        return loadFixedReferenceImages([randomClientRef], `DBT Slide 1:${normalizedCharacterId}:${flow}`);
+    }
+    return [];
+}
+
+function getDbtSlide3References(characterId?: string, flow = "weird_hack"): ReferenceImage[] {
+    const normalizedCharacterId = characterId || "hannahbpd";
+    const randomClientRef = getRandomDbtClientReferencePath(normalizedCharacterId, flow, 3);
+    if (randomClientRef) {
+        return loadFixedReferenceImages([randomClientRef], `DBT Slide 3:${normalizedCharacterId}:${flow}`);
+    }
+    const config = getDbtCharacterReferenceConfig(normalizedCharacterId);
+    const flowPath = path.join(getDbtReferenceDir(normalizedCharacterId, flow), "slide3.png");
+    const refPaths = existsSync(flowPath) ? [flowPath] : config.slide3;
+    return loadFixedReferenceImages(refPaths, `DBT Slide 3:${normalizedCharacterId}:${flow}`);
+}
+
+function getDbtSlide4References(characterId?: string, flow = "weird_hack"): ReferenceImage[] {
+    const normalizedCharacterId = characterId || "hannahbpd";
+    const randomClientRef = getRandomDbtClientReferencePath(normalizedCharacterId, flow, 4);
+    if (randomClientRef) {
+        return loadFixedReferenceImages([randomClientRef], `DBT Slide 4:${normalizedCharacterId}:${flow}`);
+    }
+    return [];
+}
+
+function getDbtSlide5References(characterId?: string, flow = "weird_hack"): ReferenceImage[] {
+    const normalizedCharacterId = characterId || "hannahbpd";
+    const randomClientRef = getRandomDbtClientReferencePath(normalizedCharacterId, flow, 5);
+    if (randomClientRef) {
+        return loadFixedReferenceImages([randomClientRef], `DBT Slide 5:${normalizedCharacterId}:${flow}`);
+    }
+    const config = getDbtCharacterReferenceConfig(normalizedCharacterId);
+    const flowDir = getDbtReferenceDir(normalizedCharacterId, flow);
+    const flowPath = path.join(flowDir, "slide5.png");
+    const slide5Paths = normalizedCharacterId === "hannahbpd"
+        ? getHannahSlide5ReferencePaths(flow)
+        : (existsSync(flowPath) ? [flowPath] : config.slide5);
+
+    return loadFixedReferenceImages(slide5Paths, `DBT Slide 5:${normalizedCharacterId}:${flow}`);
+}
+
+const DBT_THREE_TIPS_WOMAN_DESCRIPTION = "Woman specs: 170cm tall, brown long hair and 21 years old.";
+const DBT_THREE_TIPS_FIXED_PROMPT_PREFIX = "Create another version of the reference image with the same vibe and same blurry/washed image filter, but in a slightly different setting. No face visible of person in the image. Woman specs: 170cm tall, brown long hair and 21 years old. No flashlight and no bright lights, no blurred background.";
+const DBT_THREE_TIPS_DEGRADED_PHONE_RULE = "CRITICAL - the image must look like a degraded phone photo: heavily underexposed and crushed shadows, strong digital noise and grain throughout, lossy JPEG compression artifacts visible, slight motion blur from shaky hands, washed-out low-contrast look as if taken on an old iPhone in poor light. NOT a clean or professional photo. The image should look almost too dark and slightly out of focus - like someone accidentally took it at night.";
+
+function getDbtFixedSlide1Prompt(flow = "weird_hack"): string | null {
+    if (flow === "three_tips") {
+        return `${DBT_THREE_TIPS_FIXED_PROMPT_PREFIX}\n\n${DBT_THREE_TIPS_DEGRADED_PHONE_RULE}\n\nLone female figure outdoors at night, blurred motion, cold blue-grey tones, city lights or moonlight in background, feeling of emotional unrest and restlessness.`;
+    }
+    return null;
+}
+
+function getDbtFixedSlide2Prompt(characterId?: string, flow = "weird_hack"): string {
+    if (flow === "three_tips") {
+        return `${DBT_THREE_TIPS_FIXED_PROMPT_PREFIX}\n\n${DBT_THREE_TIPS_DEGRADED_PHONE_RULE}\n\nFemale figure sitting alone indoors at night, near a window with city lights or dark sky outside, warm dim lamp light on one side, cold darkness on other side, stillness and quiet exhaustion.`;
+    }
     const basePrompt = "Create another version of the reference image with the same foggy vibe and same blurry image filter, but in a different dark setting. No face visible of person in the image, only shot from a side angle or from behind. Person should hold a cigarette, not a vape. Candid iPhone 12 shot. No text in image. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
     if (characterId === "brendabpd") {
         return "Create another version of the reference image with the same vibe but in a different dark setting, keep the sky shot the same tho. No face visible of person in the image, only shot from a side angle or from behind. Candid iPhone 12 shot. No text in image. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
@@ -136,7 +265,10 @@ function getDbtFixedSlide2Prompt(characterId?: string): string {
     return basePrompt;
 }
 
-function getDbtFixedSlide3Prompt(characterId?: string): string {
+function getDbtFixedSlide3Prompt(characterId?: string, flow = "weird_hack"): string {
+    if (flow === "three_tips") {
+        return `${DBT_THREE_TIPS_FIXED_PROMPT_PREFIX}\n\n${DBT_THREE_TIPS_DEGRADED_PHONE_RULE}\n\nFemale figure outdoors alone at night or dusk, dark natural landscape, back to camera, slightly hunched or tense posture, feeling of standing at a threshold or being suspended in a moment.`;
+    }
     const basePrompt = "Create another version of the reference image with the same vibe but in different dark rainy setting. It should rain. Candid iPhone 12 shot. No text in image.";
     if (characterId === "brendabpd") {
         return `${basePrompt} Face of the person is not visible. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.`;
@@ -144,7 +276,17 @@ function getDbtFixedSlide3Prompt(characterId?: string): string {
     return basePrompt;
 }
 
-function getDbtFixedSlide5Prompt(characterId?: string): string | null {
+function getDbtFixedSlide4Prompt(flow = "weird_hack"): string | null {
+    if (flow === "three_tips") {
+        return `${DBT_THREE_TIPS_FIXED_PROMPT_PREFIX}\n\n${DBT_THREE_TIPS_DEGRADED_PHONE_RULE}\n\nFemale figure near or in dark water at night, desaturated teal or grey tones, reflective water surface, feeling of being submerged in thought, detached and weightless.`;
+    }
+    return null;
+}
+
+function getDbtFixedSlide5Prompt(characterId?: string, flow = "weird_hack"): string | null {
+    if (flow === "three_tips") {
+        return `${DBT_THREE_TIPS_FIXED_PROMPT_PREFIX}\n\n${DBT_THREE_TIPS_DEGRADED_PHONE_RULE}\n\nFemale figure outdoors in soft natural light, warm golden or sunset tones, movement forward or open posture, feeling of quiet release - not happy but not heavy, somewhere in between.`;
+    }
     if (characterId === "brendabpd") {
         return "Create another version of the reference image with the same vibe, keep the faceless person motive with the over the shoulder shot out of the drivers window while parked. Candid iPhone 12 shot. No text in image. Same medium quality, hopeful authentic Tiktok asthetic.";
     }
@@ -732,7 +874,7 @@ Based on the context above, generate three options for the integrated app mentio
                 const { slides, character_id, character, setting_override, framing, theme, partner_anchor, service, brandingMode, artStyle, flow } = await req.json() as any;
                 const resolvedCharacterId = character_id || character;
                 const effectiveArtStyle = service === 'dbt' ? 'symbolic' : artStyle;
-                const effectiveFlow = service === 'dbt' ? 'weird_hack' : flow;
+                const effectiveFlow = service === 'dbt' ? (flow || 'weird_hack') : flow;
 
                 if (!slides || !Array.isArray(slides) || slides.length === 0) {
                     return sendJSON({ error: "Slides array is required" }, 400);
@@ -830,8 +972,10 @@ Based on the context above, generate three options for the integrated app mentio
 
                     const normalizedSlides = slides.map((s: any) => String(s || '').trim());
                     const staticSlides: Record<number, string> = {};
-                    if (isSymbolic) staticSlides[1] = 'slide1.png';
-                    if (isDbtProject && slides.length >= 6) staticSlides[6] = 'app_image.png';
+                    if (isSymbolic && effectiveFlow !== "three_tips") {
+                        staticSlides[1] = getDbtStaticSlidePath(resolvedCharacterId, 1) || 'slide1.png';
+                    }
+                    if (isDbtProject && slides.length >= 6) staticSlides[6] = getDbtStaticSlidePath(resolvedCharacterId, 6);
 
                     const targetSlideIndices = normalizedSlides
                         .map((_, i) => i + 1)
@@ -854,7 +998,7 @@ Based on the context above, generate three options for the integrated app mentio
                         project: "DBT-Mind",
                         platform: "TikTok slideshow",
                         niche: "BPD/DBT psychoeducation",
-                        flow: isWeirdHackFlow ? "weird_therapist_hacks" : "standard",
+                        flow: effectiveFlow === "three_tips" ? "three_tips" : (isWeirdHackFlow ? "weird_therapist_hacks" : "standard"),
                         visual_style: selectedArtStyle.name,
                         hook_slide: normalizedSlides[0] || "",
                         detected_signals: emotionalSignals,
@@ -875,6 +1019,21 @@ Based on the context above, generate three options for the integrated app mentio
                     };
 
                     const getDbtSlideStyleOverride = (slideNumber: number) => {
+                        if (effectiveFlow === "three_tips") {
+                            if (slideNumber === 2) {
+                                return `THREE_TIPS: ${DBT_THREE_TIPS_WOMAN_DESCRIPTION} Female figure sitting alone indoors at night, near a window with city lights or dark sky outside, warm dim lamp light on one side, cold darkness on other side, stillness and quiet exhaustion.`;
+                            }
+                            if (slideNumber === 3) {
+                                return `THREE_TIPS: ${DBT_THREE_TIPS_WOMAN_DESCRIPTION} Female figure outdoors alone at night or dusk, dark natural landscape, back to camera, slightly hunched or tense posture, feeling of standing at a threshold or being suspended in a moment.`;
+                            }
+                            if (slideNumber === 4) {
+                                return `THREE_TIPS: ${DBT_THREE_TIPS_WOMAN_DESCRIPTION} Female figure near or in dark water at night, desaturated teal or grey tones, reflective water surface, feeling of being submerged in thought, detached and weightless.`;
+                            }
+                            if (slideNumber === 5) {
+                                return `THREE_TIPS: ${DBT_THREE_TIPS_WOMAN_DESCRIPTION} Female figure outdoors in soft natural light, warm golden or sunset tones, movement forward or open posture, feeling of quiet release, not happy but not heavy - somewhere in between.`;
+                            }
+                            return "";
+                        }
                         if (slideNumber === 2) {
                             const motif = darkMotifBySlide[slideNumber];
                             return `DARK: night, rain, isolation, artificial light sources, emotionally heavy. MOTIF ONLY: ${motif}. No other motifs.`;
@@ -945,9 +1104,15 @@ POST CONTEXT JSON:
 ${JSON.stringify(dbtPostContext, null, 2)}
 
 STYLE OVERRIDES (DBT-MIND ONLY):
-- Slide 2 and Slide 3: DARK. night, rain, isolation, artificial light sources, emotionally heavy.
+${effectiveFlow === "three_tips"
+    ? `- Use the same woman across Slides 2-5: about 21 years old, approximately 170 cm tall, brown hair, same body size and proportions.
+- Slide 2: indoors, window, still, night, quiet exhaustion.
+- Slide 3: outdoors, darker, suspended threshold moment.
+- Slide 4: water, abstract, detached, weightless, dark night mood.
+- Slide 5: warm natural light, soft forward movement, quiet release.`
+    : `- Slide 2 and Slide 3: DARK. night, rain, isolation, artificial light sources, emotionally heavy.
 - Slide 4: TRANSITION. neither dark nor bright; a punch slide that should read as a dark-to-warm gradient background. abstract, minimal, no distinct scene.
-- Slide 5: HOPEFUL. warm daylight, quiet morning moment, candid but alive.
+- Slide 5: HOPEFUL. warm daylight, quiet morning moment, candid but alive.`}
 - Slide 7: HOPEFUL CTA and ALWAYS POV (first-person) perspective.
 
 TARGET SLIDES TO PROMPT:
@@ -995,9 +1160,11 @@ ${isSymbolic ? '- Also verify the set is aesthetically pleasing and semantically
 
                     const candidStylePrefix = "iPhone 12 candid style photo, spontanesouly taken. Medium quality, authentic Tiktok asthetic. ";
                     const noPersonSuffix = " No person visibile, no UI elements";
-                    const fixedSlide2ReferencePrompt = getDbtFixedSlide2Prompt(resolvedCharacterId);
-                    const fixedSlide3ReferencePrompt = getDbtFixedSlide3Prompt(resolvedCharacterId);
-                    const fixedSlide5ReferencePrompt = getDbtFixedSlide5Prompt(resolvedCharacterId);
+                    const fixedSlide1ReferencePrompt = getDbtFixedSlide1Prompt(effectiveFlow);
+                    const fixedSlide2ReferencePrompt = getDbtFixedSlide2Prompt(resolvedCharacterId, effectiveFlow);
+                    const fixedSlide3ReferencePrompt = getDbtFixedSlide3Prompt(resolvedCharacterId, effectiveFlow);
+                    const fixedSlide4ReferencePrompt = getDbtFixedSlide4Prompt(effectiveFlow);
+                    const fixedSlide5ReferencePrompt = getDbtFixedSlide5Prompt(resolvedCharacterId, effectiveFlow);
                     const ctaPrompt = isSymbolic
                         ? `${candidStylePrefix}first-person POV in a cozy living room, only crossed legs visible on a footstool by a reading chair, warm daylight, plants, no phone or screens.`
                         : `${candidStylePrefix}first-person POV resting moment in a quiet warm daylight room, no phone or screens.`;
@@ -1018,6 +1185,9 @@ ${isSymbolic ? '- Also verify the set is aesthetically pleasing and semantically
                             : `${withPrefix}${noPersonSuffix}`;
                     });
 
+                    if (normalizedSlides.length >= 1 && fixedSlide1ReferencePrompt) {
+                        parsed.image1 = fixedSlide1ReferencePrompt;
+                    }
                     // Slide 2 and 3 should remain fixed even after prompt regeneration/refresh.
                     if (normalizedSlides.length >= 2) {
                         parsed.image2 = fixedSlide2ReferencePrompt;
@@ -1025,19 +1195,24 @@ ${isSymbolic ? '- Also verify the set is aesthetically pleasing and semantically
                     if (normalizedSlides.length >= 3) {
                         parsed.image3 = fixedSlide3ReferencePrompt;
                     }
+                    if (normalizedSlides.length >= 4 && fixedSlide4ReferencePrompt) {
+                        parsed.image4 = fixedSlide4ReferencePrompt;
+                    }
                     if (normalizedSlides.length >= 5 && fixedSlide5ReferencePrompt) {
                         parsed.image5 = fixedSlide5ReferencePrompt;
                     }
 
-                    // Slide 4 is the gradient transition slide: remove any leading iPhone-style prefix.
-                    if (typeof parsed.image4 === 'string') {
-                        parsed.image4 = parsed.image4
-                            .replace(/^iPhone\s*12[^.]*photo[^.]*\.\s*/i, '')
-                            .replace(/^iPhone\s*12[^.]*\.\s*/i, '')
-                            .trim();
-                    }
-                    if (normalizedSlides.length >= 4 && (!parsed.image4 || !String(parsed.image4).trim())) {
-                        parsed.image4 = "dark-to-warm gradient background, abstract minimal transition, no distinct scene.";
+                    // Weird hack keeps the gradient transition slide for Slide 4.
+                    if (effectiveFlow !== "three_tips") {
+                        if (typeof parsed.image4 === 'string') {
+                            parsed.image4 = parsed.image4
+                                .replace(/^iPhone\s*12[^.]*photo[^.]*\.\s*/i, '')
+                                .replace(/^iPhone\s*12[^.]*\.\s*/i, '')
+                                .trim();
+                        }
+                        if (normalizedSlides.length >= 4 && (!parsed.image4 || !String(parsed.image4).trim())) {
+                            parsed.image4 = "dark-to-warm gradient background, abstract minimal transition, no distinct scene.";
+                        }
                     }
 
                     // DBT prompts stay minimal: no appended style footer/boilerplate.
@@ -1052,7 +1227,7 @@ ${isSymbolic ? '- Also verify the set is aesthetically pleasing and semantically
                         prompts: prompts,
                         image_prompts: parsed,
                         is_painting_style: true,
-                        useStaticSlide1: isSymbolic,
+                        useStaticSlide1: isSymbolic && effectiveFlow !== "three_tips",
                         staticSlides: staticSlides
                     });
                 } else {
@@ -1248,7 +1423,7 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
         else if (cleanPath === "/generate-native-slides" && method === "POST") {
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
-                const { format, topic, profile, service, includeBranding, brandingMode } = await req.json() as any;
+                const { format, topic, profile, service, includeBranding, brandingMode, slideType } = await req.json() as any;
 
                 let result;
                 if (service === 'syp' || profile) {
@@ -1265,6 +1440,7 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
                     result = await generateDbtSlides({
                         format: format || 'relatable',
                         topic: topic || 'favorite_person',
+                        slideType: slideType || 'weird_hack',
                         ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!,
                         includeBranding: includeBranding !== false
                     });
@@ -2001,7 +2177,8 @@ Output ONLY the JSON object.No markdown, no explanation.`
             } else {
                 try {
                     const body = await req.json() as any;
-                    const { imagePrompts, character_id, service, brandingMode, referenceImages = [] } = body;
+                    const { imagePrompts, character_id, service, brandingMode, referenceImages = [], flow } = body;
+                    const effectiveFlow = service === 'dbt' ? (flow || 'weird_hack') : flow;
 
                     if (!imagePrompts) {
                         return sendJSON({ error: "imagePrompts object is required" }, 400);
@@ -2055,30 +2232,54 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                 let finalPrompt = item.prompt;
                                 let finalReferences = [...baseReferences];
 
+                                if (service === 'dbt' && item.index === 0) {
+                                    const slide1References = getDbtSlide1References(character_id, effectiveFlow);
+                                    if (slide1References.length > 0) {
+                                        finalReferences.push(...slide1References);
+                                        const fixedSlide1Prompt = getDbtFixedSlide1Prompt(effectiveFlow);
+                                        if (fixedSlide1Prompt) {
+                                            finalPrompt += `\n\nCRITICAL: ${fixedSlide1Prompt}`;
+                                        }
+                                        console.log(`[Carousel Images] Added ${slide1References.length} fixed reference(s) for DBT slide 1`);
+                                    }
+                                }
+
                                 if (service === 'dbt' && item.index === 1) {
-                                    const slide2References = getDbtSlide2References(character_id);
+                                    const slide2References = getDbtSlide2References(character_id, effectiveFlow);
                                     if (slide2References.length > 0) {
                                         finalReferences.push(...slide2References);
-                                        finalPrompt += `\n\nCRITICAL: ${getDbtFixedSlide2Prompt(character_id)}`;
+                                        finalPrompt += `\n\nCRITICAL: ${getDbtFixedSlide2Prompt(character_id, effectiveFlow)}`;
                                         console.log(`[Carousel Images] Added ${slide2References.length} fixed reference(s) for DBT slide 2`);
                                     }
                                 }
 
                                 if (service === 'dbt' && item.index === 2) {
-                                    const slide3References = getDbtSlide3References(character_id);
+                                    const slide3References = getDbtSlide3References(character_id, effectiveFlow);
                                     if (slide3References.length > 0) {
                                         finalReferences.push(...slide3References);
-                                        finalPrompt += `\n\nCRITICAL: ${getDbtFixedSlide3Prompt(character_id)}`;
+                                        finalPrompt += `\n\nCRITICAL: ${getDbtFixedSlide3Prompt(character_id, effectiveFlow)}`;
                                         console.log(`[Carousel Images] Added ${slide3References.length} fixed reference(s) for DBT slide 3`);
+                                    }
+                                }
+
+                                if (service === 'dbt' && item.index === 3) {
+                                    const slide4References = getDbtSlide4References(character_id, effectiveFlow);
+                                    if (slide4References.length > 0) {
+                                        finalReferences.push(...slide4References);
+                                        const fixedSlide4Prompt = getDbtFixedSlide4Prompt(effectiveFlow);
+                                        if (fixedSlide4Prompt) {
+                                            finalPrompt += `\n\nCRITICAL: ${fixedSlide4Prompt}`;
+                                        }
+                                        console.log(`[Carousel Images] Added ${slide4References.length} fixed reference(s) for DBT slide 4`);
                                     }
                                 }
 
                                 // Slide 5 in DBT uses fixed visual references to avoid the generic AI look.
                                 if (service === 'dbt' && item.index === 4) {
-                                    const slide5References = getDbtSlide5References(character_id);
+                                    const slide5References = getDbtSlide5References(character_id, effectiveFlow);
                                     if (slide5References.length > 0) {
                                         finalReferences.push(...slide5References);
-                                        const fixedSlide5Prompt = getDbtFixedSlide5Prompt(character_id);
+                                        const fixedSlide5Prompt = getDbtFixedSlide5Prompt(character_id, effectiveFlow);
                                         if (fixedSlide5Prompt) {
                                             finalPrompt += `\n\nCRITICAL: ${fixedSlide5Prompt}`;
                                         }
@@ -2212,7 +2413,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
             } else {
                 try {
                     const body = await req.json() as any;
-                    const { prompt, referenceImages = [], slideIndex = 0, service, slideText = '', brandingMode, character_id } = body;
+                    const { prompt, referenceImages = [], slideIndex = 0, service, slideText = '', brandingMode, character_id, flow } = body;
 
                     if (!prompt) {
                         return sendJSON({ error: "Prompt is required" }, 400);
@@ -2235,20 +2436,32 @@ Output ONLY the JSON object.No markdown, no explanation.`
                             if (anchor) finalReferences.push(anchor);
                         }
 
+                        if (service === 'dbt' && slideIndex === 0) {
+                            const slide1References = getDbtSlide1References(character_id, flow || "weird_hack");
+                            if (slide1References.length > 0) {
+                                finalReferences.push(...slide1References);
+                                const fixedSlide1Prompt = getDbtFixedSlide1Prompt(flow || "weird_hack");
+                                if (fixedSlide1Prompt) {
+                                    flatPrompt += `\n\nCRITICAL: ${fixedSlide1Prompt}`;
+                                }
+                                console.log(`[Image Gen] Added ${slide1References.length} fixed reference(s) for DBT slide 1`);
+                            }
+                        }
+
                         if (service === 'dbt' && slideIndex === 1) {
-                            const slide2References = getDbtSlide2References(character_id);
+                            const slide2References = getDbtSlide2References(character_id, flow || "weird_hack");
                             if (slide2References.length > 0) {
                                 finalReferences.push(...slide2References);
-                                flatPrompt += `\n\nCRITICAL: ${getDbtFixedSlide2Prompt(character_id)}`;
+                                flatPrompt += `\n\nCRITICAL: ${getDbtFixedSlide2Prompt(character_id, flow || "weird_hack")}`;
                                 console.log(`[Image Gen] Added ${slide2References.length} fixed reference(s) for DBT slide 2`);
                             }
                         }
 
                         if (service === 'dbt' && slideIndex === 4) {
-                            const slide5References = getDbtSlide5References(character_id);
+                            const slide5References = getDbtSlide5References(character_id, flow || "weird_hack");
                             if (slide5References.length > 0) {
                                 finalReferences.push(...slide5References);
-                                const fixedSlide5Prompt = getDbtFixedSlide5Prompt(character_id);
+                                const fixedSlide5Prompt = getDbtFixedSlide5Prompt(character_id, flow || "weird_hack");
                                 if (fixedSlide5Prompt) {
                                     flatPrompt += `\n\nCRITICAL: ${fixedSlide5Prompt}`;
                                 }
@@ -2256,11 +2469,23 @@ Output ONLY the JSON object.No markdown, no explanation.`
                             }
                         }
 
+                        if (service === 'dbt' && slideIndex === 3) {
+                            const slide4References = getDbtSlide4References(character_id, flow || "weird_hack");
+                            if (slide4References.length > 0) {
+                                finalReferences.push(...slide4References);
+                                const fixedSlide4Prompt = getDbtFixedSlide4Prompt(flow || "weird_hack");
+                                if (fixedSlide4Prompt) {
+                                    flatPrompt += `\n\nCRITICAL: ${fixedSlide4Prompt}`;
+                                }
+                                console.log(`[Image Gen] Added ${slide4References.length} fixed reference(s) for DBT slide 4`);
+                            }
+                        }
+
                         if (service === 'dbt' && slideIndex === 2) {
-                            const slide3References = getDbtSlide3References(character_id);
+                            const slide3References = getDbtSlide3References(character_id, flow || "weird_hack");
                             if (slide3References.length > 0) {
                                 finalReferences.push(...slide3References);
-                                flatPrompt += `\n\nCRITICAL: ${getDbtFixedSlide3Prompt(character_id)}`;
+                                flatPrompt += `\n\nCRITICAL: ${getDbtFixedSlide3Prompt(character_id, flow || "weird_hack")}`;
                                 console.log(`[Image Gen] Added ${slide3References.length} fixed reference(s) for DBT slide 3`);
                             }
                         }

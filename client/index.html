@@ -33,6 +33,17 @@
                         <p class="section-hint">Generate viral POV-style slides based on the V2 framework.</p>
 
                         <div class="native-gen-controls">
+                            <div class="input-group" style="margin-bottom: 12px;">
+                                <label for="dbt-slide-type-select"
+                                    style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Slide
+                                    type</label>
+                                <select id="dbt-slide-type-select" class="select-input"
+                                    style="width: 100%; border-radius: 6px; padding: 8px;">
+                                    <option value="weird_hack">Weird Hack</option>
+                                    <option value="three_tips">3 Tips</option>
+                                </select>
+                            </div>
+
                             <!-- Topic Selection for DBT -->
                             <div class="input-group" style="margin-bottom: 12px;">
                                 <label for="native-gen-topic_dbt"
@@ -56,6 +67,11 @@
                                     <option value="Digital Self-Harm">📱 Digital Self-Harm</option>
                                 </select>
                             </div>
+
+                            <label for="dbt-text-only-mode" class="testing-toggle">
+                                <input type="checkbox" id="dbt-text-only-mode">
+                                <span>Text only mode for testing</span>
+                            </label>
 
                             <button class="btn btn-fire full-width" id="generate-native-slides-btn">
                                 <span>🔥 Generate Weird Therapist Hacks (Opus)</span>
@@ -149,6 +165,7 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                 <label for="flow-select">Flow</label>
                                 <select id="flow-select" class="select-input" style="width: 100%;">
                                     <option value="weird_hack">Weird Hack Flow</option>
+                                    <option value="three_tips">3 Tips Flow</option>
                                 </select>
                             </div>
                             <div class="character-action-row" style="display: flex; gap: 8px; margin-bottom: 12px;">

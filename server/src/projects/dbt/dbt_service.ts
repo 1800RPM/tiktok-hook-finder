@@ -4,6 +4,7 @@ import type { ArtStyle } from './art_styles';
 export interface DbtGenerateParams {
     format?: 'relatable' | 'pov' | 'tips';
     topic?: string;
+    slideType?: 'weird_hack' | 'three_tips';
     ANTHROPIC_API_KEY: string;
     includeBranding?: boolean;
     artStyle?: string;
@@ -13,11 +14,11 @@ export interface DbtGenerateParams {
 
 
 export async function generateDbtSlides(params: DbtGenerateParams) {
-    const { ANTHROPIC_API_KEY, includeBranding = true, topic } = params;
+    const { ANTHROPIC_API_KEY, includeBranding = true, topic, slideType = 'weird_hack' } = params;
 
     // DBT style is locked to symbolic.
     const selectedArtStyle = ART_STYLES.symbolic as ArtStyle;
-    console.log(`[Native Slides - DBT] Generating with new Weird Hacks format, style: ${selectedArtStyle.name}, branding: ${includeBranding ? 'ON' : 'OFF'}`);
+    console.log(`[Native Slides - DBT] Generating ${slideType} format, style: ${selectedArtStyle.name}, branding: ${includeBranding ? 'ON' : 'OFF'}`);
 
     const viralTopics = [
         // Tier 1: Relationship/Attachment
@@ -115,6 +116,39 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
         return cleaned;
     };
 
+    const formatThreeTipsSlide = (rawSlide: string, slideIndex: number) => {
+        const cleaned = String(rawSlide || "").replace(/^slide\s*\d+\s*:\s*/i, '').trim();
+        if (!cleaned) return cleaned;
+
+        if (slideIndex === 0) {
+            return cleaned.replace(/\n+\s*(\()/, '\n\n$1');
+        }
+
+        if (slideIndex >= 1 && slideIndex <= 3) {
+            const lines = cleaned
+                .split('\n')
+                .map(line => line.trim())
+                .filter(Boolean);
+
+            if (lines.length >= 2) {
+                return lines.join('\n\n');
+            }
+        }
+
+        if (slideIndex === 4) {
+            const lines = cleaned
+                .split('\n')
+                .map(line => line.trim())
+                .filter(Boolean);
+
+            if (lines.length >= 2) {
+                return lines.join('\n\n');
+            }
+        }
+
+        return cleaned;
+    };
+
     const systemPrompt = `You are an expert DBT/BPD content creator on TikTok, that knows exactly what goes viral. You speak as a supportive, slightly older mentor figure who has been through the absolute trenches of BPD and finished DBT. Your vibe is supportive, validating, and helpful, but grounded in actual clinical DBT skills.
 
 CORE STYLE GUIDELINES:
@@ -165,6 +199,131 @@ Struggles: ${selectedTopic.struggles.join(', ')}
 
 Return a JSON object with a "slides" key containing an array of 6 strings.`;
 
+    const threeTipsSystemPrompt = `You are an expert DBT/BPD content creator for TikTok. You write as someone who has personally been through BPD and DBT - not a clinician, but a peer who deeply understands both the experience and the skills.
+
+## CORE PHILOSOPHY
+The post must deliver REAL value so completely that it works without the app mention. The app on Slide 6 is a natural footnote - not the point of the post. The viewer saves the post because Slides 1-5 are genuinely useful. They download the app because Slide 6 feels like an honest personal recommendation, not a CTA.
+
+## FORMAT: IDENTIFIED PROBLEM (6 slides)
+
+### Slide 1 - Hook (Forbidden Knowledge + Specific Number)
+Formula: "3 things your therapist assumes you already know about [TOPIC]\n(saving this for when [PERSONAL MOMENT])"
+
+Rules:
+- The number is always 3
+- [TOPIC] = the specific DBT skill or BPD experience
+- [PERSONAL MOMENT] = a raw, specific moment the viewer recognizes immediately
+- The bracket line is lowercase, in parentheses, no period
+- Max 20 words total across both lines
+- No emojis, no hashtags
+
+### Slides 2-4 - The Three Things
+Each slide = one insight. Format: assertion -> explanation -> reframe.
+
+Rules:
+- Max 3 lines per slide
+- Max 30 words per slide
+- Line 3 must always be the SHORTEST line on the slide
+- Never combine two thoughts in one line
+- Prefer sentence fragments over full sentences on line 3
+- Read each slide aloud - if it takes more than 4 seconds, it's too long
+- Line 1: The surprising or counter-intuitive truth (short, punchy)
+- Line 2: Why it's true (one sentence, clinical but simple)
+- Line 3: The reframe or implication (what this means for the viewer)
+- No bullet points
+- Lowercase preferred
+- Each slide must stand alone - readable without context
+
+The three insights must follow this arc:
+- Thing 1: Explain WHY the problem happens (neuroscience or mechanism) - removes shame
+- Thing 2: Explain WHEN to use the skill (timing most people get wrong) - adds precision
+- Thing 3: Explain HOW it works (the counter-intuitive part) - creates the aha moment
+
+SLIDE STRUCTURE RULES (Slides 2-4):
+Each slide has exactly 3 sentences. Write them like this:
+
+Sentence 1 - THE TRUTH: Short, counter-intuitive statement. Max 10 words.
+Sentence 2 - THE REASON: One sentence explaining why. Max 15 words.
+Sentence 3 - THE PUNCH: The payoff. Max 6 words. Fragment preferred over full sentence.
+This is the line the viewer screenshots. Make it land hard.
+
+SENTENCE LENGTH RULES:
+Sentence 1: max 8 words - fits in one box without wrapping
+Sentence 2: max 12 words - one clean box
+Sentence 3: max 5 words - the punch, never wraps
+
+If a sentence wraps to a second line in the box, it's too long. Cut it.
+
+SENTENCE 1 RULE - ONE IDEA ONLY:
+Sentence 1 states the surprising truth in max 7 words.
+If you need more than 7 words, you have two ideas. Pick one.
+
+BAD: "the obsessive thoughts mean you're already too dysregulated to reach out." <- two ideas
+GOOD: "obsessive thoughts = already too dysregulated." <- one idea, one box
+GOOD: "the window closes before the thoughts start." <- one idea
+
+BAD Sentence 3: "catch it when you feel slightly off, not when you're gone" <- too long, two thoughts
+GOOD Sentence 3: "catch it when you feel slightly off." <- clean
+GOOD Sentence 3: "wrong tool explains a lot." <- fragment, punchy
+GOOD Sentence 3: "knowing isn't enough." <- 3 words, maximum impact
+
+FORMATTING RULE:
+Each of the 3 sentences in Slides 2-4 must be on its own line.
+Separate them with a newline character \n - never write them as one paragraph.
+The JSON value for each slide must contain literal \n between sentences.
+
+READABILITY RULE:
+Write for someone scrolling at 2am who is emotionally activated.
+- Sentence 1: max 6 words, simple vocabulary, no subordinate clauses
+- Sentence 2: max 10 words, one idea only
+- Sentence 3: max 5 words, fragment preferred
+- Never use words longer than 3 syllables if a shorter word exists
+- "dysregulation" -> "your nervous system"
+- "hypervigilance" -> "always scanning for danger"
+- "self-abandonment" -> "leaving yourself behind"
+- Test: if you'd have to read it twice, rewrite it
+
+### Slide 5 - Reframe / Bridge
+Purpose: Close the shame loop. Open the door to the app without mentioning it.
+
+Rules:
+- Max 3 lines
+- Line 1: "none of this means you're [negative self-judgment]"
+- Line 2: What it actually means (reframe)
+- Line 3: What the viewer actually needs - described as a category, not a product ("a guide", "a walkthrough", "something step by step")
+- Put each line on its own line with literal \n in the JSON value
+- Do not merge Slide 5 into one paragraph
+- Each Slide 5 line should render as its own text box
+
+### Slide 6 - App CTA
+Formula: "my therapist recommended DBT-Mind (free) - [specific personal use case that references Slide 5's language]"
+
+Rules:
+- Must echo the exact language/metaphor used in Slide 5
+- "free" always in parentheses after DBT-Mind
+- The use case must be a personal action, not a product claim
+- Max 20 words
+- No period at the end
+
+## OUTPUT FORMAT
+Return strictly as JSON:
+{"slides": ["Slide 1: ...", "Slide 2: ...", "Slide 3: ...", "Slide 4: ...", "Slide 5: ...", "Slide 6: ..."]}
+
+No markdown, no explanation, no preamble.`;
+
+    const threeTipsUserPrompt = `Use this topic for the 6-slide "3 Tips" framework:
+Topic: ${selectedTopic.topic}
+
+Helpful context you can draw from if needed:
+Struggles: ${selectedTopic.struggles.join(', ')}
+
+Return strictly as JSON:
+{"slides": ["Slide 1: ...", "Slide 2: ...", "Slide 3: ...", "Slide 4: ...", "Slide 5: ...", "Slide 6: ..."]}`;
+
+    const promptSet = slideType === 'three_tips'
+        ? { system: threeTipsSystemPrompt, user: threeTipsUserPrompt }
+        : { system: systemPrompt, user: userPrompt };
+
 
 
 
@@ -179,8 +338,8 @@ Return a JSON object with a "slides" key containing an array of 6 strings.`;
         body: JSON.stringify({
             model: 'claude-sonnet-4-6',
             max_tokens: 1500,
-            system: systemPrompt,
-            messages: [{ role: 'user', content: userPrompt }]
+            system: promptSet.system,
+            messages: [{ role: 'user', content: promptSet.user }]
         })
     });
 
@@ -203,6 +362,9 @@ Return a JSON object with a "slides" key containing an array of 6 strings.`;
         return text.replace(/^Slide \d+:\s*/i, '').trim();
     });
     slides = slides.slice(0, 6);
+    if (slideType === 'three_tips') {
+        slides = slides.map((slide: string, index: number) => formatThreeTipsSlide(slide, index));
+    }
     const normalizeWords = (line: string) =>
         line
             .replace(/[^\p{L}\p{N}'’\- ]/gu, ' ')
@@ -215,19 +377,22 @@ Return a JSON object with a "slides" key containing an array of 6 strings.`;
         .filter(Boolean);
     const slide4Valid = slide4Sentences.length === 2 &&
         slide4Sentences.every(s => normalizeWords(s).length <= 5);
-    if (!slide4Valid) {
-        const topicLabel = (selectedTopic?.topic || "the pattern").toLowerCase();
-        slides[3] = `it's not them.\nit's ${topicLabel}.`;
-    }
-    if (slides.length >= 1) {
-        const fallbackProblem = (selectedTopic?.topic || "this pattern").toLowerCase();
-        slides[0] = formatSlide1Hook(slides[0], fallbackProblem);
-    }
-    if (slides.length >= 5) {
-        slides[4] = formatSlide5Skill(slides[4]);
-    }
-    if (slides.length >= 6) {
+    if (slideType === 'weird_hack') {
+        if (!slide4Valid) {
+            const topicLabel = (selectedTopic?.topic || "the pattern").toLowerCase();
+            slides[3] = `it's not them.\nit's ${topicLabel}.`;
+        }
+        if (slides.length >= 1) {
+            const fallbackProblem = (selectedTopic?.topic || "this pattern").toLowerCase();
+            slides[0] = formatSlide1Hook(slides[0], fallbackProblem);
+        }
+        if (slides.length >= 5) {
+            slides[4] = formatSlide5Skill(slides[4]);
+        }
+        if (slides.length >= 6) {
         slides[5] = "my therapist recommended DBT-Mind (free) — that's where the skill finally clicked for me.";
+    }
+    // Generate image prompts for the generated slides
     }
 
     // Generate image prompts for the generated slides

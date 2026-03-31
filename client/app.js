@@ -2,6 +2,7 @@ const state = {
     currentService: 'dbt',
     currentFormat: 'relatable',
     currentTopic: 'favorite_person',
+    currentDbtSlideType: 'weird_hack',
     includeBranding: true,
     slides: [],
     currentSlideIndex: 0,
@@ -61,16 +62,26 @@ const API_BASE = resolveApiBase();
 const dbtCharacterTemplates = {
     hannahbpd: {
         label: 'hannahbpd',
-        staticSlides: {
-            0: 'slide1.png',
-            5: 'app_image.png'
+        staticSlidesByFlow: {
+            weird_hack: {
+                0: 'slide1.png',
+                5: 'app_image.png'
+            },
+            three_tips: {
+                5: 'app_image.png'
+            }
         }
     },
     brendabpd: {
         label: 'brendabpd (iPhone)',
-        staticSlides: {
-            0: 'assets/dbt-templates/brendabpd/slide1.png',
-            5: 'assets/dbt-templates/brendabpd/slide6.png'
+        staticSlidesByFlow: {
+            weird_hack: {
+                0: 'assets/dbt-templates/brendabpd/slide1.png',
+                5: 'assets/dbt-templates/brendabpd/slide6.png'
+            },
+            three_tips: {
+                5: 'assets/dbt-templates/brendabpd/slide6.png'
+            }
         }
     }
 };
@@ -104,6 +115,8 @@ const elements = {
     nativeGenFormat: document.getElementById('native-gen-format'),
     nativeGenTopic: document.getElementById('native-gen-topic'),
     nativeGenTopicDbt: document.getElementById('native-gen-topic_dbt'),
+    dbtSlideTypeSelect: document.getElementById('dbt-slide-type-select'),
+    dbtTextOnlyMode: document.getElementById('dbt-text-only-mode'),
     artStyleSelect: document.getElementById('art-style-select'),
     generateNativeSlidesBtn: document.getElementById('generate-native-slides-btn'),
     compatibilityWarning: document.getElementById('compatibility-warning'),
@@ -310,12 +323,38 @@ function getSelectedDbtCharacter() {
     return elements.characterPreset?.value || 'hannahbpd';
 }
 
+function getSelectedDbtSlideType() {
+    return elements.dbtSlideTypeSelect?.value || 'weird_hack';
+}
+
+function getDbtGenerateButtonLabel(slideType = getSelectedDbtSlideType()) {
+    return slideType === 'three_tips'
+        ? 'Generate 3 Tips (Opus)'
+        : 'Generate Weird Therapist Hacks (Opus)';
+}
+
+function syncDbtSlideTypeUI() {
+    const slideType = getSelectedDbtSlideType();
+    state.currentDbtSlideType = slideType;
+
+    if (elements.generateNativeSlidesBtn) {
+        elements.generateNativeSlidesBtn.innerHTML = `<span>${getDbtGenerateButtonLabel(slideType)}</span>`;
+    }
+
+    if (elements.flowSelect) {
+        elements.flowSelect.value = slideType;
+    }
+}
+
 function getDbtCharacterTemplate(character = getSelectedDbtCharacter()) {
     return dbtCharacterTemplates[character] || dbtCharacterTemplates.hannahbpd;
 }
 
 function getDefaultDbtStaticSlide(index, character = getSelectedDbtCharacter()) {
-    return getDbtCharacterTemplate(character).staticSlides[index] || null;
+    const template = getDbtCharacterTemplate(character);
+    const flow = state.currentDbtSlideType || 'weird_hack';
+    const flowSlides = template.staticSlidesByFlow?.[flow] || template.staticSlidesByFlow?.weird_hack || {};
+    return flowSlides[index] || null;
 }
 
 function getStaticSlideFallback(index) {
@@ -349,7 +388,13 @@ function syncDbtStaticSlides(slideCount = state.slides.length) {
     }
 
     if (state.useStaticSlide1) {
-        const slide1Image = getDefaultDbtStaticSlide(0);
+        const shouldPreserveExistingSlide1 =
+            state.currentDbtSlideType === 'three_tips' &&
+            typeof state.staticSlides?.[0] === 'string' &&
+            state.staticSlides[0].includes('/three_tips/slide1_ref_');
+        const slide1Image = shouldPreserveExistingSlide1
+            ? state.staticSlides[0]
+            : getDefaultDbtStaticSlide(0);
         if (slide1Image) {
             state.staticSlides[0] = slide1Image;
         }
@@ -372,7 +417,7 @@ function normalizeStaticSlides(staticSlides, useStaticSlide1) {
     }
 
     if (useStaticSlide1) {
-        normalized[0] = getDefaultDbtStaticSlide(0) || 'slide1.png';
+        normalized[0] = normalized[0] || getDefaultDbtStaticSlide(0) || 'slide1.png';
     }
 
     return normalized;
@@ -546,8 +591,11 @@ function checkFormatTopicCompatibility() {
 // ==========================================
 async function generateNativeSlides() {
     const includeBranding = true;
+    const slideType = getSelectedDbtSlideType();
+    const textOnlyMode = !!elements.dbtTextOnlyMode?.checked;
 
     state.includeBranding = includeBranding;
+    state.currentDbtSlideType = slideType;
 
     elements.generateNativeSlidesBtn.disabled = true;
     elements.generateNativeSlidesBtn.innerHTML = '<span>⏳ Generating...</span>';
@@ -563,7 +611,8 @@ async function generateNativeSlides() {
                 service: 'dbt',
                 includeBranding,
                 artStyle: elements.artStyleSelect?.value || 'symbolic',
-                topic: elements.nativeGenTopicDbt?.value || 'random'
+                topic: elements.nativeGenTopicDbt?.value || 'random',
+                slideType
             })
         });
 
@@ -586,9 +635,16 @@ async function generateNativeSlides() {
                 throw new Error('Could not parse generated slides');
             }
 
+            if (textOnlyMode) {
+                showNotification('Text-only mode is active: skipped metadata, prompts, and image generation.', 'info');
+                return;
+            }
+
             const metadataPromise = generateMetadata({ skipEnsureSlides: true, suppressSuccessNotification: true });
             const promptsPromise = generateImagePromptsFromSlides(state.slides, {
-                autoGenerateImageIndices: [1, 2, 3, 4]
+                autoGenerateImageIndices: slideType === 'three_tips'
+                    ? [0, 1, 2, 3, 4]
+                    : [1, 2, 3, 4]
             });
             await Promise.allSettled([metadataPromise, promptsPromise]);
 
@@ -606,6 +662,7 @@ async function generateNativeSlides() {
         showNotification(`Failed to generate slides: ${error.message || 'unknown error'}`, 'error');
     } finally {
         elements.generateNativeSlidesBtn.disabled = false;
+        setTimeout(syncDbtSlideTypeUI, 0);
         elements.generateNativeSlidesBtn.innerHTML = '<span>🔥 Generate Weird Therapist Hacks (Opus)</span>';
     }
 }
@@ -716,6 +773,7 @@ function renderImagePrompts() {
         if (staticImage) {
             const staticEl = document.createElement('div');
             staticEl.className = 'image-prompt-card static-prompt';
+            const staticPrompt = state.imagePrompts[index] || '';
             staticEl.innerHTML = `
                 <div class="prompt-header">
                     <span class="prompt-number">Slide ${index + 1} (Static)</span>
@@ -723,6 +781,7 @@ function renderImagePrompts() {
                 <div class="static-image-notice" style="padding: 10px; color: var(--text-muted); font-style: italic;">
                     Slide ${index + 1} uses a static image for ${getStaticSlideNoticeLabel(index)} (${staticImage}). No AI prompt needed.
                 </div>
+                ${staticPrompt ? `<textarea class="prompt-textarea static-prompt-textarea" data-index="${index}" readonly>${staticPrompt}</textarea>` : ''}
             `;
             container.appendChild(staticEl);
             return;
@@ -825,6 +884,7 @@ async function generateAiImages(options = {}) {
                 aspectRatio: (isSyp ? elements.aspectRatioSelectSyp : elements.aspectRatioSelectDbt)?.value || '9:16',
                 character_id: characterPresetEl?.value || 'luna',
                 service: state.currentService,
+                flow: elements.flowSelect?.value || 'standard',
                 brandingMode: isSyp ? (document.querySelector('input[name="syp-branding-mode"]:checked')?.value || 'full') : 'none'
             })
         });
@@ -1058,6 +1118,7 @@ async function generateSingleImage(index, btnEl) {
                 referenceImages: referenceImages,
                 slideIndex: slideIndexToUse,
                 service: state.currentService,
+                flow: elements.flowSelect?.value || 'standard',
                 aspectRatio: (isSyp ? elements.aspectRatioSelectSyp : elements.aspectRatioSelectDbt)?.value || '9:16',
                 character_id: characterPresetEl?.value || 'luna',
                 brandingMode: brandingMode
@@ -2379,6 +2440,13 @@ function initEventListeners() {
         elements.generateNativeSlidesBtn.addEventListener('click', generateNativeSlides);
     }
 
+    if (elements.dbtSlideTypeSelect) {
+        elements.dbtSlideTypeSelect.addEventListener('change', () => {
+            syncDbtSlideTypeUI();
+            showNotification(`DBT slide type set to ${elements.dbtSlideTypeSelect.options[elements.dbtSlideTypeSelect.selectedIndex].text}`, 'success');
+        });
+    }
+
     // Generate image prompts
     if (elements.generateImagePromptsBtn) {
         elements.generateImagePromptsBtn.addEventListener('click', generateImagePrompts);
@@ -3038,6 +3106,10 @@ function init() {
     }
     if (elements.nativeGenTopic) {
         state.currentTopic = elements.nativeGenTopic.value;
+    }
+    if (elements.dbtSlideTypeSelect) {
+        state.currentDbtSlideType = elements.dbtSlideTypeSelect.value;
+        syncDbtSlideTypeUI();
     }
     state.includeBranding = true;
 
