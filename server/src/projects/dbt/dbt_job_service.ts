@@ -388,7 +388,7 @@ async function generateImageWithRetry(
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         const generated = await generateImage(prompt, apiKey, {
             aspectRatio,
-            imageSize: "0.5K"
+            imageSize: "1K"
         });
         const first = generated.images?.[0];
         if (generated.success && first) {

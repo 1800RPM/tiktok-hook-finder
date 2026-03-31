@@ -324,28 +324,48 @@ Return strictly as JSON:
         ? { system: threeTipsSystemPrompt, user: threeTipsUserPrompt }
         : { system: systemPrompt, user: userPrompt };
 
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    const maxAnthropicRetries = 3;
+    let claudeResponse: Response | null = null;
 
+    for (let attempt = 0; attempt <= maxAnthropicRetries; attempt++) {
+        claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'x-api-key': ANTHROPIC_API_KEY,
+                'anthropic-version': '2023-06-01',
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-6',
+                max_tokens: 1500,
+                system: promptSet.system,
+                messages: [{ role: 'user', content: promptSet.user }]
+            })
+        });
 
+        if (claudeResponse.ok) {
+            break;
+        }
 
-
-    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-            'x-api-key': ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01',
-            'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 1500,
-            system: promptSet.system,
-            messages: [{ role: 'user', content: promptSet.user }]
-        })
-    });
-
-    if (!claudeResponse.ok) {
         const errorText = await claudeResponse.text();
-        console.error("[Native Slides - DBT] Anthropic API Error:", errorText);
+        const isOverloaded =
+            claudeResponse.status === 529 ||
+            errorText.includes('"type":"overloaded_error"') ||
+            errorText.toLowerCase().includes('"message":"overloaded"');
+
+        console.error(`[Native Slides - DBT] Anthropic API Error (attempt ${attempt + 1}/${maxAnthropicRetries + 1}):`, errorText);
+
+        if (!isOverloaded || attempt === maxAnthropicRetries) {
+            throw new Error("Anthropic API Error");
+        }
+
+        const retryDelayMs = 1000 * Math.pow(2, attempt);
+        console.warn(`[Native Slides - DBT] Anthropic overloaded, retrying in ${retryDelayMs}ms...`);
+        await sleep(retryDelayMs);
+    }
+
+    if (!claudeResponse || !claudeResponse.ok) {
         throw new Error("Anthropic API Error");
     }
 

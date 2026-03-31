@@ -246,17 +246,18 @@ function getDbtSlide5References(characterId?: string, flow = "weird_hack"): Refe
 const DBT_THREE_TIPS_WOMAN_DESCRIPTION = "Woman specs: 170cm tall, brown long hair and 21 years old.";
 const DBT_THREE_TIPS_FIXED_PROMPT_PREFIX = "Create another version of the reference image with the same vibe and same blurry/washed image filter, but in a slightly different setting. No face visible of person in the image. Woman specs: 170cm tall, brown long hair and 21 years old. No flashlight and no bright lights, no blurred background.";
 const DBT_THREE_TIPS_DEGRADED_PHONE_RULE = "CRITICAL - the image must look like a degraded phone photo: heavily underexposed and crushed shadows, strong digital noise and grain throughout, lossy JPEG compression artifacts visible, slight motion blur from shaky hands, washed-out low-contrast look as if taken on an old iPhone in poor light. NOT a clean or professional photo. The image should look almost too dark and slightly out of focus - like someone accidentally took it at night.";
+const DBT_THREE_TIPS_SHARED_FIXED_PROMPT = `${DBT_THREE_TIPS_FIXED_PROMPT_PREFIX}\n\n${DBT_THREE_TIPS_DEGRADED_PHONE_RULE}`;
 
 function getDbtFixedSlide1Prompt(flow = "weird_hack"): string | null {
     if (flow === "three_tips") {
-        return `${DBT_THREE_TIPS_FIXED_PROMPT_PREFIX}\n\n${DBT_THREE_TIPS_DEGRADED_PHONE_RULE}\n\nLone female figure outdoors at night, blurred motion, cold blue-grey tones, city lights or moonlight in background, feeling of emotional unrest and restlessness.`;
+        return "Create another version of the reference image with the same vibe and same blurry/washed image filter, but in a slightly different setting. No face visible of person in the image. Woman specs: 170cm tall, brown long hair and 21 years old. No flashlight and no bright lights, no blurred background. Make sure the image contains an astonishing, amazing and real looking sky. Dont overexxagerate the look of the sky tho.\n\nCRITICAL - the image must look like a degraded phone photo: heavily underexposed and crushed shadows, strong digital noise and grain throughout, lossy JPEG compression artifacts visible, slight motion blur from shaky hands, washed-out low-contrast look as if taken on an old iPhone in poor light. NOT a clean or professional photo. The image should look almost too dark and slightly out of focus - like someone accidentally took it at night.";
     }
     return null;
 }
 
 function getDbtFixedSlide2Prompt(characterId?: string, flow = "weird_hack"): string {
     if (flow === "three_tips") {
-        return `${DBT_THREE_TIPS_FIXED_PROMPT_PREFIX}\n\n${DBT_THREE_TIPS_DEGRADED_PHONE_RULE}\n\nFemale figure sitting alone indoors at night, near a window with city lights or dark sky outside, warm dim lamp light on one side, cold darkness on other side, stillness and quiet exhaustion.`;
+        return DBT_THREE_TIPS_SHARED_FIXED_PROMPT;
     }
     const basePrompt = "Create another version of the reference image with the same foggy vibe and same blurry image filter, but in a different dark setting. No face visible of person in the image, only shot from a side angle or from behind. Person should hold a cigarette, not a vape. Candid iPhone 12 shot. No text in image. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
     if (characterId === "brendabpd") {
@@ -267,7 +268,7 @@ function getDbtFixedSlide2Prompt(characterId?: string, flow = "weird_hack"): str
 
 function getDbtFixedSlide3Prompt(characterId?: string, flow = "weird_hack"): string {
     if (flow === "three_tips") {
-        return `${DBT_THREE_TIPS_FIXED_PROMPT_PREFIX}\n\n${DBT_THREE_TIPS_DEGRADED_PHONE_RULE}\n\nFemale figure outdoors alone at night or dusk, dark natural landscape, back to camera, slightly hunched or tense posture, feeling of standing at a threshold or being suspended in a moment.`;
+        return "Create another version of the reference image with the same vibe and same blurry/washed image filter, but in a slightly different setting. No face visible of person in the image. Woman specs: 170cm tall, brown long hair and 21 years old. No flashlight and no bright lights, no blurred background. Add some real asthetic to the image to make it look super nice for the viewers eyes.\n\nCRITICAL - the image must look like a degraded phone photo: heavily underexposed and crushed shadows, strong digital noise and grain throughout, lossy JPEG compression artifacts visible, slight motion blur from shaky hands, washed-out low-contrast look as if taken on an old iPhone in poor light. NOT a clean or professional photo. The image should look almost too dark and slightly out of focus - like someone accidentally took it at night.";
     }
     const basePrompt = "Create another version of the reference image with the same vibe but in different dark rainy setting. It should rain. Candid iPhone 12 shot. No text in image.";
     if (characterId === "brendabpd") {
@@ -278,14 +279,14 @@ function getDbtFixedSlide3Prompt(characterId?: string, flow = "weird_hack"): str
 
 function getDbtFixedSlide4Prompt(flow = "weird_hack"): string | null {
     if (flow === "three_tips") {
-        return `${DBT_THREE_TIPS_FIXED_PROMPT_PREFIX}\n\n${DBT_THREE_TIPS_DEGRADED_PHONE_RULE}\n\nFemale figure near or in dark water at night, desaturated teal or grey tones, reflective water surface, feeling of being submerged in thought, detached and weightless.`;
+        return "Create another version of the reference image with the same vibe and same blurry/washed image filter, but in a slightly different setting. No face visible of person in the image. Woman specs: 170cm tall, brown long hair and 21 years old. No flashlight and no bright lights, no blurred background. Add some real asthetic to the image to make it look super nice for the viewers eyes.\n\nCRITICAL - the image must look like a degraded phone photo: heavily underexposed and crushed shadows, strong digital noise and grain throughout, lossy JPEG compression artifacts visible, slight motion blur from shaky hands, washed-out low-contrast look as if taken on an old iPhone in poor light. NOT a clean or professional photo. The image should look almost too dark and slightly out of focus - like someone accidentally took it at night.";
     }
     return null;
 }
 
 function getDbtFixedSlide5Prompt(characterId?: string, flow = "weird_hack"): string | null {
     if (flow === "three_tips") {
-        return `${DBT_THREE_TIPS_FIXED_PROMPT_PREFIX}\n\n${DBT_THREE_TIPS_DEGRADED_PHONE_RULE}\n\nFemale figure outdoors in soft natural light, warm golden or sunset tones, movement forward or open posture, feeling of quiet release - not happy but not heavy, somewhere in between.`;
+        return "Create another version of the reference image with the same hopeful and uplifting, slightly brighter vibe and same blurry/washed image filter, but in a slightly different setting. No face visible of person in the image. Woman specs: 170cm tall, brown long hair and 21 years old. No flashlight and no bright lights, no blurred background.\n\nCRITICAL - keep the image aligned with the bright hopeful reference images. The scene should feel lighter, softer, and more open than Slides 1-4. The image must still look like a degraded phone photo: strong digital noise and grain throughout, lossy JPEG compression artifacts visible, slight motion blur from shaky hands, washed-out low-contrast look, imperfect focus, and candid old-iPhone quality. NOT a clean or professional photo. Keep it hopeful and slightly brighter, not dark night-heavy.";
     }
     if (characterId === "brendabpd") {
         return "Create another version of the reference image with the same vibe, keep the faceless person motive with the over the shoulder shot out of the drivers window while parked. Candid iPhone 12 shot. No text in image. Same medium quality, hopeful authentic Tiktok asthetic.";
@@ -977,218 +978,16 @@ Based on the context above, generate three options for the integrated app mentio
                     }
                     if (isDbtProject && slides.length >= 6) staticSlides[6] = getDbtStaticSlidePath(resolvedCharacterId, 6);
 
-                    const targetSlideIndices = normalizedSlides
-                        .map((_, i) => i + 1)
-                        .filter((i) => !staticSlides[i]);
-                    const targetSlides = targetSlideIndices.map((i) => normalizedSlides[i - 1]);
-                    const allSlidesLower = normalizedSlides.join('\n').toLowerCase();
-                    const dbtSkillLexicon = [
-                        "tipp", "stop", "wise mind", "opposite action", "radical acceptance",
-                        "check the facts", "name the emotion", "urge surfing", "self-soothe",
-                        "distress tolerance", "emotion regulation", "interpersonal effectiveness"
-                    ];
-                    const mentionedSkills = dbtSkillLexicon.filter(skill => allSlidesLower.includes(skill));
-                    const emotionalSignals = [
-                        allSlidesLower.match(/anx|panic|overwhelm|urge|spiral|late|abandon|leave|rejection/) ? "anxiety_abandonment" : null,
-                        allSlidesLower.match(/split|all-or-nothing|hate|love|switch flip/) ? "splitting_instability" : null,
-                        allSlidesLower.match(/skill|name|regulate|track|pattern|dbt/) ? "skill_building_reflection" : null
-                    ].filter(Boolean);
-
-                    const dbtPostContext = {
-                        project: "DBT-Mind",
-                        platform: "TikTok slideshow",
-                        niche: "BPD/DBT psychoeducation",
-                        flow: effectiveFlow === "three_tips" ? "three_tips" : (isWeirdHackFlow ? "weird_therapist_hacks" : "standard"),
-                        visual_style: selectedArtStyle.name,
-                        hook_slide: normalizedSlides[0] || "",
-                        detected_signals: emotionalSignals,
-                        detected_dbt_skills: mentionedSkills
-                    };
-
-                    const darkMotifs = [
-                        "rainy street with cars",
-                        "rainy driver car window",
-                        "foggy field",
-                        "rainy roadside at night",
-                        "foggy forest path"
-                    ];
-                    const shuffledDarkMotifs = [...darkMotifs].sort(() => Math.random() - 0.5);
-                    const darkMotifBySlide: Record<number, string> = {
-                        2: shuffledDarkMotifs[0],
-                        3: shuffledDarkMotifs[1]
-                    };
-
-                    const getDbtSlideStyleOverride = (slideNumber: number) => {
-                        if (effectiveFlow === "three_tips") {
-                            if (slideNumber === 2) {
-                                return `THREE_TIPS: ${DBT_THREE_TIPS_WOMAN_DESCRIPTION} Female figure sitting alone indoors at night, near a window with city lights or dark sky outside, warm dim lamp light on one side, cold darkness on other side, stillness and quiet exhaustion.`;
-                            }
-                            if (slideNumber === 3) {
-                                return `THREE_TIPS: ${DBT_THREE_TIPS_WOMAN_DESCRIPTION} Female figure outdoors alone at night or dusk, dark natural landscape, back to camera, slightly hunched or tense posture, feeling of standing at a threshold or being suspended in a moment.`;
-                            }
-                            if (slideNumber === 4) {
-                                return `THREE_TIPS: ${DBT_THREE_TIPS_WOMAN_DESCRIPTION} Female figure near or in dark water at night, desaturated teal or grey tones, reflective water surface, feeling of being submerged in thought, detached and weightless.`;
-                            }
-                            if (slideNumber === 5) {
-                                return `THREE_TIPS: ${DBT_THREE_TIPS_WOMAN_DESCRIPTION} Female figure outdoors in soft natural light, warm golden or sunset tones, movement forward or open posture, feeling of quiet release, not happy but not heavy - somewhere in between.`;
-                            }
-                            return "";
-                        }
-                        if (slideNumber === 2) {
-                            const motif = darkMotifBySlide[slideNumber];
-                            return `DARK: night, rain, isolation, artificial light sources, emotionally heavy. MOTIF ONLY: ${motif}. No other motifs.`;
-                        }
-                        if (slideNumber === 3) {
-                            return "DARK: night rain, isolation, emotionally heavy. Create a new variation of the reference vibe, not a copy. Show a woman inside a car in a dark rainy setting with her hand or forearm reaching out of the open window into the rain. Keep it road-based and cinematic, but change the surrounding setting, framing, lighting, or background details. NOT ocean, NOT lake, NOT coast, NOT open water, NOT boat.";
-                        }
-                        if (slideNumber === 4) {
-                            return "TRANSITION: neither dark nor bright; dark-to-warm gradient background, abstract minimal, no distinct scene.";
-                        }
-                        if (slideNumber === 5) {
-                            return "HOPEFUL: warm daylight, quiet morning moment, candid but alive. If a notebook is present, its contents must be empty or directly related to Slide 5 text.";
-                        }
-                        return "";
-                    };
-
-                    const dbtSystemPrompt = `You generate image prompts for DBT-Mind TikTok slideshow posts in the BPD/DBT niche.
-
-CRITICAL:
-- You will receive FULL-CAROUSEL context and per-slide text.
-- Each image must match the target slide while still fitting the same post narrative.
-- Do NOT create random aesthetic scenes that ignore the line.
-- Do NOT illustrate metaphors literally.
-- All images must feel like candid, spontaneous photos taken on an iPhone 12 (natural framing, imperfect realism).
-- If a notebook is visible, its contents must be empty or directly related to the slide text.
-- Slide 7 MUST always be first-person POV perspective.
-
-CONTEXT INTEGRATION WORKFLOW:
-1. Read the full carousel context first (hook, emotional arc, DBT skills if present).
-2. Determine each slide role: validation, pattern naming, behavior consequence, DBT skill, or grounded reframe.
-3. Build a scene that matches that role and the exact line's emotional meaning.
-4. Ensure the set feels coherent as one post.
-
-SEMANTIC FIT RULES:
-- The image must be interpretable as the same emotional moment as the text.
-- Prefer psychologically legible scenes over random props.
-- If the line describes behavior ("testing", "pushing away", "checking"), show physical traces of that behavior.
-- If the line describes nervous-system state, show environmental cues (light, space, object tension) consistent with that state.
-
-${isSymbolic ? `SYMBOLIC MODE (NO PEOPLE):
-- STRICTLY NO PEOPLE, NO BODY PARTS, NO FACES.
-- Use candid iPhone-photo language with tasteful, clean-real aesthetics.
-- Aesthetic floor: harmonious color palette, believable natural/practical light, clear focal object, no grime.
-- Hard bans: trash, stains, cracked/damaged fixtures, random gross clutter, or ugly shock details.
-- Diversity with coherence: avoid repeating the same setup template across slides.
-- Allowed archetypes: threshold/entry, kitchen ritual, couch pause, bedside reset, shelf memory, desk reflection, window-weather moment, soft outdoor nature edge (path/trees/shoreline) when text supports it.
-- Nature is optional support, not a generic backdrop. Use it only when it reinforces the slide meaning.` : `HUMAN-FIGURE MODE:
-- Keep the figure grounded in a specific physical action.
-- Avoid generic model-pose compositions.`}
-
-STYLE RULES FOR ${selectedArtStyle.name.toUpperCase()}:
-${selectedArtStyle.systemPromptPrinciples}
-
-OUTPUT FORMAT:
-- Return ONLY JSON with keys ${targetSlideIndices.map((i) => `"image${i}"`).join(', ')}.
-- Each value must be ONE short prompt sentence.
-- Keep prompts minimal and practical.
-- Do NOT include extra styling directives, strict-rule boilerplate, or bullet-style add-ons.
-- Do NOT add markdown.
-- Do NOT add any style suffix/footer text.`;
-
-                    const userPrompt = `Generate ${targetSlides.length} DBT-Mind image prompts.
-
-FULL CAROUSEL CONTEXT:
-${normalizedSlides.map((s: string, i: number) => `Slide ${i + 1}: "${s}"`).join('\n')}
-
-POST CONTEXT JSON:
-${JSON.stringify(dbtPostContext, null, 2)}
-
-STYLE OVERRIDES (DBT-MIND ONLY):
-${effectiveFlow === "three_tips"
-    ? `- Use the same woman across Slides 2-5: about 21 years old, approximately 170 cm tall, brown hair, same body size and proportions.
-- Slide 2: indoors, window, still, night, quiet exhaustion.
-- Slide 3: outdoors, darker, suspended threshold moment.
-- Slide 4: water, abstract, detached, weightless, dark night mood.
-- Slide 5: warm natural light, soft forward movement, quiet release.`
-    : `- Slide 2 and Slide 3: DARK. night, rain, isolation, artificial light sources, emotionally heavy.
-- Slide 4: TRANSITION. neither dark nor bright; a punch slide that should read as a dark-to-warm gradient background. abstract, minimal, no distinct scene.
-- Slide 5: HOPEFUL. warm daylight, quiet morning moment, candid but alive.`}
-- Slide 7: HOPEFUL CTA and ALWAYS POV (first-person) perspective.
-
-TARGET SLIDES TO PROMPT:
-${targetSlideIndices.map((i) => {
-                        const override = getDbtSlideStyleOverride(i);
-                        return `Image ${i} uses Slide ${i}: "${normalizedSlides[i - 1]}"${override ? ` | STYLE OVERRIDE: ${override}` : ''}`;
-                    }).join('\n')}
-
-QUALITY CHECK BEFORE FINAL OUTPUT:
-- For each target slide, quickly verify "Would this still make sense if the text overlay was removed?"
-- If no, rewrite that prompt.
-${isSymbolic ? '- Also verify the set is aesthetically pleasing and semantically aligned; no random gritty domestic details.' : ''}`;
-
-                    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
-                        method: 'POST',
-                        headers: {
-                            'x-api-key': ANTHROPIC_API_KEY!,
-                            'anthropic-version': '2023-06-01',
-                            'content-type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            model: 'claude-sonnet-4-6',
-                            max_tokens: 2500,
-                            system: dbtSystemPrompt,
-                            messages: [{ role: 'user', content: userPrompt }]
-                        })
-                    });
-
-                    if (!claudeResponse.ok) {
-                        const errorText = await claudeResponse.text();
-                        console.error("[DBT Image Prompts] Error:", errorText);
-                        return sendJSON({ error: "Anthropic API Error" }, 500);
-                    }
-
-                    let parsed;
-                    try {
-                        const rawData = await claudeResponse.json() as any;
-                        const resultText = rawData.content?.[0]?.text || '';
-                        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-                        parsed = JSON.parse(jsonMatch ? jsonMatch[0] : resultText);
-                    } catch (parseErr) {
-                        console.error("[DBT Image Prompts] JSON Parse Error:", parseErr);
-                        return sendJSON({ error: "Failed to parse image prompts" }, 500);
-                    }
-
-                    const candidStylePrefix = "iPhone 12 candid style photo, spontanesouly taken. Medium quality, authentic Tiktok asthetic. ";
-                    const noPersonSuffix = " No person visibile, no UI elements";
+                    const parsed: Record<string, string> = {};
                     const fixedSlide1ReferencePrompt = getDbtFixedSlide1Prompt(effectiveFlow);
                     const fixedSlide2ReferencePrompt = getDbtFixedSlide2Prompt(resolvedCharacterId, effectiveFlow);
                     const fixedSlide3ReferencePrompt = getDbtFixedSlide3Prompt(resolvedCharacterId, effectiveFlow);
                     const fixedSlide4ReferencePrompt = getDbtFixedSlide4Prompt(effectiveFlow);
                     const fixedSlide5ReferencePrompt = getDbtFixedSlide5Prompt(resolvedCharacterId, effectiveFlow);
-                    const ctaPrompt = isSymbolic
-                        ? `${candidStylePrefix}first-person POV in a cozy living room, only crossed legs visible on a footstool by a reading chair, warm daylight, plants, no phone or screens.`
-                        : `${candidStylePrefix}first-person POV resting moment in a quiet warm daylight room, no phone or screens.`;
-                    if (normalizedSlides.length >= 7 && !staticSlides[7]) {
-                        parsed.image7 = ctaPrompt;
-                    }
-
-                    // Enforce requested style prefix at the beginning of slides 2, 3, 5, and 7.
-                    [2, 3, 5, 7].forEach((slideNumber) => {
-                        const key = `image${slideNumber}`;
-                        if (typeof parsed[key] !== 'string') return;
-                        const current = parsed[key].trim();
-                        const withPrefix = current.startsWith(candidStylePrefix)
-                            ? current
-                            : `${candidStylePrefix}${current}`;
-                        parsed[key] = withPrefix.endsWith(noPersonSuffix)
-                            ? withPrefix
-                            : `${withPrefix}${noPersonSuffix}`;
-                    });
 
                     if (normalizedSlides.length >= 1 && fixedSlide1ReferencePrompt) {
                         parsed.image1 = fixedSlide1ReferencePrompt;
                     }
-                    // Slide 2 and 3 should remain fixed even after prompt regeneration/refresh.
                     if (normalizedSlides.length >= 2) {
                         parsed.image2 = fixedSlide2ReferencePrompt;
                     }
@@ -1202,26 +1001,13 @@ ${isSymbolic ? '- Also verify the set is aesthetically pleasing and semantically
                         parsed.image5 = fixedSlide5ReferencePrompt;
                     }
 
-                    // Weird hack keeps the gradient transition slide for Slide 4.
                     if (effectiveFlow !== "three_tips") {
-                        if (typeof parsed.image4 === 'string') {
-                            parsed.image4 = parsed.image4
-                                .replace(/^iPhone\s*12[^.]*photo[^.]*\.\s*/i, '')
-                                .replace(/^iPhone\s*12[^.]*\.\s*/i, '')
-                                .trim();
-                        }
                         if (normalizedSlides.length >= 4 && (!parsed.image4 || !String(parsed.image4).trim())) {
                             parsed.image4 = "dark-to-warm gradient background, abstract minimal transition, no distinct scene.";
                         }
                     }
 
-                    // DBT prompts stay minimal: no appended style footer/boilerplate.
-
-                    // Convert object to array for frontend
-                    const prompts = Object.keys(parsed)
-                        .filter(key => key.startsWith('image'))
-                        .sort((a, b) => (parseInt(a.replace('image', '')) || 0) - (parseInt(b.replace('image', '')) || 0))
-                        .map(key => parsed[key]);
+                    const prompts = normalizedSlides.map((_, index) => parsed[`image${index + 1}`] || null);
 
                     return sendJSON({
                         prompts: prompts,

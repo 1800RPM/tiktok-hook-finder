@@ -4,6 +4,7 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
+import sharp from "sharp";
 
 // Types
 export interface ImageGenerationOptions {
@@ -35,6 +36,13 @@ function getClient(apiKey: string): GoogleGenAI {
     return genAIClient;
 }
 
+function normalizeImageSize(imageSize?: ImageGenerationOptions["imageSize"]): "1K" | "2K" | "4K" {
+    if (!imageSize || imageSize === "0.5K") {
+        return "1K";
+    }
+    return imageSize;
+}
+
 /**
  * Generate a single image using Nano Banana 2 (Gemini 3.1 Flash Image Preview)
  * 
@@ -52,7 +60,8 @@ export async function generateImage(
         return { success: false, error: "Gemini API key not configured" };
     }
 
-    const { aspectRatio = "9:16", imageSize = "0.5K" } = options;
+    const { aspectRatio = "9:16" } = options;
+    const imageSize = normalizeImageSize(options.imageSize);
 
     try {
         const client = getClient(apiKey);
@@ -123,6 +132,70 @@ export interface ReferenceImage {
     mimeType: string;  // e.g., "image/png"
 }
 
+const MAX_REFERENCE_DIMENSION = 1536;
+const MAX_REFERENCE_BYTES = 1_500_000;
+
+function sanitizeBase64(data: string): string {
+    return String(data || "")
+        .replace(/^data:[^;]+;base64,/, "")
+        .replace(/\s+/g, "");
+}
+
+async function normalizeReferenceImage(ref: ReferenceImage, index: number): Promise<ReferenceImage> {
+    const cleanedData = sanitizeBase64(ref.data);
+    const mimeType = String(ref.mimeType || "image/png").toLowerCase();
+
+    try {
+        const inputBuffer = Buffer.from(cleanedData, "base64");
+        if (inputBuffer.length === 0) {
+            throw new Error("Empty image buffer");
+        }
+
+        let pipeline = sharp(inputBuffer, { failOn: "none" }).rotate();
+        const metadata = await pipeline.metadata();
+
+        if ((metadata.width || 0) > MAX_REFERENCE_DIMENSION || (metadata.height || 0) > MAX_REFERENCE_DIMENSION) {
+            pipeline = pipeline.resize(MAX_REFERENCE_DIMENSION, MAX_REFERENCE_DIMENSION, {
+                fit: "inside",
+                withoutEnlargement: true
+            });
+        }
+
+        let outputBuffer: Buffer;
+        let outputMimeType: string;
+
+        if (mimeType === "image/png") {
+            outputBuffer = await pipeline.png({ compressionLevel: 9 }).toBuffer();
+            outputMimeType = "image/png";
+
+            if (outputBuffer.length > MAX_REFERENCE_BYTES) {
+                outputBuffer = await sharp(outputBuffer).jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+                outputMimeType = "image/jpeg";
+            }
+        } else {
+            outputBuffer = await pipeline.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+            outputMimeType = "image/jpeg";
+        }
+
+        console.log(
+            `[ImageGen] Normalized ref ${index + 1}: ${mimeType} -> ${outputMimeType}, ${inputBuffer.length}B -> ${outputBuffer.length}B`
+        );
+
+        return {
+            data: outputBuffer.toString("base64"),
+            mimeType: outputMimeType
+        };
+    } catch (error) {
+        console.warn(
+            `[ImageGen] Could not normalize reference ${index + 1}; using sanitized original. ${error instanceof Error ? error.message : String(error)}`
+        );
+        return {
+            data: cleanedData,
+            mimeType: mimeType
+        };
+    }
+}
+
 /**
  * Generate an image with reference images for character consistency
  * Uses up to 5 previous images to maintain consistent character appearance
@@ -143,25 +216,30 @@ export async function generateImageWithReferences(
         return { success: false, error: "Gemini API key not configured" };
     }
 
-    const { aspectRatio = "9:16", imageSize = "0.5K" } = options;
+    const { aspectRatio = "9:16" } = options;
+    const imageSize = normalizeImageSize(options.imageSize);
 
     // Limit to 5 reference images (Gemini's limit for human consistency)
     const limitedRefs = referenceImages.slice(0, 5);
 
     try {
         const client = getClient(apiKey);
+        const normalizedRefs = await Promise.all(
+            limitedRefs.map((ref, index) => normalizeReferenceImage(ref, index))
+        );
 
-        console.log(`[ImageGen] Generating with ${limitedRefs.length} reference image(s)...`);
+        console.log(`[ImageGen] Generating with ${normalizedRefs.length} reference image(s)...`);
         console.log(`[ImageGen] Prompt: ${prompt.substring(0, 100)}...`);
 
-        // Build contents array: prompt first, then reference images
-        const contents: any[] = [
-            { text: prompt + "\n\nIMPORTANT: Maintain the EXACT same character appearance (face, hair, accessories) as shown in the reference image(s)." }
+        const parts: any[] = [
+            {
+                text: prompt + "\n\nIMPORTANT: Maintain the EXACT same character appearance (face, hair, accessories) as shown in the reference image(s)."
+            }
         ];
 
         // Add reference images as inlineData
-        for (const ref of limitedRefs) {
-            contents.push({
+        for (const ref of normalizedRefs) {
+            parts.push({
                 inlineData: {
                     mimeType: ref.mimeType,
                     data: ref.data
@@ -171,7 +249,10 @@ export async function generateImageWithReferences(
 
         const response = await client.models.generateContent({
             model: "gemini-3.1-flash-image-preview",
-            contents: contents,
+            contents: [{
+                role: "user",
+                parts
+            }],
             config: {
                 responseModalities: ["Image"],
                 // @ts-ignore - imageConfig may not be in types yet
@@ -204,7 +285,7 @@ export async function generateImageWithReferences(
             return { success: false, error: "No images generated" };
         }
 
-        console.log(`[ImageGen] Successfully generated image with ${limitedRefs.length} reference(s)`);
+        console.log(`[ImageGen] Successfully generated image with ${normalizedRefs.length} reference(s)`);
         return { success: true, images };
 
     } catch (error) {
