@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TikTok Slide Creator</title>
-    <link rel="stylesheet" href="styles.css?v=20260320a">
+    <link rel="stylesheet" href="styles.css?v=20260421a">
 </head>
 
 <body>
@@ -40,7 +40,22 @@
                                 <select id="dbt-slide-type-select" class="select-input"
                                     style="width: 100%; border-radius: 6px; padding: 8px;">
                                     <option value="weird_hack">Weird Hack</option>
+                                    <option value="weird_hack_v2">Weird Hack V2</option>
                                     <option value="three_tips">3 Tips</option>
+                                    <option value="story_telling_bf">Story Telling BF</option>
+                                    <option value="story_telling_gf">Story Telling GF</option>
+                                    <option value="i_say_they_say">I Say/They Say</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group" style="margin-bottom: 12px;">
+                                <label for="dbt-text-style-select"
+                                    style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Text
+                                    styling</label>
+                                <select id="dbt-text-style-select" class="select-input"
+                                    style="width: 100%; border-radius: 6px; padding: 8px;">
+                                    <option value="boxed">Current text styling</option>
+                                    <option value="tiktok_caption">TikTok font outline</option>
                                 </select>
                             </div>
 
@@ -65,6 +80,30 @@
                                     <option value="Therapy Truths">🛋️ Therapy Truths</option>
                                     <option value="Rejection Sensitivity">👂 Rejection Sensitivity</option>
                                     <option value="Digital Self-Harm">📱 Digital Self-Harm</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group" style="margin-bottom: 12px;">
+                                <label for="character-preset-step1"
+                                    style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Character</label>
+                                <select id="character-preset-step1" class="select-input"
+                                    style="width: 100%; border-radius: 6px; padding: 8px;">
+                                    <option value="hannahbpd">hannahbpd</option>
+                                    <option value="brendabpd">brendabpd (iPhone)</option>
+                                    <option value="kendra">Kendra</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group" style="margin-bottom: 12px;">
+                                <label for="dbt-hook-image-select-step1"
+                                    style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Slide 1 hook image</label>
+                                <select id="dbt-hook-image-select-step1" class="select-input"
+                                    style="width: 100%; border-radius: 6px; padding: 8px;">
+                                    <option value="default">Default Slide 1</option>
+                                    <option value="hook_image_elevator">Elevator</option>
+                                    <option value="hook_image_tattoomirror">Tattoo Mirror</option>
+                                    <option value="hook_image_person_cat">Person + Cat</option>
+                                    <option value="hook_image_waist_straps">Waist Straps</option>
                                 </select>
                             </div>
 
@@ -158,14 +197,28 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                 <select id="character-preset" class="select-input" style="width: 100%;">
                                     <option value="hannahbpd">hannahbpd</option>
                                     <option value="brendabpd">brendabpd (iPhone)</option>
+                                    <option value="kendra">Kendra</option>
                                 </select>
                                 <p class="character-template-hint">Nur Slide 1 und Slide 6 wechseln je Character. Text und Struktur bleiben gleich.</p>
+                            </div>
+                            <div class="input-group" style="margin-bottom: 12px;">
+                                <label for="dbt-hook-image-select">Slide 1 hook image</label>
+                                <select id="dbt-hook-image-select" class="select-input" style="width: 100%;">
+                                    <option value="default">Default Slide 1</option>
+                                    <option value="hook_image_elevator">Elevator</option>
+                                    <option value="hook_image_tattoomirror">Tattoo Mirror</option>
+                                    <option value="hook_image_person_cat">Person + Cat</option>
+                                    <option value="hook_image_waist_straps">Waist Straps</option>
+                                </select>
+                                <p class="character-template-hint">Works for hannahbpd and brendabpd. Kendra keeps the existing Slide 1 setup.</p>
                             </div>
                             <div class="input-group" style="margin-bottom: 12px;">
                                 <label for="flow-select">Flow</label>
                                 <select id="flow-select" class="select-input" style="width: 100%;">
                                     <option value="weird_hack">Weird Hack Flow</option>
+                                    <option value="weird_hack_v2">Weird Hack V2 Flow</option>
                                     <option value="three_tips">3 Tips Flow</option>
+                                    <option value="i_say_they_say">I Say/They Say Flow</option>
                                 </select>
                             </div>
                             <div class="character-action-row" style="display: flex; gap: 8px; margin-bottom: 12px;">
@@ -264,6 +317,15 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                     placeholder="e.g. A cyberpunk cat..."></textarea>
                             </div>
 
+                            <div class="input-group" style="margin-top: 8px;">
+                                <label for="custom-resolution-select">Resolution</label>
+                                <select id="custom-resolution-select" class="select-input" style="width: 100%;">
+                                    <option value="1K" selected>1K</option>
+                                    <option value="2K">2K</option>
+                                    <option value="4K">4K</option>
+                                </select>
+                            </div>
+
 
 
                             <div class="action-row" style="display: flex; gap: 8px; margin-top: 8px;">
@@ -326,6 +388,11 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                         <label>Width <span id="text-width-value"
                                                 style="color: var(--accent-cyan); font-weight: 600;">120%</span></label>
                                         <input type="range" id="text-width" min="20" max="300" value="120">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Dark Overlay <span id="dark-overlay-value"
+                                                style="color: var(--accent-cyan); font-weight: 600;">0%</span></label>
+                                        <input type="range" id="dark-overlay" min="0" max="80" value="0">
                                     </div>
                                     <div class="input-row">
                                         <div class="input-group"><label>Text</label><input type="color" id="text-color"
@@ -619,6 +686,15 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                     placeholder="e.g. A cute dog in a park..."></textarea>
                             </div>
 
+                            <div class="input-group" style="margin-top: 8px;">
+                                <label for="custom-resolution-select_syp">Resolution</label>
+                                <select id="custom-resolution-select_syp" class="select-input" style="width: 100%;">
+                                    <option value="1K" selected>1K</option>
+                                    <option value="2K">2K</option>
+                                    <option value="4K">4K</option>
+                                </select>
+                            </div>
+
 
 
                             <div class="action-row" style="display: flex; gap: 8px; margin-top: 8px;">
@@ -683,6 +759,11 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                                 style="color: var(--accent-cyan); font-weight: 600;">120%</span></label>
                                         <input type="range" id="text-width_syp" min="20" max="300" value="120">
                                     </div>
+                                    <div class="input-group">
+                                        <label>Dark Overlay <span id="dark-overlay-value_syp"
+                                                style="color: var(--accent-cyan); font-weight: 600;">0%</span></label>
+                                        <input type="range" id="dark-overlay_syp" min="0" max="80" value="0">
+                                    </div>
                                     <div class="input-row">
                                         <div class="input-group"><label>Text</label><input type="color"
                                                 id="text-color_syp" value="#000000"></div>
@@ -715,6 +796,48 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                     <span id="slide-counter" class="slide-count-badge">0 slides</span>
                 </div>
 
+                <div class="slide-builder-panel" id="slide-builder-panel">
+                    <div class="slide-builder-toolbar">
+                        <div class="slide-builder-count">
+                            <label for="slide-count-input">How many slides?</label>
+                            <input type="number" id="slide-count-input" min="1" max="20" value="6">
+                        </div>
+                        <button class="btn btn-primary" id="create-slide-count-btn" type="button">Create Slides</button>
+                    </div>
+
+                    <p class="slide-builder-hint">
+                        Set the number of slides, then add your own text and image for each slide below.
+                    </p>
+
+                    <div class="slide-builder-list" id="slide-builder-list"></div>
+                </div>
+
+                <div class="selected-slide-editor" id="selected-slide-editor">
+                    <div class="selected-slide-editor-header">
+                        <div>
+                            <h3>Selected Slide</h3>
+                            <p id="selected-slide-label">No slide selected</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="add-slide-btn" type="button">+ Add Slide</button>
+                    </div>
+
+                    <textarea id="selected-slide-text-input" disabled
+                        placeholder="Write your slide text here. For dual voice slides, use:
+OUTSIDE: ...
+INSIDE: ..."></textarea>
+
+                    <div class="selected-slide-editor-actions">
+                        <button class="btn btn-secondary" id="upload-slide-image-btn" type="button" disabled>Upload Image</button>
+                        <button class="btn btn-warning" id="clear-slide-image-btn" type="button" disabled>Remove Image</button>
+                    </div>
+
+                    <p class="selected-slide-editor-hint">
+                        Upload your own images and write your own overlay text here. The preview updates immediately.
+                    </p>
+
+                    <input type="file" id="slide-image-file-input" accept="image/*" multiple hidden>
+                </div>
+
                 <div class="slides-container" id="slides-container">
                     <div class="empty-state">
                         <span class="empty-icon">🖼️</span>
@@ -731,7 +854,7 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="app.js?v=20260320a"></script>
+    <script src="app.js?v=20260421a"></script>
 </body>
 
 </html>

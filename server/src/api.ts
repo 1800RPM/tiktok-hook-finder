@@ -5,17 +5,14 @@ import { searchHooksHybrid, loadEmbeddings } from "./semantic_search";
 import { generateImage, generateCarouselImages, flattenImagePrompt, generateImageWithReferences } from "./image_generator";
 import type { ReferenceImage } from "./image_generator";
 import { generateSypSlides } from "./projects/syp/syp_service";
-import { generateDbtSlides } from "./projects/dbt/dbt_service";
+import { buildWeirdHackV2NanoBananaPrompt, generateDbtSlides, generateWeirdHackV2ImagePrompts } from "./projects/dbt/dbt_service";
 import { createDbtJob, getDbtJob, getDbtTopics, initDbtJobTables, runDbtJob } from "./projects/dbt/dbt_job_service";
 import { getAnchorImage, buildUGCSlide1Prompt } from "./common/prompt_utils";
 import { ART_STYLES } from "./projects/dbt/art_styles";
 
-const DATA_DIR = existsSync(path.join(process.cwd(), "server", "data"))
-    ? path.join(process.cwd(), "server", "data")
-    : path.join(process.cwd(), "data");
-const PROJECT_ROOT = existsSync(path.join(process.cwd(), "server"))
-    ? process.cwd()
-    : path.resolve(process.cwd(), "..");
+const SERVER_ROOT = path.resolve(import.meta.dir, "..");
+const PROJECT_ROOT = path.resolve(SERVER_ROOT, "..");
+const DATA_DIR = path.join(SERVER_ROOT, "data");
 
 const ANCHORS_DIR = path.join(DATA_DIR, "anchors");
 if (!existsSync(ANCHORS_DIR)) {
@@ -51,7 +48,8 @@ const DBT_CHARACTER_REFERENCE_PATHS: Record<string, { slide2: string[]; slide3: 
 };
 
 function getDbtReferenceDir(characterId?: string, flow = "weird_hack"): string {
-    return path.join(DBT_REFERENCE_IMAGE_DIR, characterId || "hannahbpd", flow);
+    const normalizedFlow = flow === "weird_hack_v2" ? "weird_hack" : flow;
+    return path.join(DBT_REFERENCE_IMAGE_DIR, characterId || "hannahbpd", normalizedFlow);
 }
 
 function getLegacyDbtReferenceDir(characterId?: string): string {
@@ -59,19 +57,28 @@ function getLegacyDbtReferenceDir(characterId?: string): string {
 }
 
 function getDbtStaticTemplateDir(characterId?: string, flow = "weird_hack"): string {
-    return path.join(PROJECT_ROOT, "client", "assets", "dbt-templates", characterId || "hannahbpd", flow);
+    const normalizedFlow = flow === "weird_hack_v2" ? "weird_hack" : flow;
+    const flowDirName = normalizedFlow === "i_say_they_say" ? "I_feel" : normalizedFlow;
+    return path.join(PROJECT_ROOT, "client", "assets", "dbt-templates", characterId || "hannahbpd", flowDirName);
 }
 
-function getDbtStaticSlidePath(characterId?: string, slideNumber = 1): string {
+function getDbtStaticSlidePath(characterId?: string, slideNumber = 1, flow = "weird_hack"): string {
     const normalizedCharacterId = characterId || "hannahbpd";
+    const normalizedFlow = flow === "weird_hack_v2" ? "weird_hack_v2" : flow;
 
-    if (normalizedCharacterId === "brendabpd") {
-        return slideNumber === 6
-            ? "assets/dbt-templates/brendabpd/slide6.png"
-            : "assets/dbt-templates/brendabpd/slide1.png";
+    if (slideNumber === 6) {
+        return "assets/dbt-templates/cta_slide_template.jpg";
     }
 
-    return slideNumber === 6 ? "app_image.png" : "slide1.png";
+    if (slideNumber === 1 && normalizedCharacterId === "kendra") {
+        return "assets/dbt-templates/weidhackv2/custom-image-1775651626440.png";
+    }
+
+    if (normalizedCharacterId === "brendabpd") {
+        return "assets/dbt-templates/brendabpd/slide1.png";
+    }
+
+    return "slide1.png";
 }
 
 function toClientAssetPath(fullPath: string): string {
@@ -119,6 +126,27 @@ function getRandomDbtClientReferencePath(characterId: string | undefined, flow: 
     }
 }
 
+function getRandomDbtIFeelReferencePath(characterId?: string): string | null {
+    const candidates = getDbtIFeelReferencePaths(characterId);
+    return getRandomItem(candidates);
+}
+
+function getDbtIFeelReferencePaths(characterId?: string): string[] {
+    const templateDir = getDbtStaticTemplateDir(characterId, "i_say_they_say");
+    if (!existsSync(templateDir)) {
+        return [];
+    }
+
+    try {
+        return readdirSync(templateDir)
+            .filter((fileName) => /\.(png|jpe?g|webp)$/i.test(fileName))
+            .map((fileName) => path.join(templateDir, fileName));
+    } catch (error) {
+        console.warn(`[DBT I Feel] Failed to resolve random reference for ${characterId || "hannahbpd"}`, error);
+        return [];
+    }
+}
+
 function getMimeTypeForReferencePath(refPath: string): string {
     const ext = path.extname(refPath).toLowerCase();
     if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
@@ -147,6 +175,17 @@ function loadFixedReferenceImages(refPaths: string[], logLabel: string): Referen
     return references;
 }
 
+function parseDbtDualVoiceSlideText(slideText: string): { outside: string; inside: string } | null {
+    const match = String(slideText || "").match(/^OUTSIDE:\s*([\s\S]*?)\n+\s*INSIDE:\s*([\s\S]*)$/i);
+    if (!match) return null;
+
+    const outside = String(match[1] || "").trim();
+    const inside = String(match[2] || "").trim();
+    if (!outside || !inside) return null;
+
+    return { outside, inside };
+}
+
 function getDbtCharacterReferenceConfig(characterId?: string) {
     return DBT_CHARACTER_REFERENCE_PATHS[characterId || ""] || DBT_CHARACTER_REFERENCE_PATHS.hannahbpd;
 }
@@ -154,6 +193,13 @@ function getDbtCharacterReferenceConfig(characterId?: string) {
 function getRandomItem<T>(items: T[]): T | null {
     if (items.length === 0) return null;
     return items[Math.floor(Math.random() * items.length)] ?? null;
+}
+
+function getImageSizeForFlow(service?: string, flow?: string): "1K" | "4K" {
+    if (service === "dbt") {
+        return "1K";
+    }
+    return "4K";
 }
 
 function getSlide5ReferenceCandidates(referenceDir: string): string[] {
@@ -187,6 +233,12 @@ function getHannahSlide5ReferencePaths(flow = "weird_hack"): string[] {
 
 function getDbtSlide2References(characterId?: string, flow = "weird_hack"): ReferenceImage[] {
     const normalizedCharacterId = characterId || "hannahbpd";
+    if (flow === "i_say_they_say") {
+        const randomIFeelRef = getRandomDbtIFeelReferencePath(normalizedCharacterId);
+        return randomIFeelRef
+            ? loadFixedReferenceImages([randomIFeelRef], `DBT I Feel Slide 2:${normalizedCharacterId}`)
+            : [];
+    }
     const randomClientRef = getRandomDbtClientReferencePath(normalizedCharacterId, flow, 2);
     if (randomClientRef) {
         return loadFixedReferenceImages([randomClientRef], `DBT Slide 2:${normalizedCharacterId}:${flow}`);
@@ -199,6 +251,12 @@ function getDbtSlide2References(characterId?: string, flow = "weird_hack"): Refe
 
 function getDbtSlide1References(characterId?: string, flow = "weird_hack"): ReferenceImage[] {
     const normalizedCharacterId = characterId || "hannahbpd";
+    if (flow === "i_say_they_say") {
+        const randomIFeelRef = getRandomDbtIFeelReferencePath(normalizedCharacterId);
+        return randomIFeelRef
+            ? loadFixedReferenceImages([randomIFeelRef], `DBT I Feel Slide 1:${normalizedCharacterId}`)
+            : [];
+    }
     const randomClientRef = getRandomDbtClientReferencePath(normalizedCharacterId, flow, 1);
     if (randomClientRef) {
         return loadFixedReferenceImages([randomClientRef], `DBT Slide 1:${normalizedCharacterId}:${flow}`);
@@ -208,6 +266,12 @@ function getDbtSlide1References(characterId?: string, flow = "weird_hack"): Refe
 
 function getDbtSlide3References(characterId?: string, flow = "weird_hack"): ReferenceImage[] {
     const normalizedCharacterId = characterId || "hannahbpd";
+    if (flow === "i_say_they_say") {
+        const randomIFeelRef = getRandomDbtIFeelReferencePath(normalizedCharacterId);
+        return randomIFeelRef
+            ? loadFixedReferenceImages([randomIFeelRef], `DBT I Feel Slide 3:${normalizedCharacterId}`)
+            : [];
+    }
     const randomClientRef = getRandomDbtClientReferencePath(normalizedCharacterId, flow, 3);
     if (randomClientRef) {
         return loadFixedReferenceImages([randomClientRef], `DBT Slide 3:${normalizedCharacterId}:${flow}`);
@@ -220,6 +284,12 @@ function getDbtSlide3References(characterId?: string, flow = "weird_hack"): Refe
 
 function getDbtSlide4References(characterId?: string, flow = "weird_hack"): ReferenceImage[] {
     const normalizedCharacterId = characterId || "hannahbpd";
+    if (flow === "i_say_they_say") {
+        const randomIFeelRef = getRandomDbtIFeelReferencePath(normalizedCharacterId);
+        return randomIFeelRef
+            ? loadFixedReferenceImages([randomIFeelRef], `DBT I Feel Slide 4:${normalizedCharacterId}`)
+            : [];
+    }
     const randomClientRef = getRandomDbtClientReferencePath(normalizedCharacterId, flow, 4);
     if (randomClientRef) {
         return loadFixedReferenceImages([randomClientRef], `DBT Slide 4:${normalizedCharacterId}:${flow}`);
@@ -229,6 +299,12 @@ function getDbtSlide4References(characterId?: string, flow = "weird_hack"): Refe
 
 function getDbtSlide5References(characterId?: string, flow = "weird_hack"): ReferenceImage[] {
     const normalizedCharacterId = characterId || "hannahbpd";
+    if (flow === "i_say_they_say") {
+        const randomIFeelRef = getRandomDbtIFeelReferencePath(normalizedCharacterId);
+        return randomIFeelRef
+            ? loadFixedReferenceImages([randomIFeelRef], `DBT I Feel Slide 5:${normalizedCharacterId}`)
+            : [];
+    }
     const randomClientRef = getRandomDbtClientReferencePath(normalizedCharacterId, flow, 5);
     if (randomClientRef) {
         return loadFixedReferenceImages([randomClientRef], `DBT Slide 5:${normalizedCharacterId}:${flow}`);
@@ -247,8 +323,28 @@ const DBT_THREE_TIPS_WOMAN_DESCRIPTION = "Woman specs: 170cm tall, brown long ha
 const DBT_THREE_TIPS_FIXED_PROMPT_PREFIX = "Create another version of the reference image with the same vibe and same blurry/washed image filter, but in a slightly different setting. No face visible of person in the image. Woman specs: 170cm tall, brown long hair and 21 years old. No flashlight and no bright lights, no blurred background.";
 const DBT_THREE_TIPS_DEGRADED_PHONE_RULE = "CRITICAL - the image must look like a degraded phone photo: heavily underexposed and crushed shadows, strong digital noise and grain throughout, lossy JPEG compression artifacts visible, slight motion blur from shaky hands, washed-out low-contrast look as if taken on an old iPhone in poor light. NOT a clean or professional photo. The image should look almost too dark and slightly out of focus - like someone accidentally took it at night.";
 const DBT_THREE_TIPS_SHARED_FIXED_PROMPT = `${DBT_THREE_TIPS_FIXED_PROMPT_PREFIX}\n\n${DBT_THREE_TIPS_DEGRADED_PHONE_RULE}`;
+const DBT_I_FEEL_SHARED_FIXED_PROMPT = `Two figures as a couple, man and woman, both mid-20s. The painting must feel clearly 19th century, and the couple should look like they are from the 19th century too. Emotional dynamic: one person says "[outside voice text]" while the other feels "[inside voice text]".
+The figures should not illustrate the text literally - capture the emotional distance between them.
+Painting: cracked varnish, impasto brushstrokes, muted dark warm tones, dark vignetting, canvas texture visible.
+
+Make the painting look like the physical painting was scanned in with a super low budget scanner and therefore has a super bad visual quality. No frame visible. No text in image.`;
+
+function buildDbtIFeelPrompt(slideText: string, slideNumber?: number): string {
+    const dualVoice = parseDbtDualVoiceSlideText(slideText);
+    const outside = dualVoice?.outside || "[outside voice text]";
+    const inside = dualVoice?.inside || "[inside voice text]";
+
+    return `Two figures as a couple, man and woman, both mid-20s. The painting must feel clearly 19th century, and the couple should look like they are from the 19th century too. Emotional dynamic: one person says "${outside}" while the other feels "${inside}".
+The figures should not illustrate the text literally - capture the emotional distance between them.
+Painting: cracked varnish, impasto brushstrokes, muted dark warm tones, dark vignetting, canvas texture visible.
+
+Make the painting look like the physical painting was scanned in with a super low budget scanner and therefore has a super bad visual quality. No frame visible. No text in image.`;
+}
 
 function getDbtFixedSlide1Prompt(flow = "weird_hack"): string | null {
+    if (flow === "i_say_they_say") {
+        return DBT_I_FEEL_SHARED_FIXED_PROMPT;
+    }
     if (flow === "three_tips") {
         return "Create another version of the reference image with the same vibe and same blurry/washed image filter, but in a slightly different setting. No face visible of person in the image. Woman specs: 170cm tall, brown long hair and 21 years old. No flashlight and no bright lights, no blurred background. Make sure the image contains an astonishing, amazing and real looking sky. Dont overexxagerate the look of the sky tho.\n\nCRITICAL - the image must look like a degraded phone photo: heavily underexposed and crushed shadows, strong digital noise and grain throughout, lossy JPEG compression artifacts visible, slight motion blur from shaky hands, washed-out low-contrast look as if taken on an old iPhone in poor light. NOT a clean or professional photo. The image should look almost too dark and slightly out of focus - like someone accidentally took it at night.";
     }
@@ -256,6 +352,9 @@ function getDbtFixedSlide1Prompt(flow = "weird_hack"): string | null {
 }
 
 function getDbtFixedSlide2Prompt(characterId?: string, flow = "weird_hack"): string {
+    if (flow === "i_say_they_say") {
+        return DBT_I_FEEL_SHARED_FIXED_PROMPT;
+    }
     if (flow === "three_tips") {
         return DBT_THREE_TIPS_SHARED_FIXED_PROMPT;
     }
@@ -267,6 +366,9 @@ function getDbtFixedSlide2Prompt(characterId?: string, flow = "weird_hack"): str
 }
 
 function getDbtFixedSlide3Prompt(characterId?: string, flow = "weird_hack"): string {
+    if (flow === "i_say_they_say") {
+        return DBT_I_FEEL_SHARED_FIXED_PROMPT;
+    }
     if (flow === "three_tips") {
         return "Create another version of the reference image with the same vibe and same blurry/washed image filter, but in a slightly different setting. No face visible of person in the image. Woman specs: 170cm tall, brown long hair and 21 years old. No flashlight and no bright lights, no blurred background. Add some real asthetic to the image to make it look super nice for the viewers eyes.\n\nCRITICAL - the image must look like a degraded phone photo: heavily underexposed and crushed shadows, strong digital noise and grain throughout, lossy JPEG compression artifacts visible, slight motion blur from shaky hands, washed-out low-contrast look as if taken on an old iPhone in poor light. NOT a clean or professional photo. The image should look almost too dark and slightly out of focus - like someone accidentally took it at night.";
     }
@@ -278,6 +380,9 @@ function getDbtFixedSlide3Prompt(characterId?: string, flow = "weird_hack"): str
 }
 
 function getDbtFixedSlide4Prompt(flow = "weird_hack"): string | null {
+    if (flow === "i_say_they_say") {
+        return DBT_I_FEEL_SHARED_FIXED_PROMPT;
+    }
     if (flow === "three_tips") {
         return "Create another version of the reference image with the same vibe and same blurry/washed image filter, but in a slightly different setting. No face visible of person in the image. Woman specs: 170cm tall, brown long hair and 21 years old. No flashlight and no bright lights, no blurred background. Add some real asthetic to the image to make it look super nice for the viewers eyes.\n\nCRITICAL - the image must look like a degraded phone photo: heavily underexposed and crushed shadows, strong digital noise and grain throughout, lossy JPEG compression artifacts visible, slight motion blur from shaky hands, washed-out low-contrast look as if taken on an old iPhone in poor light. NOT a clean or professional photo. The image should look almost too dark and slightly out of focus - like someone accidentally took it at night.";
     }
@@ -285,6 +390,9 @@ function getDbtFixedSlide4Prompt(flow = "weird_hack"): string | null {
 }
 
 function getDbtFixedSlide5Prompt(characterId?: string, flow = "weird_hack"): string | null {
+    if (flow === "i_say_they_say") {
+        return DBT_I_FEEL_SHARED_FIXED_PROMPT;
+    }
     if (flow === "three_tips") {
         return "Create another version of the reference image with the same hopeful and uplifting, slightly brighter vibe and same blurry/washed image filter, but in a slightly different setting. No face visible of person in the image. Woman specs: 170cm tall, brown long hair and 21 years old. No flashlight and no bright lights, no blurred background.\n\nCRITICAL - keep the image aligned with the bright hopeful reference images. The scene should feel lighter, softer, and more open than Slides 1-4. The image must still look like a degraded phone photo: strong digital noise and grain throughout, lossy JPEG compression artifacts visible, slight motion blur from shaky hands, washed-out low-contrast look, imperfect focus, and candid old-iPhone quality. NOT a clean or professional photo. Keep it hopeful and slightly brighter, not dark night-heavy.";
     }
@@ -323,7 +431,6 @@ const { file } = Bun;
 // Robust API Key loading
 let ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 let OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-let GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 let API_KEYS_RAW = process.env.API_KEYS;
 
 if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !API_KEYS_RAW) {
@@ -335,22 +442,19 @@ if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !API_KEYS_RAW) {
             console.log(`Ã°Å¸â€œÂ Loading keys from ${pathStr}`);
             const anthropicMatch = envText.match(/ANTHROPIC_API_KEY=(.*)/);
             const openaiMatch = envText.match(/OPENAI_API_KEY=(.*)/);
-            const geminiMatch = envText.match(/GEMINI_API_KEY=(.*)/);
             const apiKeysMatch = envText.match(/API_KEYS=(.*)/);
 
             if (anthropicMatch && anthropicMatch[1]) ANTHROPIC_API_KEY = anthropicMatch[1].trim();
             if (openaiMatch && openaiMatch[1]) OPENAI_API_KEY = openaiMatch[1].trim();
-            if (geminiMatch && geminiMatch[1]) GEMINI_API_KEY = geminiMatch[1].trim();
             if (apiKeysMatch && apiKeysMatch[1]) API_KEYS_RAW = apiKeysMatch[1].trim();
         } catch (e) {
             console.error(`Ã¢ÂÅ’ Failed to load ${pathStr}`);
         }
     }
 
-    // Try loading from all possible locations
-    await loadEnv(path.join(process.cwd(), ".env"));
-    await loadEnv(path.join(process.cwd(), "server", ".env"));
-    await loadEnv(path.join(process.cwd(), "..", ".env"));
+    // Try loading from stable project-relative locations
+    await loadEnv(path.join(PROJECT_ROOT, ".env"));
+    await loadEnv(path.join(SERVER_ROOT, ".env"));
 }
 
 const PORT = parseInt(process.env.PORT || "3001", 10); // Railway/hosted platforms inject PORT
@@ -366,7 +470,6 @@ console.log(`Ã°Å¸Å¡â‚¬ Hook Bridge API starting on http://localhost:${
 console.log(`Ã°Å¸â€œâ€š Working Directory: ${process.cwd()}`);
 console.log(`Ã°Å¸â€â€˜ Anthropic Key: ${!!ANTHROPIC_API_KEY}`);
 console.log(`Ã°Å¸â€â€˜ OpenAI Key: ${!!OPENAI_API_KEY}`);
-console.log(`Ã°Å¸â€“Â¼Ã¯Â¸Â Gemini Key: ${!!GEMINI_API_KEY}`);
 
 // Pre-load embeddings at startup
 try {
@@ -481,13 +584,13 @@ const server = Bun.serve({
                 if (!ANTHROPIC_API_KEY) throw new Error("Anthropic API Key missing");
                 const input = await req.json() as any;
                 const wantsImages = input?.generateImages !== false;
-                if (wantsImages && !GEMINI_API_KEY) throw new Error("Gemini API Key missing");
+                if (wantsImages && !OPENAI_API_KEY) throw new Error("OpenAI API Key missing for image generation");
 
                 const created = createDbtJob(db, input || {});
 
                 void runDbtJob(db, created.id, {
                     anthropicApiKey: ANTHROPIC_API_KEY!,
-                    geminiApiKey: GEMINI_API_KEY || undefined
+                    openaiApiKey: OPENAI_API_KEY || undefined
                 });
 
                 return sendJSON({
@@ -560,9 +663,18 @@ const server = Bun.serve({
         else if ((cleanPath === "/improve-hook" || cleanPath === "/improve-hooks") && method === "POST") {
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
-                const { slides, slides_text, service } = await req.json() as any;
-
-                const fullSlideText = slides && Array.isArray(slides) ? slides.join('\n') : (slides_text || "");
+                const { slides, slides_text, service, slideType } = await req.json() as any;
+                const isDbtStoryFlow =
+                    service === 'dbt' &&
+                    (slideType === 'story_telling_bf' || slideType === 'story_telling_gf');
+                const slideList = Array.isArray(slides) ? slides.map((s: any) => String(s || "").trim()) : [];
+                const hookContextSlides = isDbtStoryFlow ? slideList.slice(1) : slideList;
+                const storyHookContextText = hookContextSlides
+                    .map((slide: string, index: number) => `Slide ${index + 2}: ${slide}`)
+                    .join('\n');
+                const fullSlideText = hookContextSlides.length > 0
+                    ? (isDbtStoryFlow ? storyHookContextText : hookContextSlides.join('\n'))
+                    : (slides_text || "");
 
                 if (!fullSlideText.trim()) {
                     return sendJSON({ error: "Slides text is required" }, 400);
@@ -574,7 +686,31 @@ const server = Bun.serve({
                 let hookRequirementsPrompt = "";
                 let systemPrompt = "";
 
-                if (isDbt) {
+                if (isDbtStoryFlow) {
+                    const storyPerspective = slideType === 'story_telling_gf' ? 'girlfriend' : 'boyfriend';
+                    hookRequirementsPrompt = `Create a BANGER and VIRAL hook for this story telling post.`;
+
+                    systemPrompt = `You are a viral TikTok hook writer for raw 9-slide TikTok story posts in the BPD/DBT niche.
+CRITICAL RULES:
+1. Return ONLY a JSON array of 3 strings: ["hook 1", "hook 2", "hook 3"].
+2. Use ONLY slides 2+ provided in the user message as context for the replacement Slide 1 hook.
+3. lowercase only. no emojis. no hashtags.
+4. max 20 words total per hook.
+5. Each hook must work as Slide 1 for the story flow and should be a banger.
+6. Write from the ${storyPerspective}'s perspective.
+7. Perspective lock:
+${slideType === 'story_telling_gf'
+? '- gf means girlfriend perspective\n- the narrator is the girlfriend\n- use i / me / my / my boyfriend / he / him\n- never write the hook as if a boyfriend is narrating\n- do not start the hook with "she"\n- the hook should use "i" and/or "my boyfriend"'
+: '- bf means boyfriend perspective\n- the narrator is the boyfriend\n- use i / me / my / my girlfriend / she / her\n- never write the hook as if a girlfriend is narrating\n- do not use "my boyfriend" as the narrator phrase\n- do not start the hook with "she"\n- the hook should use "i" and/or "my girlfriend"'}
+8. Match this hook style: raw, intimate, specific, emotionally honest. short punchy lines.
+9. The hook should fit one of these patterns without copying them:
+${slideType === 'story_telling_gf'
+? '- "my boyfriend watched me fall apart. and didn\'t look away."\n- "my boyfriend did something for me that no therapist ever could. and he\'s not even a therapist."\n- "i didn\'t know my boyfriend was building it. i just knew i was running out of time."'
+: '- "i did something kind of insane for my girlfriend. and i\'d do it again in a heartbeat."\n- "nobody was coming to help her. so i had to figure it out myself."\n- "my girlfriend was diagnosed, waitlisted, and basically told good luck. i couldn\'t just sit there."'}
+10. Never use weird-hack framing. Never write "weird dbt hacks" or similar.
+11. No polished copywriting. Imperfect, intimate, emotionally specific beats clean.
+12. Do not include "Slide 1:" in the returned hooks.`;
+                } else if (isDbt) {
                     hookRequirementsPrompt = `For this slide post, create an ABSOLUTE VIRAL BANGER HOOK, which will replace the current cheap slide 1 hook. Give me three options. The post will be in the BPD niche on Tiktok. The hook must create ABSOLUTE curiosity within the first 3 seconds and must be like a cliffhanger is a good series. Use the best fitting option from this framework:
 
 Here are the 4 hook frameworks that consistently trigger all 6 behaviors: 
@@ -613,7 +749,13 @@ CRITICAL RULES:
 3. Strictly follow the "NO FILLER WORDS", "MAX 15 WORDS", and "LOWERCASE" rules.`;
                 }
 
-                const userPrompt = `Slide Content: 
+                const userPrompt = isDbtStoryFlow
+                    ? `Story post structure:
+Slide 1: [your hook comes here]
+${fullSlideText}
+
+${hookRequirementsPrompt}`
+                    : `Slide Content: 
 ${fullSlideText}
 
 ${hookRequirementsPrompt}`;
@@ -626,7 +768,7 @@ ${hookRequirementsPrompt}`;
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'claude-opus-4-6',
+                        model: 'claude-sonnet-4-6',
                         max_tokens: 500,
                         system: systemPrompt,
                         messages: [{ role: 'user', content: userPrompt }]
@@ -666,10 +808,14 @@ ${hookRequirementsPrompt}`;
                     return sendJSON({ error: "Failed to generate hooks" }, 500);
                 }
 
-                const normalizedHooks = hooks.map((h: string) => String(h || "").trim()).slice(0, 3);
-                const finalHooks = isDbt
-                    ? normalizedHooks.map((h: string) => formatDbtSlide1Hook(h))
-                    : normalizedHooks.map((h: string) => h.toLowerCase());
+                const normalizedHooks = hooks
+                    .map((h: string) => String(h || "").trim().replace(/^slide\s*1\s*:\s*/i, ''))
+                    .slice(0, 3);
+                const finalHooks = isDbtStoryFlow
+                    ? normalizedHooks
+                    : isDbt
+                        ? normalizedHooks.map((h: string) => formatDbtSlide1Hook(h))
+                        : normalizedHooks.map((h: string) => h.toLowerCase());
 
                 return sendJSON({
                     hooks: finalHooks
@@ -725,7 +871,7 @@ Based on the context above, generate three options for the integrated app mentio
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'claude-opus-4-6',
+                        model: 'claude-sonnet-4-6',
                         max_tokens: 500,
                         system: systemPrompt,
                         messages: [{ role: 'user', content: userPrompt }]
@@ -968,15 +1114,40 @@ Based on the context above, generate three options for the integrated app mentio
                 if (isDbtProject) {
                     const selectedArtStyle = (ART_STYLES[effectiveArtStyle] || ART_STYLES.symbolic) as any;
                     const isSymbolic = selectedArtStyle.id === 'symbolic';
-                    const isWeirdHackFlow = effectiveFlow === 'weird_hack';
+                    const isWeirdHackFlow = effectiveFlow === 'weird_hack' || effectiveFlow === 'weird_hack_v2';
                     console.log(`[Image Prompts] Generating ${selectedArtStyle.name} prompts for DBT-Mind with ${slides.length} slides${isSymbolic ? ' (Symbolic Mode)' : ''}${isWeirdHackFlow ? ' (Weird Hack Flow)' : ''}`);
 
                     const normalizedSlides = slides.map((s: any) => String(s || '').trim());
                     const staticSlides: Record<number, string> = {};
-                    if (isSymbolic && effectiveFlow !== "three_tips") {
-                        staticSlides[1] = getDbtStaticSlidePath(resolvedCharacterId, 1) || 'slide1.png';
+                    const usesStaticDbtSlide1Template = effectiveFlow === "weird_hack" || effectiveFlow === "weird_hack_v2";
+                    const usesStaticDbtSlide6Template = effectiveFlow === "weird_hack";
+                    if (isSymbolic && usesStaticDbtSlide1Template) {
+                        staticSlides[1] = getDbtStaticSlidePath(resolvedCharacterId, 1, effectiveFlow) || 'slide1.png';
                     }
-                    if (isDbtProject && slides.length >= 6) staticSlides[6] = getDbtStaticSlidePath(resolvedCharacterId, 6);
+                    if (isDbtProject && slides.length >= 6 && usesStaticDbtSlide6Template) staticSlides[6] = getDbtStaticSlidePath(resolvedCharacterId, 6, effectiveFlow);
+
+                    if (effectiveFlow === "weird_hack_v2") {
+                        const weirdHackV2Prompts = await generateWeirdHackV2ImagePrompts(normalizedSlides, ANTHROPIC_API_KEY!);
+                        const parsed: Record<string, string> = {};
+
+                        if (weirdHackV2Prompts.slide2) parsed.image2 = weirdHackV2Prompts.slide2;
+                        if (weirdHackV2Prompts.slide3) parsed.image3 = weirdHackV2Prompts.slide3;
+                        if (weirdHackV2Prompts.slide4) parsed.image4 = weirdHackV2Prompts.slide4;
+                        if (weirdHackV2Prompts.slide5) parsed.image5 = weirdHackV2Prompts.slide5;
+                        if (weirdHackV2Prompts.slide6) parsed.image6 = weirdHackV2Prompts.slide6;
+                        if (weirdHackV2Prompts.slide7) parsed.image7 = weirdHackV2Prompts.slide7;
+                        if (weirdHackV2Prompts.slide8) parsed.image8 = weirdHackV2Prompts.slide8;
+
+                        const prompts = normalizedSlides.map((_, index) => parsed[`image${index + 1}`] || null);
+
+                        return sendJSON({
+                            prompts: prompts,
+                            image_prompts: parsed,
+                            is_painting_style: false,
+                            useStaticSlide1: isSymbolic && usesStaticDbtSlide1Template,
+                            staticSlides: staticSlides
+                        });
+                    }
 
                     const parsed: Record<string, string> = {};
                     const fixedSlide1ReferencePrompt = getDbtFixedSlide1Prompt(effectiveFlow);
@@ -1001,10 +1172,16 @@ Based on the context above, generate three options for the integrated app mentio
                         parsed.image5 = fixedSlide5ReferencePrompt;
                     }
 
-                    if (effectiveFlow !== "three_tips") {
+                    if (effectiveFlow === "weird_hack" || effectiveFlow === "weird_hack_v2") {
                         if (normalizedSlides.length >= 4 && (!parsed.image4 || !String(parsed.image4).trim())) {
                             parsed.image4 = "dark-to-warm gradient background, abstract minimal transition, no distinct scene.";
                         }
+                    }
+
+                    if (effectiveFlow === "i_say_they_say") {
+                        normalizedSlides.forEach((slideText, index) => {
+                            parsed[`image${index + 1}`] = buildDbtIFeelPrompt(slideText, index + 1);
+                        });
                     }
 
                     const prompts = normalizedSlides.map((_, index) => parsed[`image${index + 1}`] || null);
@@ -1013,7 +1190,7 @@ Based on the context above, generate three options for the integrated app mentio
                         prompts: prompts,
                         image_prompts: parsed,
                         is_painting_style: true,
-                        useStaticSlide1: isSymbolic && effectiveFlow !== "three_tips",
+                        useStaticSlide1: isSymbolic && usesStaticDbtSlide1Template,
                         staticSlides: staticSlides
                     });
                 } else {
@@ -1283,7 +1460,9 @@ Write the description as exactly four parts:
 
 3) App mention (exactly 1 sentence)
 - Casual, personal recommendation tone.
-- Must include "@dbtmind".
+- Never include "@dbt-mind" or "@dbtmind".
+- Refer to it naturally as "DBT-Mind" or "DBT-Mind (free)" only.
+- Never call it "the dbt app", "my dbt app", or "that app".
 - If possible, mention the concrete skill/feature from the slides (for example: stop, wise mind, check the facts, diary, logging, urge surfing).
 - No ad tone, no "check out", no sales language.
 
@@ -1348,7 +1527,7 @@ Du MUSST saveyourpet.de in der Description erwÃƒÂ¤hnen - und zwar **AM ANFAN
 - Keep it conversational, imperfect, emotionally immediate.
 - Avoid self-help-book voice and poetic writing.
 
-Example output: {"title":"my brain wrote the breakup in 3 seconds","description":"one dry text and my brain already wrote the breakup, the funeral, and the part where i was wrong about everything.\ntook me too long to realize the feeling is real but the story i build from it usually isn't.\nmy therapist taught me stop and i actually use it now bc @dbtmind walks me through it when i'm too in it to think.\n#bpd #dbtskills #bpdrecovery #anxietyspiral #drytext"}` : `
+Example output: {"title":"my brain wrote the breakup in 3 seconds","description":"one dry text and my brain already wrote the breakup, the funeral, and the part where i was wrong about everything.\ntook me too long to realize the feeling is real but the story i build from it usually isn't.\nmy therapist taught me stop and i actually use it now bc DBT-Mind walks me through it when i'm too in it to think.\n#bpd #dbtskills #bpdrecovery #anxietyspiral #drytext"}` : `
 ## LANGUAGE: GERMAN
 - Write everything in German
 - Natural, authentic, conversational tone
@@ -1395,7 +1574,7 @@ OUTPUT: Return ONLY a JSON object with "title" and "description" fields. No mark
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'claude-opus-4-6',
+                        model: 'claude-sonnet-4-6',
                         max_tokens: 1000,
                         system: systemPrompt,
                         messages: [{ role: 'user', content: userPrompt }]
@@ -1441,7 +1620,6 @@ OUTPUT: Return ONLY a JSON object with "title" and "description" fields. No mark
                         .filter(Boolean);
 
                     if (dbtMode) {
-                        let mentionSeen = false;
                         const normalized: string[] = [];
 
                         for (const line of lines) {
@@ -1450,30 +1628,15 @@ OUTPUT: Return ONLY a JSON object with "title" and "description" fields. No mark
                                 continue;
                             }
 
-                            if (/@dbtmind/i.test(line)) {
-                                if (mentionSeen) {
-                                    const withoutMention = line
-                                        .replace(/\s*@dbtmind\b/ig, '')
-                                        .replace(/\s{2,}/g, ' ')
-                                        .trim();
-                                    if (withoutMention) normalized.push(withoutMention);
-                                    continue;
-                                }
-
-                                mentionSeen = true;
-                                normalized.push(
-                                    line
-                                        .replace(/(?:@dbtmind\s*)+/ig, '@dbtmind ')
-                                        .replace(/\s{2,}/g, ' ')
-                                        .trim()
-                                );
-                                continue;
-                            }
-
-                            normalized.push(line);
+                            normalized.push(
+                                line
+                                    .replace(/\s*@dbt-?mind\b/ig, '')
+                                    .replace(/\s{2,}/g, ' ')
+                                    .trim()
+                            );
                         }
 
-                        const bodyLines = normalized.filter((line: string) => !line.startsWith('#'));
+                        const bodyLines = normalized.filter((line: string) => line && !line.startsWith('#'));
                         const hashtags = normalized
                             .filter((line: string) => line.startsWith('#'))
                             .flatMap((line: string) => line.split(/\s+/))
@@ -1677,7 +1840,7 @@ Output format: JSON array of 5 strings ONLY.No markdown, no explanation.`
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'claude-opus-4-6',
+                        model: 'claude-sonnet-4-6',
                         max_tokens: 500,
                         messages: [{
                             role: 'user',
@@ -1897,12 +2060,12 @@ Output ONLY the JSON object.No markdown, no explanation.`
         }
         // POST /generate-image - Generate image
         else if (cleanPath === "/generate-image" && method === "POST") {
-            if (!GEMINI_API_KEY) {
-                return sendJSON({ error: "Gemini API Key not configured" }, 500);
+            if (!OPENAI_API_KEY) {
+                return sendJSON({ error: "OpenAI API Key not configured" }, 500);
             } else {
                 try {
                     const body = await req.json() as any;
-                    const { prompt, aspect_ratio = "9:16", count = 1, character_id, service } = body;
+                    const { prompt, aspect_ratio = "9:16", count = 1, character_id, service, flow } = body;
 
                     if (!prompt) {
                         return sendJSON({ error: "Prompt is required" }, 400);
@@ -1917,18 +2080,23 @@ Output ONLY the JSON object.No markdown, no explanation.`
 
                         console.log(`[Image Gen] Generating ${count} image(s) ${anchor ? "with character anchor" : "pure prompt"}...`);
 
-                        const flatPrompt = flattenImagePrompt(prompt, { includeUgcStyle: service !== 'dbt' });
+                        let flatPrompt = flattenImagePrompt(prompt, { includeUgcStyle: service !== 'dbt' });
+                        const effectiveFlow = service === 'dbt' ? (flow || "weird_hack") : flow;
+                        if (service === 'dbt' && effectiveFlow === 'weird_hack_v2') {
+                            flatPrompt = buildWeirdHackV2NanoBananaPrompt(flatPrompt);
+                        }
 
+                        const imageSize = getImageSizeForFlow(service, flow);
                         let result;
                         if (anchor) {
-                            result = await generateImageWithReferences(flatPrompt, [anchor], GEMINI_API_KEY, {
+                            result = await generateImageWithReferences(flatPrompt, [anchor], OPENAI_API_KEY, {
                                 aspectRatio: aspect_ratio,
-                                imageSize: "1K"
+                                imageSize
                             });
                         } else {
-                            result = await generateImage(flatPrompt, GEMINI_API_KEY, {
+                            result = await generateImage(flatPrompt, OPENAI_API_KEY, {
                                 aspectRatio: aspect_ratio,
-                                imageSize: "1K"
+                                imageSize
                             });
                         }
 
@@ -1958,8 +2126,8 @@ Output ONLY the JSON object.No markdown, no explanation.`
         }
         // POST /generate-ai-images - Generate all carousel images
         else if (cleanPath === "/generate-ai-images" && method === "POST") {
-            if (!GEMINI_API_KEY) {
-                return sendJSON({ error: "Gemini API Key not configured" }, 500);
+            if (!OPENAI_API_KEY) {
+                return sendJSON({ error: "OpenAI API Key not configured" }, 500);
             } else {
                 try {
                     const body = await req.json() as any;
@@ -1996,6 +2164,19 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                 data: ref.data,
                                 mimeType: ref.mimeType || ref.mime_type || "image/png"
                             }));
+                            const iFeelReferencePaths = service === 'dbt' && effectiveFlow === 'i_say_they_say'
+                                ? getDbtIFeelReferencePaths(character_id)
+                                : [];
+                            const shuffledIFeelReferencePaths = [...iFeelReferencePaths].sort(() => Math.random() - 0.5);
+                            const uniqueIFeelReferencePathBySlide = new Map<number, string>();
+                            if (shuffledIFeelReferencePaths.length > 0) {
+                                promptsWithIndices.forEach((item, orderIndex) => {
+                                    const assignedPath = shuffledIFeelReferencePaths[orderIndex];
+                                    if (assignedPath) {
+                                        uniqueIFeelReferencePathBySlide.set(item.index, assignedPath);
+                                    }
+                                });
+                            }
 
                             // If no user references, check for anchor (SYP only)
                             if (baseReferences.length === 0 && service === 'syp' && character_id) {
@@ -2017,8 +2198,26 @@ Output ONLY the JSON object.No markdown, no explanation.`
 
                                 let finalPrompt = item.prompt;
                                 let finalReferences = [...baseReferences];
+                                const usesLegacyDbtFixedReferences =
+                                    service === 'dbt' &&
+                                    effectiveFlow !== 'i_say_they_say' &&
+                                    effectiveFlow !== 'weird_hack_v2';
 
-                                if (service === 'dbt' && item.index === 0) {
+                                if (service === 'dbt' && effectiveFlow === 'weird_hack_v2') {
+                                    finalPrompt = buildWeirdHackV2NanoBananaPrompt(finalPrompt);
+                                }
+
+                                if (service === 'dbt' && effectiveFlow === 'i_say_they_say') {
+                                    const assignedReferencePath = uniqueIFeelReferencePathBySlide.get(item.index);
+                                    const iFeelReference = assignedReferencePath
+                                        ? loadFixedReferenceImages([assignedReferencePath], `DBT I Feel Slide ${item.index + 1}:${character_id || 'hannahbpd'}`)
+                                        : getDbtSlide1References(character_id, effectiveFlow);
+                                    if (iFeelReference.length > 0) {
+                                        finalReferences.push(...iFeelReference);
+                                    }
+                                }
+
+                                if (usesLegacyDbtFixedReferences && item.index === 0) {
                                     const slide1References = getDbtSlide1References(character_id, effectiveFlow);
                                     if (slide1References.length > 0) {
                                         finalReferences.push(...slide1References);
@@ -2030,7 +2229,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                     }
                                 }
 
-                                if (service === 'dbt' && item.index === 1) {
+                                if (usesLegacyDbtFixedReferences && item.index === 1) {
                                     const slide2References = getDbtSlide2References(character_id, effectiveFlow);
                                     if (slide2References.length > 0) {
                                         finalReferences.push(...slide2References);
@@ -2039,7 +2238,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                     }
                                 }
 
-                                if (service === 'dbt' && item.index === 2) {
+                                if (usesLegacyDbtFixedReferences && item.index === 2) {
                                     const slide3References = getDbtSlide3References(character_id, effectiveFlow);
                                     if (slide3References.length > 0) {
                                         finalReferences.push(...slide3References);
@@ -2048,7 +2247,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                     }
                                 }
 
-                                if (service === 'dbt' && item.index === 3) {
+                                if (usesLegacyDbtFixedReferences && item.index === 3) {
                                     const slide4References = getDbtSlide4References(character_id, effectiveFlow);
                                     if (slide4References.length > 0) {
                                         finalReferences.push(...slide4References);
@@ -2061,7 +2260,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                 }
 
                                 // Slide 5 in DBT uses fixed visual references to avoid the generic AI look.
-                                if (service === 'dbt' && item.index === 4) {
+                                if (usesLegacyDbtFixedReferences && item.index === 4) {
                                     const slide5References = getDbtSlide5References(character_id, effectiveFlow);
                                     if (slide5References.length > 0) {
                                         finalReferences.push(...slide5References);
@@ -2090,9 +2289,10 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                     }
                                 }
 
+                                    const imageSize = getImageSizeForFlow(service, effectiveFlow);
                                     const result = finalReferences.length > 0
-                                        ? await generateImageWithReferences(finalPrompt, finalReferences, GEMINI_API_KEY!, { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize: "1K" })
-                                        : await generateImage(finalPrompt, GEMINI_API_KEY!, { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize: "1K" });
+                                        ? await generateImageWithReferences(finalPrompt, finalReferences, OPENAI_API_KEY!, { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize })
+                                        : await generateImage(finalPrompt, OPENAI_API_KEY!, { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize });
 
                                 results.push({
                                     slideIndex: item.index,
@@ -2142,32 +2342,37 @@ Output ONLY the JSON object.No markdown, no explanation.`
         }
         // POST /generate-custom-image - Generate a single image from a raw prompt
         else if (cleanPath === "/generate-custom-image" && method === "POST") {
-            if (!GEMINI_API_KEY) {
-                return sendJSON({ error: "Gemini API Key not configured" }, 500);
+            if (!OPENAI_API_KEY) {
+                return sendJSON({ error: "OpenAI API Key not configured" }, 500);
             } else {
                 try {
                     const body = await req.json() as any;
-                    const { prompt, aspectRatio = "9:16", referenceImages = [] } = body;
+                    const { prompt, aspectRatio = "9:16", referenceImages = [], service, flow } = body;
+                    const requestedImageSize =
+                        body.imageSize === "1K" || body.imageSize === "2K" || body.imageSize === "4K"
+                            ? body.imageSize
+                            : undefined;
 
                     if (!prompt) {
                         return sendJSON({ error: "Prompt is required" }, 400);
                     } else {
                         console.log(`[Custom Image] Generating with raw prompt and ${referenceImages.length} refs: ${prompt.substring(0, 50)}...`);
 
+                        const imageSize = requestedImageSize || getImageSizeForFlow(service, flow);
                         let result;
                         if (referenceImages && referenceImages.length > 0) {
                             const finalReferences = referenceImages.map((ref: any) => ({
                                 data: ref.data,
                                 mimeType: ref.mimeType || ref.mime_type || "image/png"
                             }));
-                            result = await generateImageWithReferences(prompt, finalReferences, GEMINI_API_KEY, {
+                            result = await generateImageWithReferences(prompt, finalReferences, OPENAI_API_KEY, {
                                 aspectRatio: aspectRatio,
-                                imageSize: "1K"
+                                imageSize
                             });
                         } else {
-                            result = await generateImage(prompt, GEMINI_API_KEY, {
+                            result = await generateImage(prompt, OPENAI_API_KEY, {
                                 aspectRatio: aspectRatio,
-                                imageSize: "1K"
+                                imageSize
                             });
                         }
 
@@ -2194,8 +2399,8 @@ Output ONLY the JSON object.No markdown, no explanation.`
         }
         // POST /generate-image-with-refs - Generate image with reference images
         else if (cleanPath === "/generate-image-with-refs" && method === "POST") {
-            if (!GEMINI_API_KEY) {
-                return sendJSON({ error: "Gemini API Key not configured" }, 500);
+            if (!OPENAI_API_KEY) {
+                return sendJSON({ error: "OpenAI API Key not configured" }, 500);
             } else {
                 try {
                     const body = await req.json() as any;
@@ -2222,7 +2427,23 @@ Output ONLY the JSON object.No markdown, no explanation.`
                             if (anchor) finalReferences.push(anchor);
                         }
 
-                        if (service === 'dbt' && slideIndex === 0) {
+                        const effectiveFlow = service === 'dbt' ? (flow || "weird_hack") : flow;
+                        if (service === 'dbt' && effectiveFlow === 'weird_hack_v2') {
+                            flatPrompt = buildWeirdHackV2NanoBananaPrompt(flatPrompt);
+                        }
+                        const usesLegacyDbtFixedReferences =
+                            service === 'dbt' &&
+                            effectiveFlow !== 'i_say_they_say' &&
+                            effectiveFlow !== 'weird_hack_v2';
+
+                        if (service === 'dbt' && effectiveFlow === 'i_say_they_say') {
+                            const iFeelReference = getDbtSlide1References(character_id, effectiveFlow);
+                            if (iFeelReference.length > 0) {
+                                finalReferences.push(...iFeelReference);
+                            }
+                        }
+
+                        if (usesLegacyDbtFixedReferences && slideIndex === 0) {
                             const slide1References = getDbtSlide1References(character_id, flow || "weird_hack");
                             if (slide1References.length > 0) {
                                 finalReferences.push(...slide1References);
@@ -2234,7 +2455,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                             }
                         }
 
-                        if (service === 'dbt' && slideIndex === 1) {
+                        if (usesLegacyDbtFixedReferences && slideIndex === 1) {
                             const slide2References = getDbtSlide2References(character_id, flow || "weird_hack");
                             if (slide2References.length > 0) {
                                 finalReferences.push(...slide2References);
@@ -2243,7 +2464,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                             }
                         }
 
-                        if (service === 'dbt' && slideIndex === 4) {
+                        if (usesLegacyDbtFixedReferences && slideIndex === 4) {
                             const slide5References = getDbtSlide5References(character_id, flow || "weird_hack");
                             if (slide5References.length > 0) {
                                 finalReferences.push(...slide5References);
@@ -2255,7 +2476,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                             }
                         }
 
-                        if (service === 'dbt' && slideIndex === 3) {
+                        if (usesLegacyDbtFixedReferences && slideIndex === 3) {
                             const slide4References = getDbtSlide4References(character_id, flow || "weird_hack");
                             if (slide4References.length > 0) {
                                 finalReferences.push(...slide4References);
@@ -2267,7 +2488,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                             }
                         }
 
-                        if (service === 'dbt' && slideIndex === 2) {
+                        if (usesLegacyDbtFixedReferences && slideIndex === 2) {
                             const slide3References = getDbtSlide3References(character_id, flow || "weird_hack");
                             if (slide3References.length > 0) {
                                 finalReferences.push(...slide3References);
@@ -2313,17 +2534,18 @@ Output ONLY the JSON object.No markdown, no explanation.`
                             }
                         }
 
+                        const imageSize = getImageSizeForFlow(service, effectiveFlow);
                         if (finalReferences.length > 0) {
-                            result = await generateImageWithReferences(
-                                flatPrompt,
-                                finalReferences,
-                                GEMINI_API_KEY,
-                                { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize: "1K" }
+                                result = await generateImageWithReferences(
+                                    flatPrompt,
+                                    finalReferences,
+                                OPENAI_API_KEY,
+                                { aspectRatio: (body.aspectRatio || "9:16") as any, imageSize }
                             );
                         } else {
-                            result = await generateImage(flatPrompt, GEMINI_API_KEY, {
+                            result = await generateImage(flatPrompt, OPENAI_API_KEY, {
                                 aspectRatio: (body.aspectRatio || "9:16") as any,
-                                imageSize: "1K"
+                                imageSize
                             });
                         }
 

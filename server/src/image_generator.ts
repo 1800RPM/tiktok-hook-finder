@@ -1,9 +1,8 @@
 /**
- * Image Generator Module - Nano Banana 2 (Gemini 3.1 Flash Image Preview)
- * Generates TikTok slide images using Google's Gemini image generation API
+ * Image Generator Module - GPT Image 2
+ * Generates TikTok slide images using OpenAI's image generation API.
  */
 
-import { GoogleGenAI } from "@google/genai";
 import sharp from "sharp";
 
 // Types
@@ -23,31 +22,170 @@ export interface ImageGenerationResult {
     error?: string;
 }
 
-// Singleton client instance
-let genAIClient: GoogleGenAI | null = null;
-
-/**
- * Initialize or get the Gemini AI client
- */
-function getClient(apiKey: string): GoogleGenAI {
-    if (!genAIClient) {
-        genAIClient = new GoogleGenAI({ apiKey });
-    }
-    return genAIClient;
+interface OpenAIRequestTrace {
+    clientRequestId: string;
+    requestId: string | null;
+    processingMs: string | null;
 }
+
+const OPENAI_IMAGE_MODEL = "gpt-image-2";
+const OPENAI_API_BASE = "https://api.openai.com/v1";
+const DEFAULT_OUTPUT_FORMAT = "png";
+type OutputFormat = "png" | "jpeg" | "webp";
 
 function normalizeImageSize(imageSize?: ImageGenerationOptions["imageSize"]): "1K" | "2K" | "4K" {
     if (!imageSize || imageSize === "0.5K") {
-        return "1K";
+        return "4K";
     }
     return imageSize;
 }
 
+function resolveOutputFormat(): OutputFormat {
+    return DEFAULT_OUTPUT_FORMAT;
+}
+
+function resolveOutputMimeType(outputFormat: OutputFormat): string {
+    switch (outputFormat) {
+        case "jpeg":
+            return "image/jpeg";
+        case "webp":
+            return "image/webp";
+        default:
+            return "image/png";
+    }
+}
+
+function resolveOpenAIQuality(imageSize: "1K" | "2K" | "4K"): "auto" | "low" | "medium" | "high" {
+    if (imageSize === "1K") {
+        return "medium";
+    }
+    return "auto";
+}
+
+function resolveOpenAISize(
+    aspectRatio: NonNullable<ImageGenerationOptions["aspectRatio"]>,
+    imageSize: "1K" | "2K" | "4K"
+): string {
+    const sizeMap: Record<"1K" | "2K" | "4K", Record<NonNullable<ImageGenerationOptions["aspectRatio"]>, string>> = {
+        "1K": {
+            "9:16": "864x1536",
+            "16:9": "1536x864",
+            "1:1": "1024x1024",
+            "4:3": "1024x768",
+            "3:4": "768x1024"
+        },
+        "2K": {
+            "9:16": "1152x2048",
+            "16:9": "2048x1152",
+            "1:1": "2048x2048",
+            "4:3": "2048x1536",
+            "3:4": "1536x2048"
+        },
+        "4K": {
+            "9:16": "2160x3840",
+            "16:9": "3840x2160",
+            "1:1": "2880x2880",
+            "4:3": "3072x2304",
+            "3:4": "2304x3072"
+        }
+    };
+
+    return sizeMap[imageSize][aspectRatio];
+}
+
+function buildOpenAIRequestTrace(response: Response, clientRequestId: string): OpenAIRequestTrace {
+    return {
+        clientRequestId,
+        requestId: response.headers.get("x-request-id"),
+        processingMs: response.headers.get("openai-processing-ms")
+    };
+}
+
+function formatOpenAITrace(trace: OpenAIRequestTrace): string {
+    const requestId = trace.requestId || "unknown";
+    const processingMs = trace.processingMs || "unknown";
+    return `client_request_id=${trace.clientRequestId} request_id=${requestId} processing_ms=${processingMs}`;
+}
+
+async function parseOpenAIResponse(
+    response: Response,
+    clientRequestId: string
+): Promise<{ payload: any; trace: OpenAIRequestTrace }> {
+    const rawText = await response.text();
+    const trace = buildOpenAIRequestTrace(response, clientRequestId);
+
+    let payload: any = null;
+    if (rawText) {
+        try {
+            payload = JSON.parse(rawText);
+        } catch {
+            payload = null;
+        }
+    }
+
+    if (!response.ok) {
+        const message =
+            payload?.error?.message ||
+            payload?.message ||
+            `${response.status} ${response.statusText}`.trim();
+        throw new Error(`${message} (${formatOpenAITrace(trace)})`);
+    }
+
+    return {
+        payload: payload || {},
+        trace
+    };
+}
+
+function extractGeneratedImages(payload: any, outputFormat: OutputFormat): GeneratedImage[] {
+    const mimeType = resolveOutputMimeType(outputFormat);
+    const items = Array.isArray(payload?.data) ? payload.data : [];
+
+    return items
+        .map((item: any) => {
+            const data = typeof item?.b64_json === "string" ? item.b64_json : "";
+            if (!data) return null;
+            return {
+                data,
+                mimeType
+            } satisfies GeneratedImage;
+        })
+        .filter((item: GeneratedImage | null): item is GeneratedImage => item !== null);
+}
+
+async function createReferenceFile(ref: ReferenceImage, index: number): Promise<File> {
+    const mimeType = String(ref.mimeType || "image/png").toLowerCase();
+    const extension =
+        mimeType === "image/jpeg" ? "jpg" :
+            mimeType === "image/webp" ? "webp" :
+                "png";
+
+    return new File(
+        [Buffer.from(ref.data, "base64")],
+        `reference-${index + 1}.${extension}`,
+        { type: mimeType }
+    );
+}
+
+function normalizeImageError(error: unknown): ImageGenerationResult {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[ImageGen] Error:`, errorMessage);
+
+    if (errorMessage.includes("quota") || errorMessage.includes("rate") || errorMessage.includes("429")) {
+        return { success: false, error: "Rate limit exceeded. Please try again later." };
+    }
+    if (errorMessage.toLowerCase().includes("safety") || errorMessage.toLowerCase().includes("policy")) {
+        return { success: false, error: "Image generation blocked by safety filters." };
+    }
+
+    return { success: false, error: errorMessage };
+}
+
 /**
- * Generate a single image using Nano Banana 2 (Gemini 3.1 Flash Image Preview)
+ * Generate a single image using GPT Image 2.
  * 
  * @param prompt - Text description of the image to generate
- * @param apiKey - Gemini API key
+ * @param apiKey - OpenAI API key
  * @param options - Generation options (aspect ratio, size)
  * @returns Generated image data or error
  */
@@ -57,70 +195,52 @@ export async function generateImage(
     options: ImageGenerationOptions = {}
 ): Promise<ImageGenerationResult> {
     if (!apiKey) {
-        return { success: false, error: "Gemini API key not configured" };
+        return { success: false, error: "OpenAI API key not configured" };
     }
 
     const { aspectRatio = "9:16" } = options;
     const imageSize = normalizeImageSize(options.imageSize);
+    const outputFormat = resolveOutputFormat();
+    const openaiSize = resolveOpenAISize(aspectRatio, imageSize);
+    const quality = resolveOpenAIQuality(imageSize);
 
     try {
-        const client = getClient(apiKey);
-
-        console.log(`[ImageGen] Generating image with Nano Banana 2...`);
+        const clientRequestId = crypto.randomUUID();
+        console.log(`[ImageGen] Generating image with GPT Image 2...`);
         console.log(`[ImageGen] Prompt: ${prompt.substring(0, 100)}...`);
-        console.log(`[ImageGen] Aspect: ${aspectRatio}, Size: ${imageSize}`);
+        console.log(`[ImageGen] Aspect: ${aspectRatio}, Size: ${imageSize} -> ${openaiSize}, Quality: ${quality}`);
+        console.log(`[ImageGen] model=${OPENAI_IMAGE_MODEL} endpoint=images.generate client_request_id=${clientRequestId}`);
 
-        const response = await client.models.generateContent({
-            model: "gemini-3.1-flash-image-preview",
-            contents: prompt,
-            config: {
-                responseModalities: ["Image"],
-                // @ts-ignore - imageConfig may not be in types yet
-                imageConfig: {
-                    aspectRatio: aspectRatio,
-                    imageSize: imageSize
-                }
-            }
+        const response = await fetch(`${OPENAI_API_BASE}/images/generations`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+                "X-Client-Request-Id": clientRequestId
+            },
+            body: JSON.stringify({
+                model: OPENAI_IMAGE_MODEL,
+                prompt,
+                size: openaiSize,
+                quality,
+                output_format: outputFormat
+            })
         });
-
-        const images: GeneratedImage[] = [];
-
-        // Extract images from response parts
-        if (response.candidates && response.candidates[0]?.content?.parts) {
-            for (const part of response.candidates[0].content.parts) {
-                // @ts-ignore - inlineData structure
-                if (part.inlineData) {
-                    images.push({
-                        // @ts-ignore
-                        data: part.inlineData.data,
-                        // @ts-ignore
-                        mimeType: part.inlineData.mimeType || "image/png"
-                    });
-                }
-            }
-        }
+        const { payload, trace } = await parseOpenAIResponse(response, clientRequestId);
+        const images = extractGeneratedImages(payload, outputFormat);
 
         if (images.length === 0) {
             console.error("[ImageGen] No images in response");
             return { success: false, error: "No images generated" };
         }
 
-        console.log(`[ImageGen] Successfully generated ${images.length} image(s)`);
+        console.log(
+            `[ImageGen] Successfully generated ${images.length} image(s) model=${OPENAI_IMAGE_MODEL} endpoint=images.generate ${formatOpenAITrace(trace)}`
+        );
         return { success: true, images };
 
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`[ImageGen] Error:`, errorMessage);
-
-        // Check for common error types
-        if (errorMessage.includes("quota") || errorMessage.includes("rate")) {
-            return { success: false, error: "Rate limit exceeded. Please try again later." };
-        }
-        if (errorMessage.includes("safety") || errorMessage.includes("blocked")) {
-            return { success: false, error: "Image generation blocked by safety filters." };
-        }
-
-        return { success: false, error: errorMessage };
+        return normalizeImageError(error);
     }
 }
 
@@ -202,7 +322,7 @@ async function normalizeReferenceImage(ref: ReferenceImage, index: number): Prom
  * 
  * @param prompt - Text description of the image to generate
  * @param referenceImages - Array of previously generated images to reference
- * @param apiKey - Gemini API key
+ * @param apiKey - OpenAI API key
  * @param options - Generation options
  * @returns Generated image data or error
  */
@@ -213,93 +333,69 @@ export async function generateImageWithReferences(
     options: ImageGenerationOptions = {}
 ): Promise<ImageGenerationResult> {
     if (!apiKey) {
-        return { success: false, error: "Gemini API key not configured" };
+        return { success: false, error: "OpenAI API key not configured" };
     }
 
     const { aspectRatio = "9:16" } = options;
     const imageSize = normalizeImageSize(options.imageSize);
+    const outputFormat = resolveOutputFormat();
+    const openaiSize = resolveOpenAISize(aspectRatio, imageSize);
+    const quality = resolveOpenAIQuality(imageSize);
 
-    // Limit to 5 reference images (Gemini's limit for human consistency)
+    // Limit to 5 reference images to keep edit payloads manageable.
     const limitedRefs = referenceImages.slice(0, 5);
 
     try {
-        const client = getClient(apiKey);
+        const clientRequestId = crypto.randomUUID();
         const normalizedRefs = await Promise.all(
             limitedRefs.map((ref, index) => normalizeReferenceImage(ref, index))
         );
 
         console.log(`[ImageGen] Generating with ${normalizedRefs.length} reference image(s)...`);
         console.log(`[ImageGen] Prompt: ${prompt.substring(0, 100)}...`);
+        console.log(`[ImageGen] Aspect: ${aspectRatio}, Size: ${imageSize} -> ${openaiSize}, Quality: ${quality}`);
+        console.log(`[ImageGen] model=${OPENAI_IMAGE_MODEL} endpoint=images.edit client_request_id=${clientRequestId}`);
 
-        const parts: any[] = [
-            {
-                text: prompt + "\n\nIMPORTANT: Maintain the EXACT same character appearance (face, hair, accessories) as shown in the reference image(s)."
-            }
-        ];
+        const formData = new FormData();
+        formData.append("model", OPENAI_IMAGE_MODEL);
+        formData.append(
+            "prompt",
+            prompt + "\n\nIMPORTANT: Maintain the same core character appearance, styling, accessories, and scene anchors from the reference image(s) unless the prompt explicitly changes them."
+        );
+        formData.append("size", openaiSize);
+        formData.append("quality", quality);
+        formData.append("output_format", outputFormat);
 
-        // Add reference images as inlineData
-        for (const ref of normalizedRefs) {
-            parts.push({
-                inlineData: {
-                    mimeType: ref.mimeType,
-                    data: ref.data
-                }
-            });
+        for (let i = 0; i < normalizedRefs.length; i++) {
+            const ref = normalizedRefs[i];
+            if (!ref) continue;
+            const file = await createReferenceFile(ref, i);
+            formData.append("image[]", file, file.name);
         }
 
-        const response = await client.models.generateContent({
-            model: "gemini-3.1-flash-image-preview",
-            contents: [{
-                role: "user",
-                parts
-            }],
-            config: {
-                responseModalities: ["Image"],
-                // @ts-ignore - imageConfig may not be in types yet
-                imageConfig: {
-                    aspectRatio: aspectRatio,
-                    imageSize: imageSize
-                }
-            }
+        const response = await fetch(`${OPENAI_API_BASE}/images/edits`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "X-Client-Request-Id": clientRequestId
+            },
+            body: formData
         });
-
-        const images: GeneratedImage[] = [];
-
-        // Extract images from response parts
-        if (response.candidates && response.candidates[0]?.content?.parts) {
-            for (const part of response.candidates[0].content.parts) {
-                // @ts-ignore - inlineData structure
-                if (part.inlineData) {
-                    images.push({
-                        // @ts-ignore
-                        data: part.inlineData.data,
-                        // @ts-ignore
-                        mimeType: part.inlineData.mimeType || "image/png"
-                    });
-                }
-            }
-        }
+        const { payload, trace } = await parseOpenAIResponse(response, clientRequestId);
+        const images = extractGeneratedImages(payload, outputFormat);
 
         if (images.length === 0) {
             console.error("[ImageGen] No images in response");
             return { success: false, error: "No images generated" };
         }
 
-        console.log(`[ImageGen] Successfully generated image with ${normalizedRefs.length} reference(s)`);
+        console.log(
+            `[ImageGen] Successfully generated image with ${normalizedRefs.length} reference(s) model=${OPENAI_IMAGE_MODEL} endpoint=images.edit ${formatOpenAITrace(trace)}`
+        );
         return { success: true, images };
 
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`[ImageGen] Error:`, errorMessage);
-
-        if (errorMessage.includes("quota") || errorMessage.includes("rate")) {
-            return { success: false, error: "Rate limit exceeded. Please try again later." };
-        }
-        if (errorMessage.includes("safety") || errorMessage.includes("blocked")) {
-            return { success: false, error: "Image generation blocked by safety filters." };
-        }
-
-        return { success: false, error: errorMessage };
+        return normalizeImageError(error);
     }
 }
 
@@ -307,7 +403,7 @@ export async function generateImageWithReferences(
  * Generate multiple images in batch (for carousel generation)
  * 
  * @param prompts - Array of prompts (one per slide)
- * @param apiKey - Gemini API key
+ * @param apiKey - OpenAI API key
  * @param options - Generation options
  * @returns Array of generated images with slide indices
  */
@@ -353,7 +449,7 @@ Style: iPhone selfie, front-facing camera. Phone is NOT visible - it's taking th
 NEGATIVE: No pets on kitchen counters, no pets on tables, no pets on raised household surfaces. Pet must be on floor, bed, or couch.`;
 
 /**
- * Convert a structured JSON image prompt to a flat text prompt for Gemini
+ * Convert a structured JSON image prompt to a flat text prompt for the image model
  * Keeps it simple to avoid confusing the AI
  */
 export function flattenImagePrompt(prompt: any, options: { includeUgcStyle?: boolean } = { includeUgcStyle: true }): string {

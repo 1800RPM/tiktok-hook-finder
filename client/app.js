@@ -3,6 +3,7 @@ const state = {
     currentFormat: 'relatable',
     currentTopic: 'favorite_person',
     currentDbtSlideType: 'weird_hack',
+    selectedDbtHookImage: 'default',
     includeBranding: true,
     slides: [],
     currentSlideIndex: 0,
@@ -13,6 +14,7 @@ const state = {
     isResizing: false,
     isResizingHorizontal: false,
     dragStartIndex: -1,
+    dragTarget: null,
     dragStartX: 0,
     dragStartY: 0,
     dragOffset: { x: 0, y: 0 },
@@ -59,16 +61,60 @@ function resolveApiBase() {
 
 const API_BASE = resolveApiBase();
 
+const dbtHookImageOptions = {
+    default: {
+        label: 'Default Slide 1',
+        filename: null
+    },
+    hook_image_elevator: {
+        label: 'Elevator',
+        filename: 'hook_image_elevator.png'
+    },
+    hook_image_tattoomirror: {
+        label: 'Tattoo Mirror',
+        filename: 'hook_image_tattoomirror.png'
+    },
+    hook_image_person_cat: {
+        label: 'Person + Cat',
+        filename: 'hook_image_person_cat.png'
+    },
+    hook_image_waist_straps: {
+        label: 'Waist Straps',
+        filename: 'hook_image_waist_straps.png'
+    },
+    hook_image_tattoo_car: {
+        label: 'Tattoo Car',
+        filename: 'hook_image_tattoo_car.png'
+    },
+    hook_image_bathroom: {
+        label: 'Bathroom',
+        filename: 'hook_image_bathroom.png'
+    },
+    hook_image_brown_hair_car: {
+        label: 'Brown Hair Car',
+        filename: 'hook_image_brown_hair_car.png'
+    },
+    hook_image_asian: {
+        label: 'Asian',
+        filename: 'hook_image_asian.png'
+    }
+};
+
 const dbtCharacterTemplates = {
     hannahbpd: {
         label: 'hannahbpd',
         staticSlidesByFlow: {
             weird_hack: {
                 0: 'slide1.png',
-                5: 'app_image.png'
+                5: 'assets/dbt-templates/cta_slide_template.jpg'
+            },
+            weird_hack_v2: {
+                0: 'slide1.png'
             },
             three_tips: {
-                5: 'app_image.png'
+                5: 'assets/dbt-templates/cta_slide_template.jpg'
+            },
+            i_say_they_say: {
             }
         }
     },
@@ -77,10 +123,32 @@ const dbtCharacterTemplates = {
         staticSlidesByFlow: {
             weird_hack: {
                 0: 'assets/dbt-templates/brendabpd/slide1.png',
-                5: 'assets/dbt-templates/brendabpd/slide6.png'
+                5: 'assets/dbt-templates/cta_slide_template.jpg'
+            },
+            weird_hack_v2: {
+                0: 'assets/dbt-templates/brendabpd/slide1.png'
             },
             three_tips: {
-                5: 'assets/dbt-templates/brendabpd/slide6.png'
+                5: 'assets/dbt-templates/cta_slide_template.jpg'
+            },
+            i_say_they_say: {
+            }
+        }
+    },
+    kendra: {
+        label: 'Kendra',
+        staticSlidesByFlow: {
+            weird_hack: {
+                0: 'assets/dbt-templates/weidhackv2/custom-image-1775651626440.png',
+                5: 'assets/dbt-templates/cta_slide_template.jpg'
+            },
+            weird_hack_v2: {
+                0: 'assets/dbt-templates/weidhackv2/custom-image-1775651626440.png'
+            },
+            three_tips: {
+                5: 'assets/dbt-templates/cta_slide_template.jpg'
+            },
+            i_say_they_say: {
             }
         }
     }
@@ -108,6 +176,127 @@ const parseDataUrl = (dataUrl) => {
     };
 };
 
+function isIFeelFlowActive() {
+    return state.currentService === 'dbt'
+        && (elements.flowSelect?.value || state.currentDbtSlideType) === 'i_say_they_say';
+}
+
+function loadImageElement(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
+async function applyIFeelPhonePhotoPostProcessing(imageUrl) {
+    if (!imageUrl || !isIFeelFlowActive()) return imageUrl;
+
+    const img = await loadImageElement(imageUrl);
+    const width = img.naturalWidth || img.width;
+    const height = img.naturalHeight || img.height;
+    if (!width || !height) return imageUrl;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return imageUrl;
+
+    const rotationDeg = (1.5 + Math.random() * 0.5) * (Math.random() < 0.5 ? -1 : 1);
+    const rotationRad = rotationDeg * (Math.PI / 180);
+    const scaleBoost = 1.05 + Math.random() * 0.03;
+
+    ctx.save();
+    ctx.translate(width / 2, height / 2);
+    ctx.rotate(rotationRad);
+    ctx.scale(scaleBoost, scaleBoost);
+    ctx.drawImage(img, -width / 2, -height / 2, width, height);
+    ctx.restore();
+
+    const warmRed = 8 + Math.floor(Math.random() * 10);
+    const warmGreen = 3 + Math.floor(Math.random() * 8);
+    const coolBlueCut = 4 + Math.floor(Math.random() * 8);
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const pixels = imageData.data;
+    for (let i = 0; i < pixels.length; i += 4) {
+        pixels[i] = Math.min(255, pixels[i] + warmRed);
+        pixels[i + 1] = Math.min(255, pixels[i + 1] + warmGreen);
+        pixels[i + 2] = Math.max(0, pixels[i + 2] - coolBlueCut);
+    }
+    ctx.putImageData(imageData, 0, 0);
+
+    const brightenLeft = Math.random() < 0.5;
+    const lightStrength = 0.12 + Math.random() * 0.05;
+    const shadowStrength = 0.05 + Math.random() * 0.04;
+    const lightGradient = ctx.createLinearGradient(
+        brightenLeft ? 0 : width,
+        0,
+        brightenLeft ? width : 0,
+        0
+    );
+    lightGradient.addColorStop(0, `rgba(255, 235, 200, ${lightStrength.toFixed(3)})`);
+    lightGradient.addColorStop(0.6, 'rgba(255, 240, 220, 0.025)');
+    lightGradient.addColorStop(1, `rgba(60, 35, 20, ${shadowStrength.toFixed(3)})`);
+    ctx.fillStyle = lightGradient;
+    ctx.fillRect(0, 0, width, height);
+
+    const glareWidth = width * (0.12 + Math.random() * 0.1);
+    const glareX = width * (0.18 + Math.random() * 0.56);
+    const glareRotation = (-0.22 + Math.random() * 0.44);
+    ctx.save();
+    ctx.translate(glareX, height / 2);
+    ctx.rotate(glareRotation);
+    const glareGradient = ctx.createLinearGradient(-glareWidth / 2, 0, glareWidth / 2, 0);
+    glareGradient.addColorStop(0, 'rgba(255,255,255,0)');
+    glareGradient.addColorStop(0.5, `rgba(255,248,235,${(0.06 + Math.random() * 0.05).toFixed(3)})`);
+    glareGradient.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = glareGradient;
+    ctx.fillRect(-glareWidth / 2, -height * 0.6, glareWidth, height * 1.2);
+    ctx.restore();
+
+    const vignette = ctx.createRadialGradient(
+        width / 2,
+        height / 2,
+        Math.min(width, height) * (0.38 + Math.random() * 0.04),
+        width / 2,
+        height / 2,
+        Math.max(width, height) * 0.78
+    );
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(0.72, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, `rgba(25, 18, 12, ${(0.18 + Math.random() * 0.08).toFixed(3)})`);
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, width, height);
+
+    const cornerGlow = ctx.createRadialGradient(
+        width / 2,
+        height / 2,
+        0,
+        width / 2,
+        height / 2,
+        Math.max(width, height) * 0.9
+    );
+    cornerGlow.addColorStop(0, 'rgba(255,240,220,0)');
+    cornerGlow.addColorStop(1, `rgba(120, 90, 55, ${(0.04 + Math.random() * 0.03).toFixed(3)})`);
+    ctx.fillStyle = cornerGlow;
+    ctx.fillRect(0, 0, width, height);
+
+    const quality = 0.72 + Math.random() * 0.06;
+    return canvas.toDataURL('image/jpeg', quality);
+}
+
+async function maybePostProcessIFeelImage(imageUrl) {
+    if (!isIFeelFlowActive()) return imageUrl;
+    try {
+        return await applyIFeelPhonePhotoPostProcessing(imageUrl);
+    } catch (error) {
+        console.warn('I feel image post-processing failed, using original image.', error);
+        return imageUrl;
+    }
+}
+
 // ==========================================
 // ELEMENTS CACHE
 // ==========================================
@@ -116,6 +305,7 @@ const elements = {
     nativeGenTopic: document.getElementById('native-gen-topic'),
     nativeGenTopicDbt: document.getElementById('native-gen-topic_dbt'),
     dbtSlideTypeSelect: document.getElementById('dbt-slide-type-select'),
+    dbtTextStyleSelect: document.getElementById('dbt-text-style-select'),
     dbtTextOnlyMode: document.getElementById('dbt-text-only-mode'),
     artStyleSelect: document.getElementById('art-style-select'),
     generateNativeSlidesBtn: document.getElementById('generate-native-slides-btn'),
@@ -128,6 +318,9 @@ const elements = {
     servicePanels: document.querySelectorAll('.service-panel'),
     viralComboBtns: document.querySelectorAll('.viral-combo-btn'),
     characterPreset: document.getElementById('character-preset'),
+    characterPresetStep1: document.getElementById('character-preset-step1'),
+    dbtHookImageSelect: document.getElementById('dbt-hook-image-select'),
+    dbtHookImageSelectStep1: document.getElementById('dbt-hook-image-select-step1'),
     generateImagePromptsBtn: document.getElementById('generate-image-prompts-btn'),
     generateAiImagesBtn: document.getElementById('generate-ai-images'),
     downloadAllBtn: document.getElementById('download-all'),
@@ -137,6 +330,7 @@ const elements = {
     fontSizeInput: document.getElementById('font-size'),
     textColorInput: document.getElementById('text-color'),
     bgColorInput: document.getElementById('bg-color'),
+    darkOverlayInput: document.getElementById('dark-overlay'),
     imagePromptsContainer: document.getElementById('image-prompts-container'),
     generatedImagesContainer: document.getElementById('generated-images-container'),
     promptsLoading: document.getElementById('prompts-loading'),
@@ -188,6 +382,7 @@ const elements = {
     fontSizeInputSyp: document.getElementById('font-size_syp'),
     textColorInputSyp: document.getElementById('text-color_syp'),
     bgColorInputSyp: document.getElementById('bg-color_syp'),
+    darkOverlayInputSyp: document.getElementById('dark-overlay_syp'),
     textWidthInput: document.getElementById('text-width'),
     textWidthInputSyp: document.getElementById('text-width_syp'),
     imagePromptsContainerSyp: document.getElementById('image-prompts-container_syp'),
@@ -216,12 +411,25 @@ const elements = {
     // Custom Prompts
     customPromptInput: document.getElementById('custom-prompt-input'),
     generateCustomImageBtn: document.getElementById('generate-custom-image-btn'),
+    customResolutionSelect: document.getElementById('custom-resolution-select'),
     customPromptInputSyp: document.getElementById('custom-prompt-input_syp'),
     generateCustomImageBtnSyp: document.getElementById('generate-custom-image-btn_syp'),
+    customResolutionSelectSyp: document.getElementById('custom-resolution-select_syp'),
     uploadAnchorBtnSypCustom: document.getElementById('upload-anchor-btn_syp_custom'),
     anchorFileInputSypCustom: document.getElementById('anchor-file-input_syp_custom'),
     aspectRatioSelectDbt: document.getElementById('aspect-ratio-select_dbt'),
     aspectRatioSelectSyp: document.getElementById('aspect-ratio-select_syp'),
+    slideBuilderPanel: document.getElementById('slide-builder-panel'),
+    slideCountInput: document.getElementById('slide-count-input'),
+    createSlideCountBtn: document.getElementById('create-slide-count-btn'),
+    slideBuilderList: document.getElementById('slide-builder-list'),
+    selectedSlideEditor: document.getElementById('selected-slide-editor'),
+    selectedSlideLabel: document.getElementById('selected-slide-label'),
+    selectedSlideTextInput: document.getElementById('selected-slide-text-input'),
+    addSlideBtn: document.getElementById('add-slide-btn'),
+    uploadSlideImageBtn: document.getElementById('upload-slide-image-btn'),
+    clearSlideImageBtn: document.getElementById('clear-slide-image-btn'),
+    slideImageFileInput: document.getElementById('slide-image-file-input'),
 
     flowSelect: document.getElementById('flow-select'),
 
@@ -232,6 +440,8 @@ const elements = {
     anchorReferenceDisplayDbt: document.getElementById('anchor-reference-display_dbt'),
     anchorRefGalleryDbt: document.getElementById('anchor-ref-gallery_dbt'),
 };
+
+const dbtHookImagePickerInstances = [];
 
 // ==========================================
 // DBT FRAMEWORK CONFIGURATION
@@ -312,30 +522,391 @@ function updateSlideCounter() {
     elements.slideCounter.textContent = `${state.slides.length} slide${state.slides.length !== 1 ? 's' : ''}`;
 }
 
+function getActiveSlideTextInput() {
+    return state.currentService === 'syp' ? elements.slideTextInputSyp : elements.slideTextInput;
+}
+
+function syncActiveSlidesTextarea() {
+    const textInput = getActiveSlideTextInput();
+    if (!textInput) return;
+    textInput.value = state.slides.map((slide, index) => formatSlideForTextarea(slide, index)).join('\n');
+}
+
+function updateSlideBuilderSelectionState() {
+    if (!elements.slideBuilderList) return;
+    elements.slideBuilderList.querySelectorAll('.slide-builder-row').forEach((row, i) => {
+        row.classList.toggle('is-selected', i === state.currentSlideIndex);
+    });
+}
+
+function setCurrentSlideIndex(index) {
+    if (!state.slides.length) {
+        state.currentSlideIndex = 0;
+        updateSelectedSlideEditor();
+        return;
+    }
+
+    const safeIndex = Math.max(0, Math.min(index, state.slides.length - 1));
+    state.currentSlideIndex = safeIndex;
+
+    document.querySelectorAll('.slide-editor').forEach((card, i) => {
+        card.classList.toggle('selected', i === safeIndex);
+    });
+
+    updateSlideBuilderSelectionState();
+    updateSelectedSlideEditor();
+}
+
+function createSlide({ text = 'Add your slide text here', image = null, index = state.slides.length } = {}) {
+    const dualVoice = parseDualVoiceSlideText(text);
+    const slide = {
+        text,
+        outsideText: dualVoice?.outsideText || null,
+        insideText: dualVoice?.insideText || null,
+        image,
+        id: Date.now() + Math.floor(Math.random() * 1000) + index,
+        position: getDefaultSlidePosition(index),
+        scale: 1.5,
+        maxWidth: 120
+    };
+    return dualVoice ? ensureDualVoicePositions(slide) : slide;
+}
+
+function shiftStaticSlides(startIndex, delta) {
+    if (!state.staticSlides) return;
+
+    const shifted = {};
+    Object.entries(state.staticSlides).forEach(([idxStr, value]) => {
+        let idx = parseInt(idxStr, 10);
+        if (Number.isNaN(idx)) return;
+
+        if (delta > 0 && idx >= startIndex) {
+            idx += delta;
+        } else if (delta < 0) {
+            if (idx === startIndex) return;
+            if (idx > startIndex) idx += delta;
+        }
+
+        shifted[idx] = value;
+    });
+
+    state.staticSlides = shifted;
+}
+
+function insertNewSlide(afterIndex = state.slides.length - 1, overrides = {}) {
+    const insertAt = Math.max(0, Math.min(afterIndex + 1, state.slides.length));
+    const slide = createSlide({ ...overrides, index: insertAt });
+    shiftStaticSlides(insertAt, 1);
+    state.slides.splice(insertAt, 0, slide);
+    state.generatedImages.splice(insertAt, 0, slide.image || null);
+
+    if (state.selectedRefIndices.length > 0) {
+        state.selectedRefIndices = state.selectedRefIndices.map((idx) => (idx >= insertAt ? idx + 1 : idx));
+    }
+
+    syncActiveSlidesTextarea();
+    renderSlidesPreview();
+    setCurrentSlideIndex(insertAt);
+    showNotification(`Slide ${insertAt + 1} added`, 'success');
+}
+
+function buildSlidesToCount(count) {
+    const normalizedCount = Math.max(1, Math.min(20, parseInt(count, 10) || 1));
+    const oldSlides = [...state.slides];
+    const oldGeneratedImages = [...state.generatedImages];
+
+    state.slides = Array.from({ length: normalizedCount }, (_, index) => {
+        const existing = oldSlides[index];
+        if (existing) {
+            return {
+                ...existing,
+                position: existing.position || getDefaultSlidePosition(index),
+                scale: existing.scale || 1.5,
+                maxWidth: existing.maxWidth || 120
+            };
+        }
+        return createSlide({ index });
+    });
+
+    state.generatedImages = Array.from({ length: normalizedCount }, (_, index) => oldGeneratedImages[index] || null);
+    state.selectedRefIndices = state.selectedRefIndices.filter((idx) => idx < normalizedCount);
+
+    if (elements.slideCountInput) {
+        elements.slideCountInput.value = String(normalizedCount);
+    }
+
+    syncActiveSlidesTextarea();
+    renderSlideBuilderList();
+    renderSlidesPreview();
+    setCurrentSlideIndex(Math.min(state.currentSlideIndex, normalizedCount - 1));
+    showNotification(`${normalizedCount} slides ready to edit`, 'success');
+}
+
+function renderSlideBuilderList() {
+    const container = elements.slideBuilderList;
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (!state.slides.length) {
+        container.innerHTML = `
+            <div class="empty-state" style="padding: 12px 0;">
+                <p>No slides configured yet</p>
+                <span>Choose a slide count to start building your carousel.</span>
+            </div>
+        `;
+        return;
+    }
+
+    state.slides.forEach((slide, index) => {
+        const row = document.createElement('div');
+        row.className = `slide-builder-row ${state.currentSlideIndex === index ? 'is-selected' : ''}`;
+        row.dataset.index = index;
+        const imageSrc = getStaticSlideImage(index) || slide.image || state.generatedImages[index] || '';
+
+        row.innerHTML = `
+            <div class="slide-builder-main">
+                <label for="slide-builder-text-${index}">Slide ${index + 1} text</label>
+                <textarea id="slide-builder-text-${index}" class="slide-builder-textarea" data-index="${index}" placeholder="Write slide ${index + 1} text here...">${escapeHtml(slide.text || '')}</textarea>
+            </div>
+            <div class="slide-builder-side">
+                <div class="slide-builder-preview ${imageSrc ? '' : 'is-empty'}">
+                    ${imageSrc ? `<img src="${imageSrc}" alt="Slide ${index + 1} image">` : '<span>No image yet</span>'}
+                </div>
+                <div class="slide-builder-actions">
+                    <button class="btn btn-secondary btn-sm slide-builder-upload-btn" data-index="${index}" type="button">Upload Image</button>
+                    <button class="btn btn-warning btn-sm slide-builder-clear-btn" data-index="${index}" type="button">Remove Image</button>
+                    <input type="file" class="slide-builder-file-input" data-index="${index}" accept="image/*" hidden>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(row);
+    });
+
+    container.querySelectorAll('.slide-builder-row').forEach((row) => {
+        row.addEventListener('click', (e) => {
+            if (e.target.closest('.slide-builder-textarea, .slide-builder-upload-btn, .slide-builder-clear-btn')) {
+                return;
+            }
+
+            const index = parseInt(row.dataset.index, 10);
+            setCurrentSlideIndex(index);
+        });
+    });
+
+    container.querySelectorAll('.slide-builder-textarea').forEach((textarea) => {
+        textarea.addEventListener('focus', (e) => {
+            setCurrentSlideIndex(parseInt(e.target.dataset.index, 10));
+        });
+
+        textarea.addEventListener('input', (e) => {
+            const index = parseInt(e.target.dataset.index, 10);
+            const slide = state.slides[index];
+            if (!slide) return;
+
+            slide.text = e.target.value;
+            const dualVoice = parseDualVoiceSlideText(slide.text);
+            slide.outsideText = dualVoice?.outsideText || null;
+            slide.insideText = dualVoice?.insideText || null;
+            if (dualVoice) ensureDualVoicePositions(slide);
+
+            syncActiveSlidesTextarea();
+            renderSlidesPreview();
+            if (index === state.currentSlideIndex) {
+                updateSelectedSlideEditor();
+            }
+        });
+    });
+
+    container.querySelectorAll('.slide-builder-upload-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            const index = parseInt(e.currentTarget.dataset.index, 10);
+            setCurrentSlideIndex(index);
+            const input = container.querySelector(`.slide-builder-file-input[data-index="${index}"]`);
+            input?.click();
+        });
+    });
+
+    container.querySelectorAll('.slide-builder-file-input').forEach((input) => {
+        input.addEventListener('change', (e) => {
+            const index = parseInt(e.target.dataset.index, 10);
+            const file = e.target.files?.[0];
+            if (!file) return;
+            setCurrentSlideIndex(index);
+            handleFileUpload([file]);
+            e.target.value = '';
+            renderSlideBuilderList();
+        });
+    });
+
+    container.querySelectorAll('.slide-builder-clear-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            const index = parseInt(e.currentTarget.dataset.index, 10);
+            setCurrentSlideIndex(index);
+            clearCurrentSlideImage();
+            renderSlideBuilderList();
+        });
+    });
+}
+
+function updateSelectedSlideEditor() {
+    if (!elements.selectedSlideTextInput || !elements.selectedSlideLabel) return;
+
+    const slide = state.slides[state.currentSlideIndex];
+    const hasSlide = !!slide;
+
+    elements.selectedSlideTextInput.disabled = !hasSlide;
+    if (elements.uploadSlideImageBtn) elements.uploadSlideImageBtn.disabled = !hasSlide;
+    if (elements.clearSlideImageBtn) elements.clearSlideImageBtn.disabled = !hasSlide;
+
+    if (!hasSlide) {
+        elements.selectedSlideLabel.textContent = 'No slide selected';
+        elements.selectedSlideTextInput.value = '';
+        if (elements.clearSlideImageBtn) elements.clearSlideImageBtn.textContent = 'Remove Image';
+        return;
+    }
+
+    const staticLabel = isStaticSlide(state.currentSlideIndex) ? ' • template image active' : '';
+    elements.selectedSlideLabel.textContent = `Slide ${state.currentSlideIndex + 1}${staticLabel}`;
+    if (document.activeElement !== elements.selectedSlideTextInput) {
+        elements.selectedSlideTextInput.value = slide.text || '';
+    }
+    if (elements.clearSlideImageBtn) {
+        elements.clearSlideImageBtn.textContent = slide.image || isStaticSlide(state.currentSlideIndex)
+            ? 'Remove Image'
+            : 'No Image';
+    }
+}
+
 function getDefaultSlidePosition(index) {
-    // Slide 1: centered in lower half; Slide 6: slightly lower
+    // Slide 1: centered in lower half. Legacy weird_hack keeps Slide 6 slightly lower.
     if (index === 0) return { x: 50, y: 72 };
-    if (index === 5) return { x: 50, y: 78 };
+    if (index === 5 && state.currentService === 'dbt' && state.currentDbtSlideType !== 'weird_hack_v2') {
+        return { x: 50, y: 78 };
+    }
     return { x: 50, y: 50 };
 }
 
+function getDefaultDualVoicePosition(voice) {
+    if (voice === 'outside') return { x: 50, y: 22 };
+    return { x: 50, y: 74 };
+}
+
 function getSelectedDbtCharacter() {
-    return elements.characterPreset?.value || 'hannahbpd';
+    return elements.characterPresetStep1?.value || elements.characterPreset?.value || 'hannahbpd';
+}
+
+function setSelectedDbtCharacterValue(character) {
+    if (elements.characterPreset) {
+        elements.characterPreset.value = character;
+    }
+    if (elements.characterPresetStep1) {
+        elements.characterPresetStep1.value = character;
+    }
+}
+
+function setSelectedDbtHookImageValue(hookImage) {
+    if (elements.dbtHookImageSelect) {
+        elements.dbtHookImageSelect.value = hookImage;
+    }
+    if (elements.dbtHookImageSelectStep1) {
+        elements.dbtHookImageSelectStep1.value = hookImage;
+    }
+    syncDbtHookImagePickerUI();
 }
 
 function getSelectedDbtSlideType() {
     return elements.dbtSlideTypeSelect?.value || 'weird_hack';
 }
 
+function getActiveTextStyle() {
+    if (state.currentService !== 'dbt') return 'boxed';
+    return elements.dbtTextStyleSelect?.value || 'boxed';
+}
+
+function getCurrentDarkOverlayOpacity() {
+    const source = state.currentService === 'syp'
+        ? (elements.darkOverlayInputSyp || elements.darkOverlayInput)
+        : (elements.darkOverlayInput || elements.darkOverlayInputSyp);
+    const value = parseInt(source?.value || '0', 10);
+    if (Number.isNaN(value)) return 0;
+    return Math.max(0, Math.min(80, value)) / 100;
+}
+
+function normalizeSlidePosition(slide, index) {
+    if (!slide?.position) return;
+    if (
+        state.currentService === 'dbt' &&
+        state.currentDbtSlideType === 'weird_hack_v2' &&
+        index === 5 &&
+        slide.position.x === 50 &&
+        slide.position.y === 78
+    ) {
+        slide.position = { x: 50, y: 50 };
+    }
+}
+
+function shouldApplyDarkOverlayToSlide(slideIndex) {
+    if (!Number.isInteger(slideIndex)) return false;
+    if (state.currentService === 'dbt' && state.currentDbtSlideType === 'weird_hack_v2') {
+        return slideIndex >= 1 && slideIndex <= 7;
+    }
+    return slideIndex >= 1 && slideIndex <= 4;
+}
+
+function isDbtStoryTellingFlow(slideType = getSelectedDbtSlideType()) {
+    return slideType === 'story_telling_bf' || slideType === 'story_telling_gf';
+}
+
+function doesDbtSlideTypeUseViralTopic(slideType = getSelectedDbtSlideType()) {
+    return !isDbtStoryTellingFlow(slideType) && slideType !== 'weird_hack_v2';
+}
+
 function getDbtGenerateButtonLabel(slideType = getSelectedDbtSlideType()) {
-    return slideType === 'three_tips'
-        ? 'Generate 3 Tips (Opus)'
-        : 'Generate Weird Therapist Hacks (Opus)';
+    if (slideType === 'three_tips') return 'Generate 3 Tips (Opus)';
+    if (slideType === 'story_telling_bf') return 'Generate Story Telling BF (Opus)';
+    if (slideType === 'story_telling_gf') return 'Generate Story Telling GF (Opus)';
+    if (slideType === 'i_say_they_say') return 'Generate I Say/They Say (Opus)';
+    if (slideType === 'weird_hack_v2') return 'Generate Weird Therapist Hacks V2 (Opus)';
+    return 'Generate Weird Therapist Hacks (Opus)';
+}
+
+function setDarkOverlayInputs(value) {
+    const normalizedValue = String(Math.max(0, Math.min(80, parseInt(value, 10) || 0)));
+    const display = document.getElementById('dark-overlay-value');
+    const sypDisplay = document.getElementById('dark-overlay-value_syp');
+
+    if (elements.darkOverlayInput) elements.darkOverlayInput.value = normalizedValue;
+    if (elements.darkOverlayInputSyp) elements.darkOverlayInputSyp.value = normalizedValue;
+    if (display) display.textContent = normalizedValue + '%';
+    if (sypDisplay) sypDisplay.textContent = normalizedValue + '%';
+}
+
+function syncDbtDarkOverlayDefault(slideType = getSelectedDbtSlideType()) {
+    const defaultOverlayValue = slideType === 'weird_hack_v2' ? 60 : 0;
+    setDarkOverlayInputs(defaultOverlayValue);
+}
+
+function syncDbtTopicUI(slideType = getSelectedDbtSlideType()) {
+    const topicSelect = elements.nativeGenTopicDbt;
+    const topicGroup = topicSelect?.closest('.input-group');
+    const usesViralTopic = doesDbtSlideTypeUseViralTopic(slideType);
+
+    if (topicSelect) {
+        topicSelect.disabled = !usesViralTopic;
+    }
+
+    if (topicGroup) {
+        topicGroup.style.display = usesViralTopic ? '' : 'none';
+    }
 }
 
 function syncDbtSlideTypeUI() {
     const slideType = getSelectedDbtSlideType();
     state.currentDbtSlideType = slideType;
+    syncDbtTopicUI(slideType);
+    syncDbtDarkOverlayDefault(slideType);
 
     if (elements.generateNativeSlidesBtn) {
         elements.generateNativeSlidesBtn.innerHTML = `<span>${getDbtGenerateButtonLabel(slideType)}</span>`;
@@ -350,10 +921,256 @@ function getDbtCharacterTemplate(character = getSelectedDbtCharacter()) {
     return dbtCharacterTemplates[character] || dbtCharacterTemplates.hannahbpd;
 }
 
+function supportsCustomDbtHookImage(character = getSelectedDbtCharacter()) {
+    return ['hannahbpd', 'brendabpd'].includes(character);
+}
+
+function getSelectedDbtHookImageConfig() {
+    return dbtHookImageOptions[state.selectedDbtHookImage] || dbtHookImageOptions.default;
+}
+
+function getDbtHookImageDefaultPreview(character = getSelectedDbtCharacter()) {
+    const template = getDbtCharacterTemplate(character);
+    const flow = state.currentDbtSlideType || 'weird_hack';
+    const flowSlides = template.staticSlidesByFlow?.[flow] || template.staticSlidesByFlow?.weird_hack || {};
+    const slide1 = flowSlides[0];
+
+    if (!slide1) return null;
+    if (slide1.startsWith('assets/')) return slide1;
+    return `assets/dbt-templates/${character}/${slide1}`;
+}
+
+function getDbtHookImagePreviewSrc(optionKey, character = getSelectedDbtCharacter()) {
+    if (optionKey === 'default') {
+        return getDbtHookImageDefaultPreview(character);
+    }
+
+    const option = dbtHookImageOptions[optionKey];
+    if (!option?.filename) return null;
+    return `assets/dbt-templates/${character}/${option.filename}`;
+}
+
+function getDbtSlide1ImageOverride(character = getSelectedDbtCharacter()) {
+    if (!supportsCustomDbtHookImage(character)) return null;
+
+    const hookImage = getSelectedDbtHookImageConfig();
+    if (!hookImage?.filename) return null;
+
+    return `assets/dbt-templates/${character}/${hookImage.filename}`;
+}
+
+function syncDbtHookImageControl() {
+    const character = getSelectedDbtCharacter();
+    const supported = supportsCustomDbtHookImage(character);
+    if (elements.dbtHookImageSelect) {
+        elements.dbtHookImageSelect.disabled = !supported;
+    }
+    if (elements.dbtHookImageSelectStep1) {
+        elements.dbtHookImageSelectStep1.disabled = !supported;
+    }
+
+    if (!supported) {
+        setSelectedDbtHookImageValue('default');
+    } else if (dbtHookImageOptions[state.selectedDbtHookImage]) {
+        setSelectedDbtHookImageValue(state.selectedDbtHookImage);
+    } else {
+        setSelectedDbtHookImageValue('default');
+    }
+
+    syncDbtHookImagePickerUI();
+}
+
+function populateDbtHookImageSelectOptions() {
+    [elements.dbtHookImageSelect, elements.dbtHookImageSelectStep1].forEach((selectEl) => {
+        if (!selectEl) return;
+
+        const previousValue = selectEl.value;
+        selectEl.innerHTML = '';
+
+        Object.entries(dbtHookImageOptions).forEach(([value, option]) => {
+            const optionEl = document.createElement('option');
+            optionEl.value = value;
+            optionEl.textContent = option.label;
+            selectEl.appendChild(optionEl);
+        });
+
+        selectEl.value = dbtHookImageOptions[previousValue] ? previousValue : 'default';
+    });
+}
+
+function closeAllDbtHookImageMenus(exceptSelectId = null) {
+    dbtHookImagePickerInstances.forEach(({ selectEl, wrapperEl, menuEl, buttonEl }) => {
+        if (exceptSelectId && selectEl.id === exceptSelectId) return;
+        wrapperEl.classList.remove('open');
+        buttonEl.setAttribute('aria-expanded', 'false');
+        menuEl.hidden = true;
+    });
+}
+
+function openDbtHookImageMenu(instance) {
+    closeAllDbtHookImageMenus(instance.selectEl.id);
+    instance.wrapperEl.classList.add('open');
+    instance.buttonEl.setAttribute('aria-expanded', 'true');
+    instance.menuEl.hidden = false;
+}
+
+function closeDbtHookImageMenu(instance) {
+    instance.wrapperEl.classList.remove('open');
+    instance.buttonEl.setAttribute('aria-expanded', 'false');
+    instance.menuEl.hidden = true;
+}
+
+function syncDbtHookImagePickerUI() {
+    const character = getSelectedDbtCharacter();
+    const supported = supportsCustomDbtHookImage(character);
+
+    dbtHookImagePickerInstances.forEach(({ selectEl, wrapperEl, buttonEl, labelEl, thumbEl, menuEl }) => {
+        const selectedValue = dbtHookImageOptions[selectEl.value] ? selectEl.value : 'default';
+        const selectedConfig = dbtHookImageOptions[selectedValue] || dbtHookImageOptions.default;
+        const previewSrc = getDbtHookImagePreviewSrc(selectedValue, character);
+
+        wrapperEl.classList.toggle('disabled', !supported);
+        buttonEl.disabled = !supported;
+        buttonEl.title = supported ? '' : 'Only available for hannahbpd and brendabpd';
+        labelEl.textContent = selectedConfig.label;
+        thumbEl.innerHTML = previewSrc
+            ? `<img src="${previewSrc}" alt="${selectedConfig.label} preview">`
+            : '<span class="hook-image-picker-placeholder">Default</span>';
+
+        menuEl.querySelectorAll('.hook-image-picker-option').forEach((optionEl) => {
+            const isSelected = optionEl.dataset.value === selectedValue;
+            optionEl.classList.toggle('selected', isSelected);
+            optionEl.setAttribute('aria-selected', String(isSelected));
+
+            const optionThumbEl = optionEl.querySelector('.hook-image-picker-option-thumb');
+            const optionPreviewSrc = getDbtHookImagePreviewSrc(optionEl.dataset.value, character);
+            optionThumbEl.innerHTML = optionPreviewSrc
+                ? `<img src="${optionPreviewSrc}" alt="">`
+                : '<span class="hook-image-picker-placeholder">Default</span>';
+        });
+    });
+}
+
+function initializeDbtHookImagePicker(selectEl) {
+    if (!selectEl || selectEl.dataset.previewPickerInitialized === 'true') return;
+
+    selectEl.dataset.previewPickerInitialized = 'true';
+    selectEl.classList.add('hook-image-select-native');
+
+    const wrapperEl = document.createElement('div');
+    wrapperEl.className = 'hook-image-picker';
+    wrapperEl.dataset.selectId = selectEl.id;
+
+    const buttonEl = document.createElement('button');
+    buttonEl.type = 'button';
+    buttonEl.className = 'hook-image-picker-button';
+    buttonEl.setAttribute('aria-haspopup', 'listbox');
+    buttonEl.setAttribute('aria-expanded', 'false');
+
+    const thumbEl = document.createElement('span');
+    thumbEl.className = 'hook-image-picker-thumb';
+
+    const labelEl = document.createElement('span');
+    labelEl.className = 'hook-image-picker-label';
+
+    const chevronEl = document.createElement('span');
+    chevronEl.className = 'hook-image-picker-chevron';
+    chevronEl.innerHTML = '&#9662;';
+
+    buttonEl.appendChild(thumbEl);
+    buttonEl.appendChild(labelEl);
+    buttonEl.appendChild(chevronEl);
+
+    const menuEl = document.createElement('div');
+    menuEl.className = 'hook-image-picker-menu';
+    menuEl.setAttribute('role', 'listbox');
+    menuEl.hidden = true;
+
+    Object.entries(dbtHookImageOptions).forEach(([value, option]) => {
+        const optionEl = document.createElement('button');
+        optionEl.type = 'button';
+        optionEl.className = 'hook-image-picker-option';
+        optionEl.dataset.value = value;
+        optionEl.setAttribute('role', 'option');
+
+        const optionThumbEl = document.createElement('span');
+        optionThumbEl.className = 'hook-image-picker-option-thumb';
+
+        const optionLabelEl = document.createElement('span');
+        optionLabelEl.className = 'hook-image-picker-option-label';
+        optionLabelEl.textContent = option.label;
+
+        optionEl.appendChild(optionThumbEl);
+        optionEl.appendChild(optionLabelEl);
+
+        optionEl.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            selectEl.value = value;
+            closeAllDbtHookImageMenus();
+            selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        menuEl.appendChild(optionEl);
+    });
+
+    const instance = {
+        selectEl,
+        wrapperEl,
+        buttonEl,
+        labelEl,
+        thumbEl,
+        menuEl
+    };
+
+    buttonEl.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (buttonEl.disabled) return;
+
+        if (menuEl.hidden) {
+            openDbtHookImageMenu(instance);
+        } else {
+            closeDbtHookImageMenu(instance);
+        }
+    });
+
+    buttonEl.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeDbtHookImageMenu(instance);
+            buttonEl.blur();
+        }
+    });
+
+    wrapperEl.addEventListener('focusout', (event) => {
+        if (!wrapperEl.contains(event.relatedTarget)) {
+            closeDbtHookImageMenu(instance);
+        }
+    });
+
+    wrapperEl.appendChild(buttonEl);
+    wrapperEl.appendChild(menuEl);
+    selectEl.insertAdjacentElement('afterend', wrapperEl);
+
+    dbtHookImagePickerInstances.push(instance);
+}
+
+function initializeDbtHookImagePickers() {
+    populateDbtHookImageSelectOptions();
+    initializeDbtHookImagePicker(elements.dbtHookImageSelectStep1);
+    initializeDbtHookImagePicker(elements.dbtHookImageSelect);
+    syncDbtHookImagePickerUI();
+}
+
 function getDefaultDbtStaticSlide(index, character = getSelectedDbtCharacter()) {
     const template = getDbtCharacterTemplate(character);
     const flow = state.currentDbtSlideType || 'weird_hack';
     const flowSlides = template.staticSlidesByFlow?.[flow] || template.staticSlidesByFlow?.weird_hack || {};
+    if (index === 0) {
+        const slide1Override = getDbtSlide1ImageOverride(character);
+        if (slide1Override) return slide1Override;
+    }
     return flowSlides[index] || null;
 }
 
@@ -382,6 +1199,8 @@ function syncDbtStaticSlides(slideCount = state.slides.length) {
         const slide6Image = getDefaultDbtStaticSlide(5);
         if (slide6Image) {
             state.staticSlides[5] = slide6Image;
+        } else {
+            delete state.staticSlides[5];
         }
     } else {
         delete state.staticSlides[5];
@@ -433,8 +1252,14 @@ function getStaticSlideImage(index) {
 
 function setSlideImage(index, imageUrl, options = {}) {
     if (!state.slides[index]) return;
+    if (options.overrideStatic && state.staticSlides && state.staticSlides[index]) {
+        delete state.staticSlides[index];
+    }
     if (isStaticSlide(index) && !options.force) return;
     state.slides[index].image = imageUrl;
+    if (options.syncGenerated !== false) {
+        state.generatedImages[index] = imageUrl;
+    }
 }
 
 function applyStaticSlides() {
@@ -491,6 +1316,7 @@ function ensureSlidesParsed(options = {}) {
             }));
             syncDbtStaticSlides();
             applyStaticSlides();
+            renderSlideBuilderList();
             renderSlidesPreview();
             if (notify) {
                 showNotification(`Using ${state.slides.length} slides from text box`, 'success');
@@ -517,12 +1343,16 @@ function parseSlidesFromText(text) {
         parts.forEach(part => {
             const cleaned = part.trim();
             if (cleaned) {
-                slides.push({
+                const dualVoice = parseDualVoiceSlideText(cleaned);
+                const slide = {
                     text: cleaned,
+                    outsideText: dualVoice?.outsideText || null,
+                    insideText: dualVoice?.insideText || null,
                     image: null,
                     id: Date.now() + counter++,
                     position: getDefaultSlidePosition(slides.length)
-                });
+                };
+                slides.push(dualVoice ? ensureDualVoicePositions(slide) : slide);
             }
         });
 
@@ -537,14 +1367,19 @@ function parseSlidesFromText(text) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         if (line) {
-            slides.push({
-                text: line.replace(/^Slide\s*\d*[:\-]?\s*/i, '').trim(),
+            const cleanedText = line.replace(/^Slide\s*\d*[:\-]?\s*/i, '').trim();
+            const dualVoice = parseDualVoiceSlideText(cleanedText);
+            const slide = {
+                text: cleanedText,
+                outsideText: dualVoice?.outsideText || null,
+                insideText: dualVoice?.insideText || null,
                 image: null,
                 id: Date.now() + i,
                 position: getDefaultSlidePosition(i),
                 scale: 1.5,
                 maxWidth: 120
-            });
+            };
+            slides.push(dualVoice ? ensureDualVoicePositions(slide) : slide);
         }
     }
 
@@ -593,6 +1428,9 @@ async function generateNativeSlides() {
     const includeBranding = true;
     const slideType = getSelectedDbtSlideType();
     const textOnlyMode = !!elements.dbtTextOnlyMode?.checked;
+    const topic = doesDbtSlideTypeUseViralTopic(slideType)
+        ? (elements.nativeGenTopicDbt?.value || 'random')
+        : undefined;
 
     state.includeBranding = includeBranding;
     state.currentDbtSlideType = slideType;
@@ -611,7 +1449,7 @@ async function generateNativeSlides() {
                 service: 'dbt',
                 includeBranding,
                 artStyle: elements.artStyleSelect?.value || 'symbolic',
-                topic: elements.nativeGenTopicDbt?.value || 'random',
+                topic,
                 slideType
             })
         });
@@ -644,7 +1482,13 @@ async function generateNativeSlides() {
             const promptsPromise = generateImagePromptsFromSlides(state.slides, {
                 autoGenerateImageIndices: slideType === 'three_tips'
                     ? [0, 1, 2, 3, 4]
-                    : [1, 2, 3, 4]
+                    : slideType === 'i_say_they_say'
+                        ? state.slides.map((_, index) => index)
+                        : slideType === 'weird_hack_v2'
+                            ? state.slides
+                                .map((_, index) => index)
+                                .filter(index => index >= 1)
+                            : [1, 2, 3, 4]
             });
             await Promise.allSettled([metadataPromise, promptsPromise]);
 
@@ -663,7 +1507,7 @@ async function generateNativeSlides() {
     } finally {
         elements.generateNativeSlidesBtn.disabled = false;
         setTimeout(syncDbtSlideTypeUI, 0);
-        elements.generateNativeSlidesBtn.innerHTML = '<span>🔥 Generate Weird Therapist Hacks (Opus)</span>';
+        elements.generateNativeSlidesBtn.innerHTML = `<span>${getDbtGenerateButtonLabel(state.currentDbtSlideType)}</span>`;
     }
 }
 
@@ -702,7 +1546,8 @@ async function generateImagePromptsFromSlides(slidesToUse, options = {}) {
         const response = await fetch(`${API_BASE}/generate-image-prompts`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                ...getApiAuthHeaders()
             },
             body: JSON.stringify({
                 slides: slidesToUse.map(s => s.text),
@@ -876,7 +1721,8 @@ async function generateAiImages(options = {}) {
         const response = await fetch(`${API_BASE}/generate-ai-images`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                ...getApiAuthHeaders()
             },
             body: JSON.stringify({
                 imagePrompts: imagePromptsPayload,
@@ -897,14 +1743,15 @@ async function generateAiImages(options = {}) {
 
         if (data.images && Array.isArray(data.images)) {
             // Assign images to slides based on slideIndex
-            data.images.forEach(item => {
+            for (const item of data.images) {
                 if (item.success && item.image) {
-                    const imageUrl = `data:${item.image.mime_type || 'image/png'};base64,${item.image.data}`;
+                    const originalImageUrl = `data:${item.image.mime_type || 'image/png'};base64,${item.image.data}`;
                     const idx = item.slideIndex;
+                    const imageUrl = await maybePostProcessIFeelImage(originalImageUrl);
                     state.generatedImages[idx] = imageUrl;
-                    setSlideImage(idx, imageUrl);
+                    setSlideImage(idx, imageUrl, { overrideStatic: true });
                 }
-            });
+            }
 
             applyStaticSlides();
 
@@ -918,7 +1765,7 @@ async function generateAiImages(options = {}) {
         }
     } catch (error) {
         console.error('Error generating images:', error);
-        showNotification('Failed to generate images. Please try again.', 'error');
+        showNotification(`Failed to generate images: ${error?.message || 'unknown network error'}`, 'error');
     } finally {
         if (genBtn) genBtn.disabled = false;
         if (progressEl) progressEl.style.display = 'none';
@@ -928,6 +1775,7 @@ async function generateAiImages(options = {}) {
 async function generateCustomImage() {
     const isSyp = state.currentService === 'syp';
     const inputEl = isSyp ? elements.customPromptInputSyp : elements.customPromptInput;
+    const resolutionEl = isSyp ? elements.customResolutionSelectSyp : elements.customResolutionSelect;
     const prompt = inputEl ? inputEl.value.trim() : '';
 
     if (!prompt) {
@@ -939,6 +1787,7 @@ async function generateCustomImage() {
     const tempId = Date.now();
     const ratioEl = isSyp ? elements.aspectRatioSelectSyp : elements.aspectRatioSelectDbt;
     const selectedRatio = ratioEl ? ratioEl.value : '9:16';
+    const selectedResolution = resolutionEl ? resolutionEl.value : '1K';
 
     // Clear input immediately so user can type next prompt
     if (inputEl) inputEl.value = '';
@@ -948,6 +1797,7 @@ async function generateCustomImage() {
         id: tempId,
         prompt: prompt,
         aspectRatio: selectedRatio,
+        resolution: selectedResolution,
         status: 'loading',
         timestamp: new Date().toLocaleTimeString()
     });
@@ -960,10 +1810,14 @@ async function generateCustomImage() {
 
         const response = await fetch(`${API_BASE}/generate-custom-image`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...getApiAuthHeaders()
+            },
             body: JSON.stringify({
                 prompt: prompt,
                 aspectRatio: selectedRatio,
+                imageSize: selectedResolution,
                 referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
                 service: state.currentService
             })
@@ -973,7 +1827,8 @@ async function generateCustomImage() {
         const data = await response.json();
 
         if (data.success && data.image) {
-            const imageUrl = `data:${data.image.mime_type || 'image/png'};base64,${data.image.data}`;
+            const originalImageUrl = `data:${data.image.mime_type || 'image/png'};base64,${data.image.data}`;
+            const imageUrl = await maybePostProcessIFeelImage(originalImageUrl);
 
             // Update the placeholder in state
             const index = state.customImages.findIndex(ci => ci.id === tempId);
@@ -983,6 +1838,7 @@ async function generateCustomImage() {
                     url: imageUrl,
                     prompt: prompt,
                     aspectRatio: selectedRatio,
+                    resolution: selectedResolution,
                     timestamp: new Date().toLocaleTimeString(),
                     status: 'done'
                 };
@@ -995,12 +1851,12 @@ async function generateCustomImage() {
         }
     } catch (error) {
         console.error('Error generating custom image:', error);
-        showNotification('Failed to generate: ' + error.message, 'error');
+        showNotification(`Failed to generate: ${error?.message || 'unknown network error'}`, 'error');
         // Update placeholder to show error or remove it
         const index = state.customImages.findIndex(ci => ci.id === tempId);
         if (index !== -1) {
             state.customImages[index].status = 'error';
-            state.customImages[index].error = error.message;
+            state.customImages[index].error = error?.message || 'unknown network error';
             renderGeneratedImages();
         }
     }
@@ -1112,7 +1968,10 @@ async function generateSingleImage(index, btnEl) {
 
         const response = await fetch(`${API_BASE}/generate-image-with-refs`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...getApiAuthHeaders()
+            },
             body: JSON.stringify({
                 prompt: prompt,
                 referenceImages: referenceImages,
@@ -1129,11 +1988,12 @@ async function generateSingleImage(index, btnEl) {
         const data = await response.json();
 
         if (data.success && data.image) {
-            const imageUrl = `data:${data.image.mime_type || data.image.mimeType || 'image/png'};base64,${data.image.data}`;
+            const originalImageUrl = `data:${data.image.mime_type || data.image.mimeType || 'image/png'};base64,${data.image.data}`;
+            const imageUrl = await maybePostProcessIFeelImage(originalImageUrl);
             state.generatedImages[slideIndexToUse] = imageUrl;
 
             // Assign to state.slides
-            setSlideImage(slideIndexToUse, imageUrl);
+            setSlideImage(slideIndexToUse, imageUrl, { overrideStatic: true });
 
             // Replace card content with image
             cardEl.classList.remove('generated-image-pending');
@@ -1169,7 +2029,7 @@ async function generateSingleImage(index, btnEl) {
                 useBtn.classList.add('added');
                 useBtn.textContent = '✓ Added';
                 if (state.slides[index]) {
-                    setSlideImage(index, imageUrl);
+                    setSlideImage(index, imageUrl, { overrideStatic: true });
                     renderSlidesPreview();
                     showNotification(`Image assigned to slide ${index + 1}`, 'success');
                 } else {
@@ -1216,10 +2076,14 @@ async function regenerateCustomImage(id) {
 
         const response = await fetch(`${API_BASE}/generate-custom-image`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...getApiAuthHeaders()
+            },
             body: JSON.stringify({
                 prompt,
                 aspectRatio: imgObj.aspectRatio || '9:16',
+                imageSize: imgObj.resolution || '1K',
                 referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
                 service: state.currentService
             })
@@ -1229,13 +2093,16 @@ async function regenerateCustomImage(id) {
         const data = await response.json();
 
         if (data.success && data.image) {
-            const imageUrl = `data:${data.image.mime_type || 'image/png'};base64,${data.image.data}`;
+            const originalImageUrl = `data:${data.image.mime_type || 'image/png'};base64,${data.image.data}`;
+            const imageUrl = await maybePostProcessIFeelImage(originalImageUrl);
             const idx = state.customImages.findIndex(ci => ci.id === id);
             if (idx !== -1) {
                 state.customImages[idx] = {
                     id,
                     url: imageUrl,
                     prompt,
+                    aspectRatio: imgObj.aspectRatio || '9:16',
+                    resolution: imgObj.resolution || '1K',
                     timestamp: new Date().toLocaleTimeString(),
                     status: 'done'
                 };
@@ -1247,11 +2114,11 @@ async function regenerateCustomImage(id) {
         }
     } catch (error) {
         console.error('Error regenerating custom image:', error);
-        showNotification('Regeneration failed: ' + error.message, 'error');
+        showNotification(`Regeneration failed: ${error?.message || 'unknown network error'}`, 'error');
         const idx = state.customImages.findIndex(ci => ci.id === id);
         if (idx !== -1) {
             state.customImages[idx].status = 'error';
-            state.customImages[idx].error = error.message;
+            state.customImages[idx].error = error?.message || 'unknown network error';
             renderGeneratedImages();
         }
     }
@@ -1277,7 +2144,7 @@ function renderGeneratedImages() {
                 <div class="custom-loading-state">
                     <div class="spinner"></div>
                 </div>
-                <div class="custom-prompt-preview">${imgObj.prompt}</div>
+                <div class="custom-prompt-preview">${imgObj.prompt}${imgObj.resolution ? ` • ${imgObj.resolution}` : ''}</div>
             `;
             container.appendChild(item);
             return;
@@ -1306,7 +2173,7 @@ function renderGeneratedImages() {
         }
 
         item.innerHTML = `
-            <span class="slide-label">Custom - ${imgObj.timestamp}</span>
+            <span class="slide-label">Custom - ${imgObj.timestamp}${imgObj.resolution ? ` • ${imgObj.resolution}` : ''}</span>
             <img src="${imgObj.url}" alt="Custom image">
             <div class="custom-image-toolbar">
                 <button class="btn btn-sm btn-secondary use-custom-btn">Use</button>
@@ -1319,13 +2186,9 @@ function renderGeneratedImages() {
         // Add custom handlers
         item.querySelector('.use-custom-btn').addEventListener('click', () => {
             if (state.slides[state.currentSlideIndex]) {
-                if (isStaticSlide(state.currentSlideIndex)) {
-                    showNotification('This slide uses a static image and cannot be replaced.', 'info');
-                } else {
-                    setSlideImage(state.currentSlideIndex, imgObj.url);
-                    renderSlidesPreview();
-                    showNotification(`Image assigned to slide ${state.currentSlideIndex + 1}`, 'success');
-                }
+                setSlideImage(state.currentSlideIndex, imgObj.url, { overrideStatic: true });
+                renderSlidesPreview();
+                showNotification(`Image assigned to slide ${state.currentSlideIndex + 1}`, 'success');
             } else {
                 showNotification('No active slide to assign image to.', 'error');
             }
@@ -1426,7 +2289,7 @@ function renderGeneratedImages() {
             btnEl.textContent = '✓ Added';
 
             if (state.slides[index]) {
-                setSlideImage(index, state.generatedImages[index]);
+                setSlideImage(index, state.generatedImages[index], { overrideStatic: true });
                 renderSlidesPreview();
                 showNotification(`Image assigned to slide ${index + 1}`, 'success');
             } else {
@@ -1481,6 +2344,38 @@ function splitTextBlocks(text) {
         .filter(Boolean);
 }
 
+function parseDualVoiceSlideText(text) {
+    const match = String(text || '').match(/^OUTSIDE:\s*([\s\S]*?)\n+\s*INSIDE:\s*([\s\S]*)$/i);
+    if (!match) return null;
+
+    const outsideText = String(match[1] || '').trim();
+    const insideText = String(match[2] || '').trim();
+    if (!outsideText || !insideText) return null;
+
+    return { outsideText, insideText };
+}
+
+function ensureDualVoicePositions(slide) {
+    if (!slide) return slide;
+    if (!slide.outsidePosition) slide.outsidePosition = getDefaultDualVoicePosition('outside');
+    if (!slide.insidePosition) slide.insidePosition = getDefaultDualVoicePosition('inside');
+    return slide;
+}
+
+function isDualVoiceFlowSlide(slide) {
+    return state.currentService === 'dbt'
+        && state.currentDbtSlideType === 'i_say_they_say'
+        && !!slide?.outsideText
+        && !!slide?.insideText;
+}
+
+function formatSlideForTextarea(slide, index) {
+    const dualVoice = slide?.outsideText && slide?.insideText
+        ? `OUTSIDE: ${slide.outsideText}\nINSIDE: ${slide.insideText}`
+        : (slide?.text || '');
+    return `Slide ${index + 1}: ${dualVoice}`;
+}
+
 function escapeHtml(text) {
     return String(text || '')
         .replace(/&/g, '&amp;')
@@ -1491,14 +2386,32 @@ function escapeHtml(text) {
 }
 
 function buildTextBlocksPreviewHtml(text, baseFontSize) {
+    const textStyle = getActiveTextStyle();
+    const boxClass = textStyle === 'tiktok_caption' ? 'text-box text-box--tiktok' : 'text-box';
+    const spanClass = textStyle === 'tiktok_caption'
+        ? 'text-content-span text-content-span--tiktok'
+        : 'text-content-span';
     const blocks = splitTextBlocks(text);
     if (blocks.length === 0) return '';
 
     return blocks.map(block => `
-        <div class="text-box" style="font-size: ${baseFontSize}px; width: 100%;" data-base-font-size="${baseFontSize}">
-            <span class="text-content-span">${escapeHtml(block).replace(/\n/g, '<br>')}</span>
+        <div class="${boxClass}" style="font-size: ${baseFontSize}px; width: 100%;" data-base-font-size="${baseFontSize}">
+            <span class="${spanClass}">${escapeHtml(block).replace(/\n/g, '<br>')}</span>
         </div>
     `).join('');
+}
+
+function buildDualVoicePreviewHtml(slide, baseFontSize) {
+    const outsidePosition = slide.outsidePosition || getDefaultDualVoicePosition('outside');
+    const insidePosition = slide.insidePosition || getDefaultDualVoicePosition('inside');
+    return `
+        <div class="dual-voice-block dual-voice-outside draggable-text-block" data-voice="outside" style="position: absolute; top: ${outsidePosition.y}%; left: ${outsidePosition.x}%; transform: translate(-50%, -50%); width: 82%;">
+            ${buildTextBlocksPreviewHtml(slide.outsideText, baseFontSize)}
+        </div>
+        <div class="dual-voice-block dual-voice-inside draggable-text-block" data-voice="inside" style="position: absolute; top: ${insidePosition.y}%; left: ${insidePosition.x}%; transform: translate(-50%, -50%); width: 88%;">
+            ${buildTextBlocksPreviewHtml(slide.insideText, baseFontSize)}
+        </div>
+    `;
 }
 
 // ==========================================
@@ -1525,6 +2438,7 @@ function renderSlidesPreview() {
 
         // Ensure position exists
         if (!slide.position) slide.position = { x: 50, y: 50 };
+        normalizeSlidePosition(slide, index);
         if (!slide.maxWidth) slide.maxWidth = 120; // Default width set to 120%
 
         // Get the intended font size for final render (1080x1920 canvas)
@@ -1534,18 +2448,36 @@ function renderSlidesPreview() {
         const slideScale = slide.scale || 1.5;
         const previewScaleFactor = 0.35 * slideScale; // Scale down the entire text overlay
         const slideMaxWidth = slide.maxWidth || elements.textWidthInput?.value || 120;
+        const isDualVoice = isDualVoiceFlowSlide(slide);
+        if (isDualVoice) ensureDualVoicePositions(slide);
 
         const staticImage = getStaticSlideImage(index);
+        const overlayOpacity = shouldApplyDarkOverlayToSlide(index) ? getCurrentDarkOverlayOpacity() : 0;
         const slideImageMarkup = staticImage
             ? buildStaticImageMarkup(index, staticImage)
             : (slide.image ? `<img src="${slide.image}" alt="Slide ${index + 1}">` : '<div class="no-image">No Image</div>');
+        const imageOverlayMarkup = overlayOpacity > 0
+            ? `<div class="slide-image-dark-overlay" style="opacity: ${overlayOpacity};"></div>`
+            : '';
+
+        const overlayStyle = isDualVoice
+            ? `left: 50%; top: 50%; width: 100%; height: 100%; transform: translate(-50%, -50%) scale(${previewScaleFactor}); transform-origin: center center;`
+            : `left: ${slide.position.x}%; top: ${slide.position.y}%; width: ${slideMaxWidth}%; transform: translate(-50%, -50%) scale(${previewScaleFactor}); transform-origin: center center;`;
+        const textStyleClass = getActiveTextStyle() === 'tiktok_caption'
+            ? 'text-overlay--tiktok'
+            : 'text-overlay--boxed';
+
+        const previewHtml = isDualVoice
+            ? buildDualVoicePreviewHtml(slide, baseFontSize)
+            : `<div class="text-block-stack">${buildTextBlocksPreviewHtml(slide.text || '', baseFontSize)}</div>`;
 
         slideEl.innerHTML = `
             <div class="slide-number">${index + 1}</div>
             <div class="slide-preview" style="position: relative; width: 100%; height: 100%;">
                 ${slideImageMarkup}
-                <div class="text-overlay ${state.currentSlideIndex === index ? 'selected' : ''}" style="left: ${slide.position.x}%; top: ${slide.position.y}%; width: ${slideMaxWidth}%; transform: translate(-50%, -50%) scale(${previewScaleFactor}); transform-origin: center center;" data-scale="${slideScale}">
-                    <div class="text-block-stack">${buildTextBlocksPreviewHtml(slide.text || '', baseFontSize)}</div>
+                ${imageOverlayMarkup}
+                <div class="text-overlay ${textStyleClass} ${state.currentSlideIndex === index ? 'selected' : ''}" style="${overlayStyle}" data-scale="${slideScale}">
+                    ${previewHtml}
                     ${state.currentSlideIndex === index ? `
                         <div class="resize-handle corner" title="Drag to resize text"></div>
                         <div class="resize-handle width-handle" title="Drag to change width"></div>
@@ -1565,16 +2497,36 @@ function renderSlidesPreview() {
     });
 
     updateSlideCounter();
+    updateSelectedSlideEditor();
     initDragHandlers(); // Re-bind drag handlers
 }
 
 // ==========================================
 // CANVAS RENDERING
 // ==========================================
+function drawImageCover(ctx, img, targetWidth, targetHeight) {
+    const sourceWidth = img.naturalWidth || img.width;
+    const sourceHeight = img.naturalHeight || img.height;
+    if (!sourceWidth || !sourceHeight) {
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+        return;
+    }
+
+    const scale = Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight);
+    const drawWidth = sourceWidth * scale;
+    const drawHeight = sourceHeight * scale;
+    const dx = (targetWidth - drawWidth) / 2;
+    const dy = (targetHeight - drawHeight) / 2;
+
+    ctx.drawImage(img, dx, dy, drawWidth, drawHeight);
+}
+
 function renderSlideToCanvas(slide, canvas) {
     const ctx = canvas.getContext('2d');
     const width = 1080;
     const height = 1920;
+    const slideIndex = state.slides.indexOf(slide);
+    const darkOverlayOpacity = shouldApplyDarkOverlayToSlide(slideIndex) ? getCurrentDarkOverlayOpacity() : 0;
 
     canvas.width = width;
     canvas.height = height;
@@ -1584,7 +2536,6 @@ function renderSlideToCanvas(slide, canvas) {
     ctx.fillRect(0, 0, width, height);
 
     // Draw image if exists
-    const slideIndex = state.slides.indexOf(slide);
     const staticImage = slideIndex >= 0 ? getStaticSlideImage(slideIndex) : null;
     let imgToDraw = staticImage || slide.image;
 
@@ -1592,33 +2543,53 @@ function renderSlideToCanvas(slide, canvas) {
         return new Promise((resolve) => {
             const img = new Image();
             img.onload = () => {
-                ctx.drawImage(img, 0, 0, width, height);
-                drawTextOverlay(ctx, slide.text, width, height, slide.position, slide.scale, slide.maxWidth);
+                drawImageCover(ctx, img, width, height);
+                if (darkOverlayOpacity > 0) {
+                    ctx.fillStyle = `rgba(0, 0, 0, ${darkOverlayOpacity})`;
+                    ctx.fillRect(0, 0, width, height);
+                }
+                drawTextOverlay(ctx, slide, width, height, slide.position, slide.scale, slide.maxWidth);
                 resolve();
             };
             img.onerror = () => {
                 const fallbackImage = staticImage ? getStaticSlideFallback(slideIndex) : null;
                 if (fallbackImage && fallbackImage !== imgToDraw) {
                     img.onerror = () => {
-                        drawTextOverlay(ctx, slide.text, width, height, slide.position, slide.scale, slide.maxWidth);
+                        if (darkOverlayOpacity > 0) {
+                            ctx.fillStyle = `rgba(0, 0, 0, ${darkOverlayOpacity})`;
+                            ctx.fillRect(0, 0, width, height);
+                        }
+                        drawTextOverlay(ctx, slide, width, height, slide.position, slide.scale, slide.maxWidth);
                         resolve();
                     };
                     img.src = fallbackImage;
                     return;
                 }
 
-                drawTextOverlay(ctx, slide.text, width, height, slide.position, slide.scale, slide.maxWidth);
+                if (darkOverlayOpacity > 0) {
+                    ctx.fillStyle = `rgba(0, 0, 0, ${darkOverlayOpacity})`;
+                    ctx.fillRect(0, 0, width, height);
+                }
+                drawTextOverlay(ctx, slide, width, height, slide.position, slide.scale, slide.maxWidth);
                 resolve();
             };
             img.src = imgToDraw;
         });
     } else {
-        drawTextOverlay(ctx, slide.text, width, height, slide.position, slide.scale, slide.maxWidth);
+        if (darkOverlayOpacity > 0) {
+            ctx.fillStyle = `rgba(0, 0, 0, ${darkOverlayOpacity})`;
+            ctx.fillRect(0, 0, width, height);
+        }
+        drawTextOverlay(ctx, slide, width, height, slide.position, slide.scale, slide.maxWidth);
         return Promise.resolve();
     }
 }
 
-function drawTextOverlay(ctx, text, width, height, position = { x: 50, y: 50 }, scale = 1.5, maxWidthPercent = 120) {
+function drawTextOverlay(ctx, slideOrText, width, height, position = { x: 50, y: 50 }, scale = 1.5, maxWidthPercent = 120) {
+    const slide = typeof slideOrText === 'object' && slideOrText !== null
+        ? slideOrText
+        : null;
+    const text = slide ? slide.text : slideOrText;
     if (!text) return;
 
     // Scaling font size for 1080x1920 canvas
@@ -1645,12 +2616,20 @@ function drawTextOverlay(ctx, text, width, height, position = { x: 50, y: 50 }, 
     // Preview physical coverage = (maxWidthPercent/100) * 0.35 * scale.
     const visualCoverageRatio = (maxWidthPercent / 100) * 0.35 * scaleFactor;
     const maxWidth = width * visualCoverageRatio;
-    const lineHeight = canvasFontSize * 1.25;
+    const textStyle = getActiveTextStyle();
+    const isTikTokCaptionStyle = textStyle === 'tiktok_caption';
+    const lineHeight = canvasFontSize * (isTikTokCaptionStyle ? 1.08 : 1.25);
     const paddingX = canvasFontSize * 0.45;
     const paddingY = canvasFontSize * 0.18;
     const cornerRadius = canvasFontSize * 0.25;
-    const blockGap = lineHeight * 0.55;
+    const blockGap = lineHeight * (isTikTokCaptionStyle ? 0.7 : 0.55);
     const blocks = splitTextBlocks(text);
+    const dualVoice = state.currentService === 'dbt'
+        && state.currentDbtSlideType === 'i_say_they_say'
+        ? (slide?.outsideText && slide?.insideText
+            ? { outsideText: slide.outsideText, insideText: slide.insideText }
+            : parseDualVoiceSlideText(text))
+        : null;
 
     const wrapBlockToLines = (blockText) => {
         const forcedLines = String(blockText || '').split('\n').map(s => s.trim()).filter(Boolean);
@@ -1674,9 +2653,38 @@ function drawTextOverlay(ctx, text, width, height, position = { x: 50, y: 50 }, 
         return wrapped;
     };
 
-    const drawTextBlob = (lines, centerY) => {
+    const drawTextBlob = (lines, centerY, centerX = textX) => {
         if (!lines || lines.length === 0) return;
         const blockHeight = lines.length * lineHeight;
+
+        if (isTikTokCaptionStyle) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.96)';
+            ctx.fillStyle = '#ffffff';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.miterLimit = 2;
+            ctx.lineWidth = Math.max(6, canvasFontSize * 0.17);
+
+            let startYForText = centerY - (blockHeight / 2) + (lineHeight / 2);
+            lines.forEach((line) => {
+                ctx.strokeText(line, centerX, startYForText);
+                startYForText += lineHeight;
+            });
+
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = canvasFontSize * 0.08;
+            ctx.shadowOffsetY = canvasFontSize * 0.05;
+
+            startYForText = centerY - (blockHeight / 2) + (lineHeight / 2);
+            lines.forEach((line) => {
+                ctx.fillText(line, centerX, startYForText);
+                startYForText += lineHeight;
+            });
+            ctx.restore();
+            return;
+        }
+
         const rects = [];
         let currentYForRect = centerY - (blockHeight / 2);
 
@@ -1686,7 +2694,7 @@ function drawTextOverlay(ctx, text, width, height, position = { x: 50, y: 50 }, 
             const lineCenterY = currentYForRect + (lineHeight / 2);
 
             rects.push({
-                x: textX - (lineWidth / 2) - paddingX,
+                x: centerX - (lineWidth / 2) - paddingX,
                 y: lineCenterY - (canvasFontSize / 2) - paddingY,
                 w: lineWidth + (paddingX * 2),
                 h: canvasFontSize + (paddingY * 2)
@@ -1738,10 +2746,24 @@ function drawTextOverlay(ctx, text, width, height, position = { x: 50, y: 50 }, 
         ctx.fillStyle = '#000000';
         let startYForText = centerY - (blockHeight / 2) + (lineHeight / 2);
         lines.forEach((line) => {
-            ctx.fillText(line, textX, startYForText);
+            ctx.fillText(line, centerX, startYForText);
             startYForText += lineHeight;
         });
     };
+
+    if (dualVoice) {
+        const outsideLines = wrapBlockToLines(dualVoice.outsideText);
+        const insideLines = wrapBlockToLines(dualVoice.insideText);
+        const outsidePosition = slide?.outsidePosition || getDefaultDualVoicePosition('outside');
+        const insidePosition = slide?.insidePosition || getDefaultDualVoicePosition('inside');
+        if (outsideLines.length > 0) {
+            drawTextBlob(outsideLines, (outsidePosition.y / 100) * height, (outsidePosition.x / 100) * width);
+        }
+        if (insideLines.length > 0) {
+            drawTextBlob(insideLines, (insidePosition.y / 100) * height, (insidePosition.x / 100) * width);
+        }
+        return;
+    }
 
     const blockLines = blocks.map(block => wrapBlockToLines(block)).filter(lines => lines.length > 0);
     if (blockLines.length === 0) return;
@@ -1834,18 +2856,67 @@ function handleFileUpload(files) {
         const reader = new FileReader();
         reader.onload = (e) => {
             const imageIndex = state.slides.length > 0 ? state.currentSlideIndex + index : index;
-            if (state.slides[imageIndex]) {
-                setSlideImage(imageIndex, e.target.result);
+
+            if (!state.slides[imageIndex]) {
+                while (state.slides.length <= imageIndex) {
+                    state.slides.push(createSlide({ index: state.slides.length }));
+                }
             }
 
-            if (index === 0) {
+            if (state.slides[imageIndex]) {
+                setSlideImage(imageIndex, e.target.result, { overrideStatic: true });
+            }
+
+            if (index === files.length - 1) {
+                syncActiveSlidesTextarea();
+                renderSlideBuilderList();
                 renderSlidesPreview();
+                setCurrentSlideIndex(imageIndex);
             }
         };
         reader.readAsDataURL(file);
     });
 
     showNotification(`${files.length} image(s) uploaded`, 'success');
+}
+
+function clearCurrentSlideImage() {
+    const slide = state.slides[state.currentSlideIndex];
+    if (!slide) return;
+
+    if (state.staticSlides && state.staticSlides[state.currentSlideIndex]) {
+        delete state.staticSlides[state.currentSlideIndex];
+    }
+
+    slide.image = null;
+    state.generatedImages[state.currentSlideIndex] = null;
+    renderSlideBuilderList();
+    renderSlidesPreview();
+    setCurrentSlideIndex(state.currentSlideIndex);
+    showNotification(`Removed image from slide ${state.currentSlideIndex + 1}`, 'success');
+}
+
+function handleSelectedSlideTextInput(event) {
+    const slide = state.slides[state.currentSlideIndex];
+    if (!slide) return;
+
+    const newText = event.target.value;
+    slide.text = newText;
+
+    const dualVoice = parseDualVoiceSlideText(newText);
+    slide.outsideText = dualVoice?.outsideText || null;
+    slide.insideText = dualVoice?.insideText || null;
+    if (dualVoice) {
+        ensureDualVoicePositions(slide);
+    }
+
+    syncActiveSlidesTextarea();
+    const builderTextarea = document.querySelector(`.slide-builder-textarea[data-index="${state.currentSlideIndex}"]`);
+    if (builderTextarea && document.activeElement !== builderTextarea) {
+        builderTextarea.value = newText;
+    }
+    renderSlidesPreview();
+    setCurrentSlideIndex(state.currentSlideIndex);
 }
 
 // ==========================================
@@ -2073,7 +3144,8 @@ async function improveHooksFromSlides(slidesToUse) {
                 slides: slidesToUse.map(s => s.text),
                 format: state.currentFormat,
                 topic: state.currentTopic,
-                service: state.currentService
+                service: state.currentService,
+                slideType: state.currentService === 'dbt' ? state.currentDbtSlideType : undefined
             })
         });
 
@@ -2310,7 +3382,8 @@ async function generateMetadata(options = {}) {
         const response = await fetch(`${API_BASE}/generate-metadata`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                ...getApiAuthHeaders()
             },
             body: JSON.stringify({
                 slides_text: state.slides.map(s => s.text).join('\n'),
@@ -2384,7 +3457,9 @@ function switchService(service) {
     });
 
     syncDbtStaticSlides();
+    syncDbtHookImageControl();
     applyStaticSlides();
+    renderSlideBuilderList();
     renderSlidesPreview();
 }
 
@@ -2392,6 +3467,12 @@ function switchService(service) {
 // EVENT LISTENERS
 // ==========================================
 function initEventListeners() {
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('.hook-image-picker')) {
+            closeAllDbtHookImageMenus();
+        }
+    });
+
     // Service switcher
     document.querySelectorAll('.service-btn').forEach(btn => {
         btn.addEventListener('click', () => switchService(btn.dataset.service));
@@ -2443,7 +3524,17 @@ function initEventListeners() {
     if (elements.dbtSlideTypeSelect) {
         elements.dbtSlideTypeSelect.addEventListener('change', () => {
             syncDbtSlideTypeUI();
+            syncDbtStaticSlides();
+            applyStaticSlides();
+            renderSlidesPreview();
             showNotification(`DBT slide type set to ${elements.dbtSlideTypeSelect.options[elements.dbtSlideTypeSelect.selectedIndex].text}`, 'success');
+        });
+    }
+
+    if (elements.dbtTextStyleSelect) {
+        elements.dbtTextStyleSelect.addEventListener('change', () => {
+            renderSlidesPreview();
+            showNotification(`DBT text styling set to ${elements.dbtTextStyleSelect.options[elements.dbtTextStyleSelect.selectedIndex].text}`, 'success');
         });
     }
 
@@ -2487,6 +3578,50 @@ function initEventListeners() {
         elements.fileInput.addEventListener('change', (e) => {
             handleFileUpload(e.target.files);
         });
+    }
+
+    if (elements.createSlideCountBtn) {
+        elements.createSlideCountBtn.addEventListener('click', () => {
+            buildSlidesToCount(elements.slideCountInput?.value || 1);
+        });
+    }
+
+    if (elements.slideCountInput) {
+        elements.slideCountInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                buildSlidesToCount(elements.slideCountInput?.value || 1);
+            }
+        });
+    }
+
+    if (elements.addSlideBtn) {
+        elements.addSlideBtn.addEventListener('click', () => {
+            if (!state.slides.length) {
+                insertNewSlide(-1);
+                return;
+            }
+            insertNewSlide(state.currentSlideIndex);
+        });
+    }
+
+    if (elements.uploadSlideImageBtn) {
+        elements.uploadSlideImageBtn.addEventListener('click', () => elements.slideImageFileInput?.click());
+    }
+
+    if (elements.slideImageFileInput) {
+        elements.slideImageFileInput.addEventListener('change', (e) => {
+            handleFileUpload(e.target.files || []);
+            e.target.value = '';
+        });
+    }
+
+    if (elements.clearSlideImageBtn) {
+        elements.clearSlideImageBtn.addEventListener('click', clearCurrentSlideImage);
+    }
+
+    if (elements.selectedSlideTextInput) {
+        elements.selectedSlideTextInput.addEventListener('input', handleSelectedSlideTextInput);
     }
 
     // Anchor upload
@@ -2587,6 +3722,30 @@ function initEventListeners() {
         });
     }
 
+    if (elements.darkOverlayInput) {
+        elements.darkOverlayInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            const display = document.getElementById('dark-overlay-value');
+            const sypDisplay = document.getElementById('dark-overlay-value_syp');
+            if (display) display.textContent = val + '%';
+            if (sypDisplay) sypDisplay.textContent = val + '%';
+            if (elements.darkOverlayInputSyp) elements.darkOverlayInputSyp.value = val;
+            renderSlidesPreview();
+        });
+    }
+
+    if (elements.darkOverlayInputSyp) {
+        elements.darkOverlayInputSyp.addEventListener('input', (e) => {
+            const val = e.target.value;
+            const display = document.getElementById('dark-overlay-value');
+            const sypDisplay = document.getElementById('dark-overlay-value_syp');
+            if (display) display.textContent = val + '%';
+            if (sypDisplay) sypDisplay.textContent = val + '%';
+            if (elements.darkOverlayInput) elements.darkOverlayInput.value = val;
+            renderSlidesPreview();
+        });
+    }
+
     // Parse slides
     if (elements.parseSlidesBtn) {
         elements.parseSlidesBtn.addEventListener('click', () => {
@@ -2615,11 +3774,51 @@ function initEventListeners() {
 
     if (elements.characterPreset) {
         elements.characterPreset.addEventListener('change', () => {
+            setSelectedDbtCharacterValue(elements.characterPreset.value || 'hannahbpd');
+            syncDbtHookImageControl();
             syncDbtStaticSlides();
             applyStaticSlides();
             renderImagePrompts();
             renderSlidesPreview();
             showNotification(`DBT character switched to ${getDbtCharacterTemplate().label}`, 'success');
+        });
+    }
+
+    if (elements.characterPresetStep1) {
+        elements.characterPresetStep1.addEventListener('change', () => {
+            setSelectedDbtCharacterValue(elements.characterPresetStep1.value || 'hannahbpd');
+            syncDbtHookImageControl();
+            syncDbtStaticSlides();
+            applyStaticSlides();
+            renderImagePrompts();
+            renderSlidesPreview();
+            showNotification(`DBT character switched to ${getDbtCharacterTemplate().label}`, 'success');
+        });
+    }
+
+    if (elements.dbtHookImageSelect) {
+        elements.dbtHookImageSelect.addEventListener('change', () => {
+            state.selectedDbtHookImage = elements.dbtHookImageSelect.value || 'default';
+            setSelectedDbtHookImageValue(state.selectedDbtHookImage);
+            syncDbtStaticSlides();
+            applyStaticSlides();
+            renderSlidesPreview();
+
+            const hookImageLabel = getSelectedDbtHookImageConfig().label;
+            showNotification(`Slide 1 hook image set to ${hookImageLabel}`, 'success');
+        });
+    }
+
+    if (elements.dbtHookImageSelectStep1) {
+        elements.dbtHookImageSelectStep1.addEventListener('change', () => {
+            state.selectedDbtHookImage = elements.dbtHookImageSelectStep1.value || 'default';
+            setSelectedDbtHookImageValue(state.selectedDbtHookImage);
+            syncDbtStaticSlides();
+            applyStaticSlides();
+            renderSlidesPreview();
+
+            const hookImageLabel = getSelectedDbtHookImageConfig().label;
+            showNotification(`Slide 1 hook image set to ${hookImageLabel}`, 'success');
         });
     }
 
@@ -2645,23 +3844,24 @@ function initEventListeners() {
     elements.slidesContainer.addEventListener('click', (e) => {
         if (e.target.classList.contains('delete-slide-btn')) {
             const index = parseInt(e.target.dataset.index);
+            shiftStaticSlides(index, -1);
             state.slides.splice(index, 1);
+            state.generatedImages.splice(index, 1);
+            state.selectedRefIndices = state.selectedRefIndices
+                .filter((idx) => idx !== index)
+                .map((idx) => (idx > index ? idx - 1 : idx));
+            syncActiveSlidesTextarea();
+            renderSlideBuilderList();
             renderSlidesPreview();
+            setCurrentSlideIndex(Math.max(0, index - 1));
             showNotification('Slide deleted', 'info');
         }
 
         if (e.target.classList.contains('edit-slide-btn')) {
             const index = parseInt(e.target.dataset.index);
-            const currentScale = state.slides[index].scale || 1.15;
-            const scalePercent = Math.round(currentScale * 100);
-            const currentWidth = state.slides[index].maxWidth || 85;
-
-            const newText = prompt(`Edit slide text (Scale: ${scalePercent}%, Width: ${Math.round(currentWidth)}%):`, state.slides[index].text);
-            if (newText !== null) {
-                state.slides[index].text = newText;
-                elements.slideTextInput.value = state.slides.map((s, i) => `Slide ${i + 1}: ${s.text}`).join('\n');
-                renderSlidesPreview();
-            }
+            setCurrentSlideIndex(index);
+            elements.selectedSlideTextInput?.focus();
+            elements.selectedSlideTextInput?.select();
         }
 
         if (e.target.classList.contains('reset-scale-btn')) {
@@ -2685,10 +3885,7 @@ function initEventListeners() {
         const slideCard = e.target.closest('.slide-editor');
         if (slideCard && !e.target.closest('.slide-actions')) {
             const index = parseInt(slideCard.dataset.index);
-            state.currentSlideIndex = index;
-            document.querySelectorAll('.slide-editor').forEach((card, i) => {
-                card.classList.toggle('selected', i === index);
-            });
+            setCurrentSlideIndex(index);
         }
     });
 
@@ -2724,6 +3921,7 @@ function initEventListeners() {
                 scale: 1.5,
                 maxWidth: 120
             }));
+            renderSlideBuilderList();
             renderSlidesPreview();
             showNotification(`Parsed ${state.slides.length} SYP slides`, 'success');
         });
@@ -2828,6 +4026,11 @@ function initDragHandlers() {
         overlay.addEventListener('mousedown', handleDragStart);
     });
 
+    const voiceBlocks = document.querySelectorAll('.draggable-text-block');
+    voiceBlocks.forEach(block => {
+        block.addEventListener('mousedown', handleDragStart);
+    });
+
     // Bind resize handlers to resize handles
     const resizeHandles = document.querySelectorAll('.resize-handle');
     resizeHandles.forEach(handle => {
@@ -2839,6 +4042,39 @@ function handleDragStart(e) {
     // Don't drag if clicking the resize handle
     if (e.target.classList.contains('resize-handle')) return;
 
+    const voiceBlock = e.target.closest('.draggable-text-block');
+    if (voiceBlock) {
+        const slideEditor = voiceBlock.closest('.slide-editor');
+        if (!slideEditor) return;
+
+        const index = parseInt(slideEditor.dataset.index);
+        const slide = state.slides[index];
+        const voice = voiceBlock.dataset.voice;
+        if (!slide || (voice !== 'outside' && voice !== 'inside')) return;
+
+        ensureDualVoicePositions(slide);
+
+        state.isDragging = true;
+        state.dragStartIndex = index;
+        state.dragTarget = voice;
+        state.currentSlideIndex = index;
+
+        document.querySelectorAll('.slide-editor').forEach((card, i) => {
+            card.classList.toggle('selected', i === index);
+        });
+
+        state.dragStartX = e.clientX;
+        state.dragStartY = e.clientY;
+        state.dragOffset = {
+            x: slide[voice === 'outside' ? 'outsidePosition' : 'insidePosition'].x,
+            y: slide[voice === 'outside' ? 'outsidePosition' : 'insidePosition'].y
+        };
+
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+    }
+
     const overlay = e.target.closest('.text-overlay');
     if (!overlay) return;
 
@@ -2849,6 +4085,7 @@ function handleDragStart(e) {
 
     state.isDragging = true;
     state.dragStartIndex = index;
+    state.dragTarget = 'main';
     state.currentSlideIndex = index;
 
     // Highlight selected slide
@@ -2932,13 +4169,25 @@ function handleDrag(e) {
         newX = Math.max(10, Math.min(90, newX));
         newY = Math.max(10, Math.min(90, newY));
 
-        // Update UI immediately
-        const overlay = slideEditor.querySelector('.text-overlay');
-        overlay.style.left = `${newX}%`;
-        overlay.style.top = `${newY}%`;
+        if (state.dragTarget === 'outside' || state.dragTarget === 'inside') {
+            const selector = `.draggable-text-block[data-voice="${state.dragTarget}"]`;
+            const block = slideEditor.querySelector(selector);
+            if (block) {
+                block.style.left = `${newX}%`;
+                block.style.top = `${newY}%`;
+            }
 
-        // Update state
-        state.slides[state.dragStartIndex].position = { x: newX, y: newY };
+            const positionKey = state.dragTarget === 'outside' ? 'outsidePosition' : 'insidePosition';
+            state.slides[state.dragStartIndex][positionKey] = { x: newX, y: newY };
+        } else {
+            // Update UI immediately
+            const overlay = slideEditor.querySelector('.text-overlay');
+            overlay.style.left = `${newX}%`;
+            overlay.style.top = `${newY}%`;
+
+            // Update state
+            state.slides[state.dragStartIndex].position = { x: newX, y: newY };
+        }
     }
 
     if (state.isResizing && state.dragStartIndex !== -1) {
@@ -3012,6 +4261,7 @@ function handleDragEnd() {
         state.isResizingLeft = false;
     }
     state.dragStartIndex = -1;
+    state.dragTarget = null;
 }
 
 function parseImagesToSlides() {
@@ -3046,7 +4296,9 @@ function parseImagesToSlides() {
 
     syncDbtStaticSlides();
     applyStaticSlides();
+    renderSlideBuilderList();
     renderSlidesPreview();
+    setCurrentSlideIndex(Math.min(state.currentSlideIndex, Math.max(0, state.slides.length - 1)));
     const count = state.generatedImages.filter(img => img).length;
     showNotification(`Applied ${count} images to preview`, 'success');
 
@@ -3098,6 +4350,7 @@ async function generateNativeSlidesSyp() {
 // INITIALIZATION
 // ==========================================
 function init() {
+    initializeDbtHookImagePickers();
     initEventListeners();
 
     // Initialize with default values
@@ -3111,10 +4364,21 @@ function init() {
         state.currentDbtSlideType = elements.dbtSlideTypeSelect.value;
         syncDbtSlideTypeUI();
     }
+    if (elements.characterPresetStep1 || elements.characterPreset) {
+        setSelectedDbtCharacterValue(getSelectedDbtCharacter());
+    }
+    if (elements.dbtHookImageSelect || elements.dbtHookImageSelectStep1) {
+        state.selectedDbtHookImage = elements.dbtHookImageSelectStep1?.value
+            || elements.dbtHookImageSelect?.value
+            || 'default';
+        syncDbtHookImageControl();
+    }
     state.includeBranding = true;
 
     console.log('App initialized');
     loadSavedRefs();
+    renderSlideBuilderList();
+    updateSelectedSlideEditor();
 }
 
 // Run initialization when DOM is ready

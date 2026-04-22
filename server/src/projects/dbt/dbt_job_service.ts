@@ -21,7 +21,7 @@ export interface DbtJobInput {
 
 interface DbtJobRunnerKeys {
     anthropicApiKey: string;
-    geminiApiKey?: string;
+    openaiApiKey?: string;
 }
 
 const DBT_TOPICS = [
@@ -188,7 +188,7 @@ export async function runDbtJob(db: Database, jobId: string, keys: DbtJobRunnerK
         });
 
         if (input.generateImages !== false) {
-            if (!keys.geminiApiKey) throw new Error("Gemini API key missing for image generation");
+            if (!keys.openaiApiKey) throw new Error("OpenAI API key missing for image generation");
             updateJob(db, jobId, { current_step: "generate_images" });
             startStep(db, jobId, "generate_images");
 
@@ -217,7 +217,7 @@ export async function runDbtJob(db: Database, jobId: string, keys: DbtJobRunnerK
                     ? loadStaticTemplateImage(templateFilename, i)
                     : await generateImageWithRetry(
                         prompts[i] || "",
-                        keys.geminiApiKey,
+                        keys.openaiApiKey,
                         input.aspectRatio || "9:16",
                         maxRetries
                     );

@@ -7,9 +7,8 @@
 import { readFileSync, existsSync } from "fs";
 import path from "path";
 
-const DATA_DIR = existsSync(path.join(process.cwd(), "server", "data"))
-    ? path.join(process.cwd(), "server", "data")
-    : path.join(process.cwd(), "data");
+const SERVER_ROOT = path.resolve(import.meta.dir, "..");
+const DATA_DIR = path.join(SERVER_ROOT, "data");
 
 const EMBEDDINGS_PATH = path.join(DATA_DIR, "hook_embeddings.json");
 
