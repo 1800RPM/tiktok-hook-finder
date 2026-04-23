@@ -28,7 +28,7 @@ interface OpenAIRequestTrace {
     processingMs: string | null;
 }
 
-const OPENAI_IMAGE_MODEL = "gpt-image-2";
+export const OPENAI_IMAGE_MODEL = "gpt-image-2";
 const OPENAI_API_BASE = "https://api.openai.com/v1";
 const DEFAULT_OUTPUT_FORMAT = "png";
 type OutputFormat = "png" | "jpeg" | "webp";

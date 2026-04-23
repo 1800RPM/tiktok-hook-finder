@@ -6,7 +6,7 @@ import type { ArtStyle } from './art_styles';
 export interface DbtGenerateParams {
     format?: 'relatable' | 'pov' | 'tips';
     topic?: string;
-    slideType?: 'weird_hack' | 'weird_hack_v2' | 'three_tips' | 'story_telling_bf' | 'story_telling_gf' | 'i_say_they_say';
+    slideType?: 'weird_hack' | 'weird_hack_v2' | 'three_tips' | 'story_telling_bf' | 'story_telling_gf' | 'i_say_they_say' | 'permission_v1';
     ANTHROPIC_API_KEY: string;
     includeBranding?: boolean;
     artStyle?: string;
@@ -19,13 +19,25 @@ type WeirdHackV2Topic = {
     inGroupTerms?: string[] | null;
 };
 
+type PermissionV1Topic = {
+    shameWord: string;
+    category: 'external' | 'internal';
+    weight: 'heavy' | 'light';
+    relatedAccusations: string[];
+    mechanismHint?: string;
+    inGroupTerms?: string[] | null;
+};
+
 const STORY_TELLING_FIXED_CTA = "it's called DBT-Mind. if DBT is something for you - it's free. just search for it on the app store 🖤";
 const STORY_TELLING_FIXED_COMPANION = "you can even choose your own little companion for your journey 🥹";
 const WEIRD_HACK_V2_FIXED_SLIDE8 = "one of these will actually work for you\n\nyou already know which one";
+const PERMISSION_V1_FIXED_SLIDE8 = "if this hit, save it for the next time your brain tries to tell you you're the problem.";
 
 const WEIRD_HACK_V2_RECENT_TOPICS_LIMIT = 10;
+const PERMISSION_V1_RECENT_TOPICS_LIMIT = 10;
 const SERVER_ROOT = join(import.meta.dir, '..', '..', '..');
 const WEIRD_HACK_V2_RECENT_TOPICS_PATH = join(SERVER_ROOT, 'data', 'weird_hack_v2_recent_topics.json');
+const PERMISSION_V1_RECENT_TOPICS_PATH = join(SERVER_ROOT, 'data', 'permission_v1_recent_topics.json');
 
 function normalizeWeirdHackV2TopicKey(value: string) {
     return String(value || '').trim().toLowerCase();
@@ -78,6 +90,61 @@ function pickWeirdHackV2Topic(topics: WeirdHackV2Topic[]) {
     );
     dedupedHistory.push(selectedTopic.topic);
     writeWeirdHackV2RecentTopics(dedupedHistory);
+
+    return selectedTopic;
+}
+
+function normalizePermissionV1TopicKey(value: string) {
+    return String(value || '').trim().toLowerCase();
+}
+
+function readPermissionV1RecentTopics() {
+    try {
+        if (!existsSync(PERMISSION_V1_RECENT_TOPICS_PATH)) return [];
+        const raw = JSON.parse(readFileSync(PERMISSION_V1_RECENT_TOPICS_PATH, 'utf8'));
+        const topics = Array.isArray(raw?.topics) ? raw.topics : [];
+        return topics
+            .map((topic: unknown) => String(topic || '').trim())
+            .filter(Boolean)
+            .slice(-PERMISSION_V1_RECENT_TOPICS_LIMIT);
+    } catch (error) {
+        console.warn('[Native Slides - DBT] Failed to read permission v1 topic history, continuing without it.', error);
+        return [];
+    }
+}
+
+function writePermissionV1RecentTopics(topics: string[]) {
+    try {
+        mkdirSync(dirname(PERMISSION_V1_RECENT_TOPICS_PATH), { recursive: true });
+        writeFileSync(
+            PERMISSION_V1_RECENT_TOPICS_PATH,
+            JSON.stringify(
+                {
+                    topics: topics.slice(-PERMISSION_V1_RECENT_TOPICS_LIMIT),
+                    updatedAt: new Date().toISOString()
+                },
+                null,
+                2
+            ),
+            'utf8'
+        );
+    } catch (error) {
+        console.warn('[Native Slides - DBT] Failed to persist permission v1 topic history.', error);
+    }
+}
+
+function pickPermissionV1Topic(topics: PermissionV1Topic[]) {
+    const recentTopics = readPermissionV1RecentTopics();
+    const recentSet = new Set(recentTopics.map(normalizePermissionV1TopicKey));
+    const availableTopics = topics.filter(topic => !recentSet.has(normalizePermissionV1TopicKey(topic.shameWord)));
+    const pool = availableTopics.length > 0 ? availableTopics : topics;
+    const selectedTopic = pool[Math.floor(Math.random() * pool.length)] || topics[0]!;
+
+    const dedupedHistory = recentTopics.filter(
+        topic => normalizePermissionV1TopicKey(topic) !== normalizePermissionV1TopicKey(selectedTopic.shameWord)
+    );
+    dedupedHistory.push(selectedTopic.shameWord);
+    writePermissionV1RecentTopics(dedupedHistory);
 
     return selectedTopic;
 }
@@ -392,6 +459,47 @@ function chooseWeirdHackV2FunnyDetailOption(promptText: string, slideContextText
     return chooseWeirdHackV2MemeOption(promptText, slideContextText);
 }
 
+function enforceWeirdHackV2CommentTriggerPrompts(prompts: Record<string, string>, slides: string[] = []) {
+    const slideKeys = ['slide2', 'slide3', 'slide4'] as const;
+    const normalizedPrompts = { ...prompts };
+    const slideContextByKey = {
+        slide2: `${slides[0] || ''}\n${slides[1] || ''}`,
+        slide3: `${slides[0] || ''}\n${slides[2] || ''}`,
+        slide4: `${slides[0] || ''}\n${slides[3] || ''}`
+    };
+
+    const matchingKeys = slideKeys.filter((slideKey) => {
+        const text = String(normalizedPrompts[slideKey] || '');
+        return promptContainsWeirdHackV2Meme(text);
+    });
+
+    if (matchingKeys.length > 1) {
+        const keepSlideKey = matchingKeys[Math.floor(Math.random() * matchingKeys.length)] || matchingKeys[0];
+        for (const slideKey of matchingKeys) {
+            if (slideKey === keepSlideKey) continue;
+            normalizedPrompts[slideKey] = stripWeirdHackV2MemeSentences(normalizedPrompts[slideKey] || '');
+        }
+        return normalizedPrompts;
+    }
+
+    if (matchingKeys.length === 1) {
+        return normalizedPrompts;
+    }
+
+    const targetSlideKey = slideKeys[Math.floor(Math.random() * slideKeys.length)] || 'slide2';
+    const selectedOption = chooseWeirdHackV2FunnyDetailOption(
+        normalizedPrompts[targetSlideKey] || '',
+        slideContextByKey[targetSlideKey] || slides.join('\n')
+    );
+
+    const basePrompt = String(normalizedPrompts[targetSlideKey] || '').trim();
+    normalizedPrompts[targetSlideKey] = basePrompt
+        ? `${basePrompt} ${selectedOption.injection}`
+        : selectedOption.injection;
+
+    return normalizedPrompts;
+}
+
 function sanitizeWeirdHackV2CommentTriggerPrompt(scenePrompt: string) {
     return String(scenePrompt || '');
 }
@@ -416,6 +524,92 @@ export async function generateWeirdHackV2ImagePrompts(
     slides: string[],
     ANTHROPIC_API_KEY: string
 ): Promise<Record<string, string>> {
+    const outdoorSystemPrompt = `You write image generation prompts for TikTok slideshow posts about BPD and DBT skills.
+
+The Weird Hack V2 flow should use outdoor nature scenes for slides 2 through 8.
+
+Core rules:
+- photorealistic outdoor nature photography only
+- vertical 9:16 compositions
+- no people visible
+- no indoor scenes, furniture, bedrooms, desks, houses, or city settings
+- no text, signs, phones, books, notebooks, screenshots, app UI, or meme props
+- no surreal or symbolic fantasy imagery
+- each prompt should feel like a real place someone could photograph in nature
+- each slide must have a clearly different landscape, weather, time of day, or terrain
+- prioritize beautiful, emotionally resonant nature: ocean, lake, sunset, sunrise, mountain hike, park path, cliff coast, golden meadow, forest trail, waterfall, river, or wide sky
+
+Gen-Z grounding rules:
+- the nature scenes should feel like places a Gen-Z woman would realistically stop and photograph for TikTok or Instagram, not generic travel-brochure landscapes
+- favor accessible, youth-coded beautiful outdoor settings: lakeside path at golden hour, beach access walkway at sunset, roadside ocean overlook, easy mountain-hike viewpoint, city park path after rain, bluff viewpoint, riverbank, grassy hill, coastal path, storm-clearing field edge
+- prefer scenes with a casual phone-photo feel: intimate framing, slightly imperfect composition, beautiful light, save-worthy mood, not sterile tourism-poster photography
+- avoid anything that feels like a luxury resort, national geographic expedition, retirement travel ad, or stock wallpaper
+- when helpful, include subtle young-adult context in the scene itself without making it an indoor setup: worn footpath, picnic blanket edge, hoodie tossed on a rock, tote bag near the frame edge, parked-car overlook vibe, boardwalk railing, trail fence, campus-adjacent green space
+- do not make those lifestyle clues dominate the image; nature still has to be the main subject
+
+Emotional arc:
+- slides 2-5 can be moodier, heavier, darker, more overcast, or more tense
+- slide 6 should feel like a turning point or reframe
+- slide 7 should feel softer, calmer, and more forgiving
+- slide 8 should feel open, spacious, and quietly hopeful
+
+Preferred settings include ocean, lake, sunset, sunrise, mountain hike, park path, cliff coast, meadow, forest trail, waterfall, river, canyon, winding trail, and storm-clearing sky.
+
+Return only valid JSON with keys slide2, slide3, slide4, slide5, slide6, slide7, slide8.`;
+
+    const outdoorUserPrompt = `Write one outdoor nature image prompt for each of these 7 slides. Match the emotional meaning of each slide with a real, photorealistic landscape.
+
+Important:
+- make the scenes feel Gen-Z-coded and socially believable, like places a 20-something woman would actually photograph and post
+- make the scenes beautiful first: ocean, lake, sunset, mountain hike, park, coastline, meadow, forest trail, waterfall, or river
+- avoid bland generic greenery, empty stock landscapes, or travel-ad style scenery
+- keep the nature scene as the focus, but lean toward accessible, emotionally pretty outdoor places over fantasy-perfect landscapes
+
+Slide 2: ${slides[1] || ""}
+Slide 3: ${slides[2] || ""}
+Slide 4: ${slides[3] || ""}
+Slide 5: ${slides[4] || ""}
+Slide 6: ${slides[5] || ""}
+Slide 7: ${slides[6] || ""}
+Slide 8: ${slides[7] || ""}
+
+Return strictly as JSON - no markdown, no explanation:
+{"slide2": "...", "slide3": "...", "slide4": "...", "slide5": "...", "slide6": "...", "slide7": "...", "slide8": "..."}`;
+
+    const outdoorResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'x-api-key': ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 900,
+            system: outdoorSystemPrompt,
+            messages: [{ role: 'user', content: outdoorUserPrompt }]
+        })
+    });
+
+    if (!outdoorResponse.ok) {
+        const errorText = await outdoorResponse.text();
+        console.error("[Weird Hack V2 Image Prompts] Anthropic API Error:", errorText);
+        throw new Error('Image prompt generation failed');
+    }
+
+    const outdoorRaw = await outdoorResponse.json() as any;
+    const outdoorText = outdoorRaw.content?.[0]?.text || '';
+    const outdoorParsed = parseClaudeJsonResponse(outdoorText, "[Weird Hack V2 Image Prompts]");
+
+    return {
+        slide2: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide2 || '').trim()),
+        slide3: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide3 || '').trim()),
+        slide4: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide4 || '').trim()),
+        slide5: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide5 || '').trim()),
+        slide6: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide6 || '').trim()),
+        slide7: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide7 || '').trim()),
+        slide8: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide8 || '').trim())
+    };
     const systemPrompt = `You write image generation prompts for TikTok slideshow posts about BPD and DBT skills. 
 
 The visual style is: candid phone photography aesthetic. Real, intimate, everyday settings. Tight crops on objects and environments. Warm or dim practical lighting — lamp light, daylight through curtains, ambient room light. Textures: paper, bedsheets, wood, fabric, walls. Grainy, slightly imperfect. Feels like something a real person actually photographed.
@@ -433,21 +627,17 @@ Hidden styling rules you must internalize and apply to every prompt:
 
 Scene grounding rule:
 - Every scene should plausibly belong to a 22 year old college girl from the US.
-- OVERRIDE: For weird hack v2 slides 2-8, every scene must be outdoors or nature-based. Do not use bedrooms, desks, kitchens, bathrooms, mirrors, shelves, or any other indoor room scene.
-- Favor outdoor environments that still feel gen-z and student-coded: park paths, grassy campus lawns, lakeside steps, beach walkways, riverbanks, boardwalks, picnic blankets under trees, roadside overlooks at sunset, or benches near water.
-- Every prompt must still include at least one clear young-adult lifestyle anchor in the outdoor scene: tote bag, hoodie, paperback, water bottle, picnic blanket, canvas sneakers, thrifted jacket, simple claw clip, lip balm, earbuds case, or similar detail.
-- The scene should feel like a casual outdoor place she would actually spend time in, not a generic travel landscape.
-- Favor objects, rooms, outdoor spots, and everyday environments that feel age-appropriate and culturally plausible for that life stage.
-- Think: dorm room, student apartment, campus-adjacent bedroom, casual study corner, a park path near campus, a grassy field, lakeside steps, a beach walkway, a roadside overlook, or other everyday young-adult spaces.
+- Favor objects, rooms, furniture, decor, and everyday environments that feel age-appropriate and culturally plausible for that life stage.
+- Think: dorm room, student apartment, campus-adjacent bedroom, casual study corner, inexpensive furniture, soft bedding, simple wall decor, everyday young-adult spaces.
 - Avoid scenes that feel too mature, luxurious, corporate, suburban-family, rustic-workshop, or obviously outside that demographic.
-- Every prompt must include at least one clear college-girl lifestyle anchor in the actual scene description: bedding, tote bag, student desk setup, casual beauty item, hoodie, simple jewelry tray, paperback, wall collage, cheap lamp, thrifted decor, study materials, water bottle, picnic blanket, canvas sneakers, or similar young-adult detail.
-- The scene should feel like it came from her real room, student living environment, or a casual outdoor place she would actually spend time in, not just a random object in isolation.
+- Every prompt must include at least one clear college-girl lifestyle anchor in the actual scene description: bedding, tote bag, student desk setup, casual beauty item, hoodie, simple jewelry tray, paperback, wall collage, cheap lamp, thrifted decor, study materials, water bottle, or similar young-adult room detail.
+- The scene should feel like it came from her real room, desk, bed, or student living environment, not just a random object in isolation.
 - Even when the composition is minimal, it still needs one recognizable lifestyle clue that signals her age and environment.
 
 Demographic clarity rule:
 - The viewer should immediately feel "this belongs to a young US college woman" from the scene itself.
 - Use ordinary student-lifestyle clues instead of abstract mood objects.
-- Good anchors: rumpled dorm-style bedding, a canvas tote on a chair, a cheap bedside lamp, a simple vanity tray, class notes stacked nearby without readable text, a thrifted mirror, a hoodie on the bed, a paperback, a water bottle, a desk organizer, soft dorm decor, a picnic blanket with a tote and paperback, campus grass with a hoodie and water bottle, or a small student apartment kitchen detail.
+- Good anchors: rumpled dorm-style bedding, a canvas tote on a chair, a cheap bedside lamp, a simple vanity tray, class notes stacked nearby without readable text, a thrifted mirror, a hoodie on the bed, a paperback, a water bottle, a desk organizer, soft dorm decor, or a small student apartment kitchen detail.
 - Bad anchors: anonymous wood grain, random metal tools, empty industrial surfaces, generic close-up textures, mature home decor, workshop objects, or scenes that could belong to anyone of any age.
 - Never make the focal point just "a texture" or "a surface."
 - If a prompt could plausibly fit a middle-aged home, hotel, office, or workshop, rewrite it until it feels clearly young, casual, and student-coded.
@@ -492,67 +682,98 @@ CALM COMPOSITION RULE:
 - Avoid busy rooms, crowded surfaces, too many props, or lots of small details.
 - Favor negative space, stillness, and one clear focal point so the image feels calming.
 
-VARIETY RULE ACROSS THE 7 PROMPTS:
-- Treat slides 2 through 8 as one visual set, not isolated prompts.
-- All scenes must stay outdoors, but they should still vary strongly across nature settings and lighting conditions.
+VARIETY RULE ACROSS THE 4 PROMPTS:
+- Treat slides 2, 3, 4, and 5 as one visual set, not 4 isolated prompts.
 - Each prompt must feel clearly different from the others in location, focal object, and composition.
 - Do not reuse the same core setup more than once across the set.
 - At most one prompt may use a notebook, journal, sticky note, or pen as the main focal object.
-- Prefer outdoor variation such as sunset grass, cloudy park bench, beach path, lakeside edge, river stones, wildflower patch, boardwalk railing, or trail overlook.
-- Use a real mix of indoor and outdoor young-adult environments when possible, instead of making everything a bedroom or desk scene.
-- Ignore any earlier wording about mixing indoor and outdoor scenes. For this flow, outdoor only.
-- Spread the scenes across different young-adult environments when possible: bed, desk, chair, shelf, mirror area, floor corner, kitchen counter, windowsill, laundry basket, backpack area, bedside table, campus lawn, park bench, beach path, lakeside steps, trail overlook.
+- Spread the scenes across different young-adult environments when possible: bed, desk, chair, shelf, mirror area, floor corner, kitchen counter, windowsill, laundry basket, backpack area, bedside table.
 - Vary the camera framing too: one overhead, one side angle, one wider room fragment, one tight close-up with a clear lifestyle anchor.
 - If two prompts feel visually interchangeable, rewrite one until the difference is obvious.
+
+COMMENT-TRIGGER DETAIL RULE:
+- In exactly one of slides 2, 3, or 4, include one subtle funny detail that feels hilarious, recognizable, and comment-worthy.
+- This detail must still plausibly belong to a 22 year old college girl from the US.
+- It should never be the focal point of the image. It should sit in the background or side area as a discoverable detail.
+- It must feel harmless, real, and room-appropriate, not shocking, sexual, gross, dangerous, or mean-spirited.
+- Choose either a topic-matching meme or one funny character insert.
+- If using a meme, choose it based on the slide text and overall topic of the post.
+- Use this meme bank only:
+  Emotional dysregulation / overwhelm:
+  - This Is Fine
+  - Crying-Laughing Wojak
+  - Brain on fire
+  Splitting / black-and-white thinking:
+  - Spider-Man pointing
+  - Drake approve/disapprove
+  - split-style Wojak
+  Abandonment fear / relationships:
+  - trembling-lip Wojak
+  - Distracted Boyfriend
+- If using a funny character instead of a meme, use this character bank only:
+  - Shrek
+  - Patrick Star
+  - Dora
+  - Mike Wazowski
+  - Lightning McQueen
+- Pick one option from either bank. Do not invent new funny inserts outside these banks.
+- The funny detail should appear as a small printed image, framed image, or taped/clipped visual in the room.
+- Prefer iconic visuals that still work without readable text.
+- Do not rely on readable captions. The joke should land through the visual itself.
+- Place the funny detail in the near-midground, not far away in the back of the room.
+- Make the funny detail physically large enough in the composition that the viewer could recognize it instantly in the final 9:16 image.
+- Prefer placements like shelf edge, desk corner, beside the bed, clipped to a nearby lamp, or taped on the wall close to the main subject area.
+- Do not include this kind of funny detail in more than one prompt.
+- The detail must be visually recognizable in one glance in the final image, not so tiny or hidden that viewers miss it.
+- Avoid weaker joke props or random nostalgic objects. Use only the approved meme bank or approved character bank.
+- Place the detail where it is clearly visible in the composition: taped on the wall, sitting on the shelf edge, leaning beside the bed, on the desk corner, or otherwise unobscured.
+- Make it noticeable enough to survive image generation, cropping, and text overlay.
+- A good test: someone should instantly notice the funny detail and want to comment on it after one quick glance.
 
 VALIDATION RULE BEFORE YOU ANSWER:
 - Check each prompt before returning it.
 - If the scene does not obviously read as belonging to a 22 year old college girl from the US, rewrite it.
-- If the scene is indoors, rewrite it.
 - If the scene is just an artsy close-up of texture, wood, fabric, metal, or a generic object, rewrite it.
 - If the prompt lacks at least one young-student lifestyle anchor, rewrite it.
 - If more than one prompt centers on a notebook, journal, sticky note, or pen setup, rewrite the extras.
+- If none of slides 2, 3, or 4 includes a subtle hilarious or nostalgic comment-trigger detail, rewrite one of them.
+- If more than one prompt includes a hilarious or nostalgic comment-trigger detail, rewrite the extras.
+- If the comment-trigger detail is too weak, too normal, too hidden, or not clearly recognizable at a glance, rewrite it.
+- If the meme is too far away, too small, or would not be instantly recognizable in the final crop, rewrite it.
 
 Emotional arc rules:
-- Nature-first rule: Every slide should be expressed through outdoor or nature scenes only. Use sunsets, parks, grass, water, shorelines, trails, wildflowers, cloudy skies, boardwalks, or overlook scenes before considering any object-heavy setup.
-- Slides 2-5: Match the emotional weight of the slide. Pattern-validation and practical hack slides can use reflection objects, waiting cues, saved evidence, archived keepsakes, or quiet room details that fit the specific advice.
-- Slide 6: Mechanism reframe. Grounded, clarifying, emotionally settled. Quiet morning or late-afternoon light, simple anchors, a sense of understanding rather than crisis.
-- Slide 7: Permission landing. Softer and more spacious than slide 6. Subtle selfhood-building cues, calm stillness, and gentle personal choice without looking staged.
-- Slide 8: Comment-driver close. Keep it simple, relatable, and visually clear. The scene should feel like a small private realization or a quiet either-or moment, not a product shot or CTA image.
 - Tip slides (slides 2-4): Match the emotional weight of the tip. Language/reframe tips → notebook, pen on paper, an open journal, a sticky note, quiet objects that imply reflection. Timing/waiting tips → stillness, a clock, an unmade bed, a dark room, curtains, lamp light. Evidence/tracking tips → saved notes, printed screenshots, a notebook log, something archived or collected without showing a phone.
 - Reframe slide (slide 5): Warmer, softer. Morning light, stillness, a sense of quiet after the storm.
 
 - Override for variety: do not default multiple slides to notebook or pen scenes just because they fit emotionally.
 - Only one prompt in the full set may use a notebook, journal, sticky note, or pen-centered scene.
 - Prefer alternate young-adult anchors for the other slides: hoodie on chair, bedside lamp, tote bag, paperback, mirror tray, laundry basket, water bottle, desk organizer, pinned keepsakes, archive folder, or bedding detail.
-- The image should fit the slide text specifically, but still stay visually distinct from the other prompts in the set.
+- The image should fit the slide text specifically, but still stay visually distinct from the other three prompts.
 
-You receive 7 slide texts and return exactly 7 image prompts as JSON.`;
+You receive 4 slide texts and return exactly 4 image prompts as JSON.`;
 
-    const userPrompt = `Write one image generation prompt for each of these 7 slides. Match the scene to the emotional content of each slide.
+    const userPrompt = `Write one image generation prompt for each of these 4 slides. Match the scene to the emotional content of each slide.
 
 Important:
 - Every prompt must feel like it was photographed in the real environment of a 22 year old college girl from the US.
-- Outdoor only for slides 2-8: parks, sunsets, grass, water, shorelines, trails, beaches, lakesides, riverbanks, or similar nature scenes.
-- Ignore any room-based examples elsewhere in the instructions.
 - Keep the scene calm and simple, but not generic.
 - Include at least one clear college-student lifestyle clue in every prompt.
 - Do not give me anonymous texture prompts or random surface close-ups.
-- Make the 7 prompts visually distinct from each other.
-- Use only nature or outdoor scenes across the full set.
-- Favor gen-z-coded outdoor scenes like sunsets, parks, grass, water, beach paths, lakesides, and riverbanks over object-heavy setups.
+- Make the 4 prompts visually distinct from each other.
 - Do not give me more than one notebook, journal, sticky note, or pen-centered prompt across the full set.
+- Exactly one of slides 2-4 must include one clearly noticeable funny detail chosen from the approved meme bank or approved funny character bank.
+- If it is a meme, choose it based on the slide text and topic.
+- The funny detail should appear as a small printed, framed, taped, or clipped image in the room.
+- Prefer iconic visuals that still work without readable text.
+- Place the funny detail in the near-midground and make it large enough that it is instantly recognizable in the final image.
 
 Slide 2: ${slides[1] || ""}
 Slide 3: ${slides[2] || ""}
 Slide 4: ${slides[3] || ""}
 Slide 5: ${slides[4] || ""}
-Slide 6: ${slides[5] || ""}
-Slide 7: ${slides[6] || ""}
-Slide 8: ${slides[7] || ""}
 
 Return strictly as JSON — no markdown, no explanation:
-{"slide2": "...", "slide3": "...", "slide4": "...", "slide5": "...", "slide6": "...", "slide7": "...", "slide8": "..."}`;
+{"slide2": "...", "slide3": "...", "slide4": "...", "slide5": "..."}`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -563,7 +784,7 @@ Return strictly as JSON — no markdown, no explanation:
         },
         body: JSON.stringify({
             model: 'claude-sonnet-4-6',
-            max_tokens: 1000,
+            max_tokens: 600,
             system: systemPrompt,
             messages: [{ role: 'user', content: userPrompt }]
         })
@@ -578,24 +799,18 @@ Return strictly as JSON — no markdown, no explanation:
     const raw = await response.json() as any;
     const text = raw.content?.[0]?.text || '';
     const parsed = parseClaudeJsonResponse(text, "[Weird Hack V2 Image Prompts]");
-    const prompts = {
+    const enforcedPrompts = enforceWeirdHackV2CommentTriggerPrompts({
         slide2: String(parsed.slide2 || '').trim(),
         slide3: String(parsed.slide3 || '').trim(),
         slide4: String(parsed.slide4 || '').trim(),
-        slide5: String(parsed.slide5 || '').trim(),
-        slide6: String(parsed.slide6 || '').trim(),
-        slide7: String(parsed.slide7 || '').trim(),
-        slide8: String(parsed.slide8 || '').trim()
-    };
+        slide5: String(parsed.slide5 || '').trim()
+    }, slides);
 
     return {
-        slide2: buildWeirdHackV2NanoBananaPrompt(prompts.slide2),
-        slide3: buildWeirdHackV2NanoBananaPrompt(prompts.slide3),
-        slide4: buildWeirdHackV2NanoBananaPrompt(prompts.slide4),
-        slide5: buildWeirdHackV2NanoBananaPrompt(prompts.slide5),
-        slide6: buildWeirdHackV2NanoBananaPrompt(prompts.slide6),
-        slide7: buildWeirdHackV2NanoBananaPrompt(prompts.slide7),
-        slide8: buildWeirdHackV2NanoBananaPrompt(prompts.slide8)
+        slide2: buildWeirdHackV2NanoBananaPrompt(enforcedPrompts.slide2),
+        slide3: buildWeirdHackV2NanoBananaPrompt(enforcedPrompts.slide3),
+        slide4: buildWeirdHackV2NanoBananaPrompt(enforcedPrompts.slide4),
+        slide5: buildWeirdHackV2NanoBananaPrompt(enforcedPrompts.slide5)
     };
 }
 
@@ -603,7 +818,7 @@ Return strictly as JSON — no markdown, no explanation:
 export async function generateDbtSlides(params: DbtGenerateParams) {
     const { ANTHROPIC_API_KEY, includeBranding = true, topic, slideType = 'weird_hack' } = params;
     const isStoryTellingFlow = slideType === 'story_telling_bf' || slideType === 'story_telling_gf';
-    const needsViralTopic = !isStoryTellingFlow && slideType !== 'weird_hack_v2';
+    const needsViralTopic = !isStoryTellingFlow && slideType !== 'weird_hack_v2' && slideType !== 'permission_v1';
 
     // DBT style is locked to symbolic.
     const selectedArtStyle = ART_STYLES.symbolic as ArtStyle;
@@ -659,6 +874,218 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
         { topic: "PLEASE Skills", category: "dbt", struggles: ["everything gets worse when your body is fried", "sleep or food shifts the whole day", "you need nervous-system basics before insight"], inGroupTerms: ["please skills"] }
     ];
 
+    const permissionV1Topics: PermissionV1Topic[] = [
+        {
+            shameWord: "too much",
+            category: "external",
+            weight: "heavy",
+            relatedAccusations: [
+                "you make everything about yourself",
+                "you're exhausting to love",
+                "you're draining",
+                "you're overwhelming",
+                "people need a break from you"
+            ],
+            mechanismHint: "nervous system has no middle volume — logs at threat-level or not at all",
+            inGroupTerms: ["nervous system", "hypervigilance"]
+        },
+        {
+            shameWord: "too intense",
+            category: "external",
+            weight: "light",
+            relatedAccusations: [
+                "you feel things too strongly",
+                "you're extra",
+                "tone it down",
+                "why do you have to make it such a big deal"
+            ],
+            mechanismHint: "emotional intensity is amplitude, not malfunction — same system that dysregulates also loves at full volume",
+            inGroupTerms: ["emotional dysregulation"]
+        },
+        {
+            shameWord: "dramatic",
+            category: "external",
+            weight: "light",
+            relatedAccusations: [
+                "you're overreacting",
+                "it wasn't that deep",
+                "you're making it a whole thing",
+                "stop being so dramatic"
+            ],
+            mechanismHint: "bpd brains register small relational shifts with the same urgency other brains reserve for actual danger",
+            inGroupTerms: ["rejection sensitivity", "rsd"]
+        },
+        {
+            shameWord: "attention-seeking",
+            category: "external",
+            weight: "heavy",
+            relatedAccusations: [
+                "you just want attention",
+                "you're doing it for sympathy",
+                "you're being manipulative",
+                "stop trying to make us feel sorry for you"
+            ],
+            mechanismHint: "what looks like attention-seeking is usually connection-seeking in a system that panics at silence",
+            inGroupTerms: ["abandonment", "emotional permanence"]
+        },
+        {
+            shameWord: "manipulative",
+            category: "external",
+            weight: "heavy",
+            relatedAccusations: [
+                "you're playing games",
+                "you did that on purpose",
+                "you're trying to control me",
+                "everything's a guilt trip"
+            ],
+            mechanismHint: "what reads as manipulation is usually a nervous system improvising survival moves without a manual",
+            inGroupTerms: ["splitting", "abandonment panic"]
+        },
+        {
+            shameWord: "exhausting",
+            category: "external",
+            weight: "heavy",
+            relatedAccusations: [
+                "you're so much work",
+                "i can't keep up with you",
+                "loving you is tiring",
+                "you need too much"
+            ],
+            mechanismHint: "you're not exhausting — you're carrying a regulatory load other people don't see or have to do",
+            inGroupTerms: null
+        },
+        {
+            shameWord: "needy",
+            category: "external",
+            weight: "light",
+            relatedAccusations: [
+                "you need too much reassurance",
+                "you're clingy",
+                "you can't be alone",
+                "why are you like this"
+            ],
+            mechanismHint: "emotional permanence — your brain doesn't hold evidence of love when contact stops, so it has to ask",
+            inGroupTerms: ["emotional permanence", "fp"]
+        },
+        {
+            shameWord: "oversensitive",
+            category: "external",
+            weight: "light",
+            relatedAccusations: [
+                "you can't take a joke",
+                "you take everything personally",
+                "grow thicker skin",
+                "why are you crying"
+            ],
+            mechanismHint: "high sensitivity is a perception feature, not a defect — it's the system working faster than average",
+            inGroupTerms: ["rejection sensitivity"]
+        },
+        {
+            shameWord: "broken",
+            category: "internal",
+            weight: "heavy",
+            relatedAccusations: [
+                "something is fundamentally wrong with me",
+                "i'm not built right",
+                "everyone else got a manual i didn't",
+                "i'm defective"
+            ],
+            mechanismHint: "you're not broken — you're an adaptation to an environment that required constant scanning",
+            inGroupTerms: null
+        },
+        {
+            shameWord: "crazy",
+            category: "internal",
+            weight: "heavy",
+            relatedAccusations: [
+                "my reactions don't make sense to me",
+                "i'm losing it",
+                "i can't trust my own feelings",
+                "i feel insane"
+            ],
+            mechanismHint: "what looks like crazy from the inside is usually a threat-response running when no threat is visible",
+            inGroupTerms: ["dysregulation"]
+        },
+        {
+            shameWord: "unstable",
+            category: "internal",
+            weight: "heavy",
+            relatedAccusations: [
+                "my moods can't be trusted",
+                "i'm a different person every week",
+                "no one knows what they'll get from me",
+                "i can't even count on myself"
+            ],
+            mechanismHint: "emotional weather is fast in bpd brains — instability is your thermostat working, not failing",
+            inGroupTerms: ["splitting"]
+        },
+        {
+            shameWord: "empty",
+            category: "internal",
+            weight: "heavy",
+            relatedAccusations: [
+                "there's nothing inside",
+                "i'm just a mirror of whoever i'm with",
+                "i don't know who i am",
+                "i'm a void"
+            ],
+            mechanismHint: "what reads as emptiness is often a self built around others' nervous systems — you haven't been broken, you've been unanchored",
+            inGroupTerms: ["identity disturbance"]
+        },
+        {
+            shameWord: "obsessive",
+            category: "internal",
+            weight: "light",
+            relatedAccusations: [
+                "i can't stop thinking about them",
+                "i'm checking their stuff again",
+                "my brain won't let me rest",
+                "why am i like this about one person"
+            ],
+            mechanismHint: "obsession is attachment without the resting state — your brain is trying to maintain a bond it can't internally hold",
+            inGroupTerms: ["fp", "favorite person"]
+        },
+        {
+            shameWord: "irrational",
+            category: "internal",
+            weight: "light",
+            relatedAccusations: [
+                "my reactions don't match reality",
+                "i know it's not logical but i feel it",
+                "i argue with myself all day",
+                "i can't reason my way out of this"
+            ],
+            mechanismHint: "feelings arrive before cognition in bpd wiring — you're not irrational, you're processing emotionally before analytically",
+            inGroupTerms: ["emotion mind", "wise mind"]
+        },
+        {
+            shameWord: "pathetic",
+            category: "internal",
+            weight: "heavy",
+            relatedAccusations: [
+                "i shouldn't need this much",
+                "grown adults don't feel this way",
+                "this is embarrassing",
+                "why can't i just be normal"
+            ],
+            mechanismHint: "what you're calling pathetic is a younger version of you still asking to be seen — that's not weakness, that's a part of you that needs what it didn't get",
+            inGroupTerms: null
+        },
+        {
+            shameWord: "a burden",
+            category: "internal",
+            weight: "heavy",
+            relatedAccusations: [
+                "people would be better off without me around",
+                "i take up too much space",
+                "my needs are too much to ask for",
+                "i'm dragging everyone down"
+            ],
+            mechanismHint: "the 'burden' narrative is the shame-spiral's survival strategy — it gets you to shrink so you can't be rejected",
+            inGroupTerms: null
+        }
+    ];
+
     const selectedTopic = needsViralTopic
         ? viralTopics.find(t => t.topic.toLowerCase() === topic?.toLowerCase()) ||
             viralTopics[Math.floor(Math.random() * viralTopics.length)] ||
@@ -667,6 +1094,9 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
     const selectedWeirdHackV2Topic = slideType === 'weird_hack_v2'
         ? pickWeirdHackV2Topic(weirdHackV2Topics)
         : null;
+    const selectedPermissionV1Topic = slideType === 'permission_v1'
+        ? pickPermissionV1Topic(permissionV1Topics)
+        : null;
     const topicContext = selectedTopic || viralTopics[0]!;
 
     if (selectedTopic) {
@@ -674,6 +1104,9 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
     } else if (slideType === 'weird_hack_v2') {
         console.log(`[Native Slides - DBT] Weird hack v2 selected topic: ${selectedWeirdHackV2Topic?.topic || 'unknown'}`);
         console.log(`[Native Slides - DBT] Weird hack v2 recent topics: ${readWeirdHackV2RecentTopics().join(', ')}`);
+    } else if (slideType === 'permission_v1') {
+        console.log(`[Native Slides - DBT] Permission v1 selected topic: ${selectedPermissionV1Topic?.shameWord || 'unknown'}`);
+        console.log(`[Native Slides - DBT] Permission v1 recent topics: ${readPermissionV1RecentTopics().join(', ')}`);
     } else {
         console.log('[Native Slides - DBT] Story telling flow: skipping viral topic selection');
     }
@@ -1019,6 +1452,65 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
         return normalized.slice(0, 7).filter(Boolean);
     };
 
+    const formatPermissionV1Slide1Hook = (
+        rawHook: string,
+        shameWord: string,
+        weight: 'heavy' | 'light'
+    ) => {
+        const cleaned = String(rawHook || '').replace(/^slide\s*1\s*:\s*/i, '').trim().toLowerCase();
+        const blocks = cleaned.split(/\n\s*\n/).map(part => part.trim()).filter(Boolean);
+        const defaultCloser = weight === 'light' ? 'this is the one.' : 'stay.';
+        const candidateCloser = (blocks[1] || blocks[0] || '').trim().toLowerCase();
+        const closer = candidateCloser === 'stay.' || candidateCloser === 'this is the one.'
+            ? candidateCloser
+            : 'stay.';
+        const normalizedShameWord = String(shameWord || '').trim().toLowerCase().replace(/^"+|"+$/g, '');
+        const block1 = `if you have bpd\nand you keep calling yourself "${normalizedShameWord}"`;
+
+        return `${block1}\n\n${closer || defaultCloser}`;
+    };
+
+    const formatPermissionV1Slide = (rawSlide: string) => {
+        return String(rawSlide || '')
+            .replace(/^slide\s*\d+\s*:\s*/i, '')
+            .trim()
+            .toLowerCase();
+    };
+
+    const normalizePermissionV1Slides = (rawSlides: string[], topic: PermissionV1Topic) => {
+        const items = rawSlides
+            .map(slide => String(slide || '').replace(/^slide\s*\d+\s*:\s*/i, '').trim())
+            .filter(Boolean);
+
+        const hookIndex = items.findIndex(item => /^if you have bpd/i.test(item.split(/\n/)[0] || ''));
+        const ordered = hookIndex > 0
+            ? [items[hookIndex], ...items.slice(hookIndex + 1), ...items.slice(0, hookIndex)]
+            : [...items];
+
+        const normalized = ordered.slice(0, 7);
+        while (normalized.length < 7) {
+            normalized.push('');
+        }
+
+        const formatted = normalized.map((slide, index) => {
+            if (index === 0) {
+                return formatPermissionV1Slide1Hook(slide, topic.shameWord, topic.weight);
+            }
+            return formatPermissionV1Slide(slide);
+        });
+
+        if (formatted[3] && !formatted[3].includes(`"${topic.shameWord.toLowerCase()}"`)) {
+            const remaining = formatted[3]
+                .split(/\r?\n/)
+                .map(line => line.trim())
+                .filter(Boolean)
+                .filter(line => !line.includes(topic.shameWord.toLowerCase()));
+            formatted[3] = [`you're not "${topic.shameWord.toLowerCase()}".`, ...remaining].slice(0, 3).join('\n');
+        }
+
+        return [...formatted, PERMISSION_V1_FIXED_SLIDE8];
+    };
+
     const systemPrompt = `You are an expert DBT/BPD content creator on TikTok, that knows exactly what goes viral. You speak as a supportive, slightly older mentor figure who has been through the absolute trenches of BPD and finished DBT. Your vibe is supportive, validating, and helpful, but grounded in actual clinical DBT skills.
 
 CORE STYLE GUIDELINES:
@@ -1134,8 +1626,6 @@ Rules for Formula B:
 **Hook rules applied to BOTH formulas:**
 - First person, past continuous or present perfect ("i've been", "i was")
 - Must filter for people who actually experience the pattern through hyper-specific behavioral detail
-- If two halves are doing different jobs (mechanism vs self-mockery/commentary), separate them with \\n, not a comma
-- Only use a comma when both halves are one continuous thought
 - No emojis
 - No questions directed at the viewer ("are you doing this?" is banned — this is a confession, not a prompt)
 - No "3 hacks" / "3 things" / "3 tips" language anywhere in the hook
@@ -1237,8 +1727,6 @@ Return strictly as JSON — no markdown, no explanation, no preamble:
 FORMATTING RULES FOR JSON VALUES:
 - Use \\n for a single line break (lines within the same block)
 - Use \\n\\n for a blank line (separating blocks within a slide)
-- When two halves of a thought do different jobs (for example: naming a mechanism, then self-mockery or commentary), use \\n instead of a comma so they land as separate beats
-- If both halves are part of the same continuous thought, a comma is fine
 - Slide 1 has TWO blocks separated by \\n\\n
 - Slides 3, 4, 5 each have THREE blocks separated by \\n\\n (label / example / mechanism)
 - Slides 2, 6, 7 are each a single block with internal \\n line breaks only
@@ -1271,6 +1759,199 @@ Creative direction:
 - voice is deadpan, slightly exhausted, self-deprecating. never dramatic ("before it destroys you"), never content-marketer ("things that actually work")
 - lowercase throughout, no emojis
 - do NOT generate slide 8 — it is appended automatically
+
+Return the slideshow now as strict JSON with exactly 7 slides.`;
+
+    const permissionV1SystemPrompt = `You are an expert DBT/BPD content creator for TikTok who writes like a warm, direct friend saying something they've been wanting to tell another person with BPD for a long time.
+
+## YOUR TASK
+Generate a fixed-structure 7-slide TikTok slideshow optimized for shares and follows. The emotional arc is shame-reframe plus permission-giving. The post should feel warm, relieving, specific, and psychologically precise.
+
+Slide 8 is appended automatically by code. Do NOT generate slide 8. Generate exactly 7 slides.
+
+The app is NEVER mentioned on any slide. Do not reference DBT-Mind, any app, any product, or any tool anywhere in the slides.
+
+## VOICE RULES (STRICT)
+- lowercase throughout
+- no emojis anywhere
+- warm-but-direct truth-telling
+- conversational, fragment-friendly, emotionally literate
+- same lowercase Gen-Z foundation as weird_hack_v2, but less deadpan and more caring
+- write like a friend telling someone the truth gently, not like a therapist or content marketer
+- do not use generic affirmation language like "you're so strong" or "you're enough" unless grounded in a concrete mechanism
+
+## GLOBAL SLIDE RULES
+- every slide must stay under 40 words
+- use \\n for line breaks inside a single block
+- use \\n\\n only when a slide has multiple blocks
+- slide 1 has exactly 2 blocks separated by \\n\\n
+- slides 2 through 7 are each a single block only
+- no app mention on any slide
+- no emojis on any slide
+
+## USE THE SELECTED TOPIC
+The user message gives you:
+- shame-word
+- weight
+- related accusations
+- mechanism hint
+- optional in-group terms
+
+Use that exact shame-word. Do not replace it with a different one.
+
+## SLIDE-BY-SLIDE STRUCTURE
+
+### Slide 1 — Hook (2 blocks)
+This hook formula is LOCKED.
+
+Block 1 must be exactly this structure:
+if you have bpd
+and you keep calling yourself "[SHAME_WORD]"
+
+Block 2 must be exactly ONE of these:
+- stay.
+- this is the one.
+
+Closer rule:
+- use "stay." for heavy topics
+- use "this is the one." for light topics
+- neither closer is default; choose based on topic weight
+
+Rules:
+- the shame-word MUST appear in actual quotation marks
+- keep block 1 to max 12 words
+- keep block 2 to max 4 words
+- separate the two blocks with \\n\\n
+
+### Slide 2 — The Shared Lie
+One block. 3-4 lines joined by \\n.
+
+Purpose:
+- name the specific accusations or internalized beliefs the viewer has absorbed using the shame-word
+- make them feel the weight of the word before the post takes it away
+
+Structure:
+- line 1 establishes the frame: "you've been told..." / "everyone keeps saying..." / "it's been called..."
+- lines 2-4 list specific accusations, phrases, or beliefs
+
+Rules:
+- use collective pronouns or direct "you've been told..." framing
+- use hyper-specific accusations people with BPD actually hear
+- max 40 words total
+
+### Slide 3 — The Mechanism
+One block. 3-5 short lines joined by \\n.
+
+Purpose:
+- reveal the actual neurological or psychological mechanism underneath the shame-word
+- this must feel like information, not motivation
+
+Structure:
+- start with a reframing pivot: "but here's what's actually happening" / "what's actually underneath this is..." / "here's the thing no one told you"
+- explain the mechanism using accessible words and a concrete metaphor or system
+
+Rules:
+- use concrete mechanism language like nervous system, brain chemistry, survival wiring, detection system
+- each line max 8 words
+- max 40 words total
+
+### Slide 4 — What You Are NOT
+One block. 2-3 lines joined by \\n.
+
+Purpose:
+- deflate the shame-word directly
+
+Structure:
+- use parallel construction: "you're not [shame-word]. you're [precise reframe]."
+
+Rules:
+- MUST echo the shame-word from slide 1 in quotation marks
+- the reframe must be specific, not generic affirmation
+- maximum 2 reframes
+- each line max 12 words
+- max 25 words total
+
+### Slide 5 — What You Actually ARE
+One block. 3-4 lines joined by \\n.
+
+Purpose:
+- name the real capacity that the perceived flaw sits next to
+
+Rules:
+- name a specific capacity, not a vague compliment
+- connect the capacity to the mechanism from slide 3
+- end on a quiet recontextualization of the flaw
+- each line max 8 words
+- max 35 words total
+
+### Slide 6 — Permission
+One block. 3-5 short lines joined by \\n.
+
+Purpose:
+- explicitly give permission to stop concrete self-erasing behaviors
+
+Rules:
+- every line starts with "you're allowed to stop..." OR follows an opener like "you can stop..."
+- name concrete behaviors: apologizing preemptively, explaining sensitivity, pre-dimming reactions, performing okay-ness, thanking people for tolerating you
+- close on a principle line like "you don't owe anyone a dimmed nervous system"
+- each line max 10 words
+- max 40 words total
+
+### Slide 7 — The Naming
+One block. 3-4 lines joined by \\n.
+
+Purpose:
+- recognize the invisible labor the viewer has been doing
+
+Frame:
+- "everything you've been calling [shame-concept] has actually been [the real effort]"
+
+Rules:
+- name the invisible labor of existing with BPD
+- end on a short sentence that removes shame from the effort itself
+- each line max 10 words
+- max 40 words total
+
+## OUTPUT FORMAT
+Return strictly as JSON:
+{"slides": ["slide1_text", "slide2_text", "slide3_text", "slide4_text", "slide5_text", "slide6_text", "slide7_text"]}
+
+## VALIDATION
+Before returning, verify:
+(1) slide 1 includes the shame-word in actual quotation marks
+(2) slide 1 ends with exactly "stay." or exactly "this is the one."
+(3) slide 4 echoes the shame-word in quotation marks
+(4) every slide is under 40 words
+(5) no emojis anywhere`;
+
+    const permissionV1InGroupTermsLine = (() => {
+        const terms = selectedPermissionV1Topic?.inGroupTerms;
+        if (Array.isArray(terms) && terms.length > 0) {
+            return `In-group terms: ${terms.join(', ')}`;
+        }
+        return `In-group terms: (none)`;
+    })();
+
+    const permissionV1UserPrompt = `Use this exact topic for the 7-slide permission_v1 slideshow:
+Shame-word: "${selectedPermissionV1Topic?.shameWord || "too much"}"
+Category: ${selectedPermissionV1Topic?.category || 'external'}
+Weight: ${selectedPermissionV1Topic?.weight || 'heavy'}
+Related accusations: ${(selectedPermissionV1Topic?.relatedAccusations || ["you're exhausting to love"]).join(', ')}
+Mechanism hint: ${selectedPermissionV1Topic?.mechanismHint || 'use a concrete nervous-system or survival-wiring explanation'}
+${permissionV1InGroupTermsLine}
+
+Creative direction:
+- slide 1 must use the exact locked hook formula from the system prompt
+- because weight is ${selectedPermissionV1Topic?.weight || 'heavy'}, the closer should be ${selectedPermissionV1Topic?.weight === 'light' ? '"this is the one."' : '"stay."'}
+- slide 2 should draw directly from the related accusations
+- slide 3 should use the mechanism hint if helpful, but rewrite it naturally
+- slide 4 must repeat the exact shame-word in quotation marks
+- slide 5 should name a real capacity connected to the mechanism
+- slide 6 must give explicit permission to stop concrete self-erasing behaviors
+- slide 7 must reframe the viewer's invisible labor and remove shame from it
+- lowercase throughout, no emojis
+- return exactly 7 slides as a JSON array
+- do NOT generate slide 8 because it is appended by code
 
 Return the slideshow now as strict JSON with exactly 7 slides.`;
 
@@ -1663,6 +2344,8 @@ Return strictly as JSON:
         ? { system: threeTipsSystemPrompt, user: threeTipsUserPrompt }
         : slideType === 'weird_hack_v2'
             ? { system: weirdHackV2SystemPrompt, user: weirdHackV2UserPrompt }
+        : slideType === 'permission_v1'
+            ? { system: permissionV1SystemPrompt, user: permissionV1UserPrompt }
         : slideType === 'story_telling_bf'
             ? { system: storyTellingBfSystemPrompt, user: storyTellingBfUserPrompt }
         : slideType === 'story_telling_gf'
@@ -1782,6 +2465,12 @@ Return strictly as JSON:
     if (slideType === 'weird_hack_v2') {
         slides = normalizeWeirdHackV2Slides(slides);
     }
+    if (slideType === 'permission_v1') {
+        slides = normalizePermissionV1Slides(
+            slides,
+            selectedPermissionV1Topic || permissionV1Topics[0]!
+        );
+    }
     const expectedSlideCount =
         slideType === 'i_say_they_say'
             ? 7
@@ -1789,6 +2478,8 @@ Return strictly as JSON:
                 ? 9
                 : slideType === 'weird_hack_v2'
                     ? 7
+                    : slideType === 'permission_v1'
+                        ? 8
                     : 6;
     slides = slides.slice(0, expectedSlideCount);
     if (isStoryTellingFlow) {
@@ -1851,6 +2542,15 @@ Return strictly as JSON:
             slides.push('');
         }
         slides[7] = WEIRD_HACK_V2_FIXED_SLIDE8;
+    }
+
+    if (slideType === 'permission_v1' && slides.length >= 1) {
+        const selectedTopic = selectedPermissionV1Topic || permissionV1Topics[0]!;
+        slides[0] = formatPermissionV1Slide1Hook(slides[0], selectedTopic.shameWord, selectedTopic.weight);
+        while (slides.length < 7) {
+            slides.push('');
+        }
+        slides[7] = PERMISSION_V1_FIXED_SLIDE8;
     }
 
     if (slideType === 'i_say_they_say' && slides.length >= 1) {

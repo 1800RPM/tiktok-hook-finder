@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import path from "path";
 import { readFileSync, existsSync, writeFileSync, mkdirSync, unlinkSync, readdirSync } from "fs";
 import { searchHooksHybrid, loadEmbeddings } from "./semantic_search";
-import { generateImage, generateCarouselImages, flattenImagePrompt, generateImageWithReferences } from "./image_generator";
+import { OPENAI_IMAGE_MODEL, generateImage, generateCarouselImages, flattenImagePrompt, generateImageWithReferences } from "./image_generator";
 import type { ReferenceImage } from "./image_generator";
 import { generateSypSlides } from "./projects/syp/syp_service";
 import { buildWeirdHackV2NanoBananaPrompt, generateDbtSlides, generateWeirdHackV2ImagePrompts } from "./projects/dbt/dbt_service";
@@ -79,6 +79,79 @@ function getDbtStaticSlidePath(characterId?: string, slideNumber = 1, flow = "we
     }
 
     return "slide1.png";
+}
+
+function stripMarkdownCodeFences(value: string) {
+    return String(value || "")
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/i, "")
+        .trim();
+}
+
+function extractBalancedJson(value: string) {
+    const text = stripMarkdownCodeFences(value);
+    const start = text.search(/[\{\[]/);
+    if (start === -1) return null;
+
+    const opener = text[start];
+    const closer = opener === "{" ? "}" : "]";
+    let depth = 0;
+    let inString = false;
+    let escaping = false;
+
+    for (let i = start; i < text.length; i++) {
+        const char = text[i];
+
+        if (inString) {
+            if (escaping) {
+                escaping = false;
+            } else if (char === "\\") {
+                escaping = true;
+            } else if (char === "\"") {
+                inString = false;
+            }
+            continue;
+        }
+
+        if (char === "\"") {
+            inString = true;
+            continue;
+        }
+
+        if (char === opener) {
+            depth += 1;
+        } else if (char === closer) {
+            depth -= 1;
+            if (depth === 0) {
+                return text.slice(start, i + 1);
+            }
+        }
+    }
+
+    return null;
+}
+
+function fallbackParseMetadataObject(value: string) {
+    const text = extractBalancedJson(value) || stripMarkdownCodeFences(value);
+    if (!text) return null;
+
+    const titleMatch = text.match(/"title"\s*:\s*"([\s\S]*?)"\s*,\s*"description"\s*:/i);
+    const descriptionMatch = text.match(/"description"\s*:\s*"([\s\S]*?)"\s*}\s*$/i);
+
+    if (!titleMatch || !descriptionMatch) return null;
+
+    const decodeField = (field: string) =>
+        field
+            .replace(/\\"/g, "\"")
+            .replace(/\\r/g, "\r")
+            .replace(/\\n/g, "\n")
+            .replace(/\\\\/g, "\\")
+            .trim();
+
+    return {
+        title: decodeField(titleMatch[1]),
+        description: decodeField(descriptionMatch[1])
+    };
 }
 
 function toClientAssetPath(fullPath: string): string {
@@ -1425,7 +1498,7 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
         else if (cleanPath === "/generate-metadata" && method === "POST") {
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
-                const { slides_text, service, includeBranding, brandingMode } = await req.json() as any;
+                const { slides_text, service, includeBranding, brandingMode, slideType } = await req.json() as any;
 
                 if (!slides_text || !slides_text.trim()) {
                     return sendJSON({ error: "Slides text is required" }, 400);
@@ -1433,6 +1506,8 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
 
                 const isDbt = service === 'dbt';
                 const isSyp = service === 'syp';
+                const isWeirdHackV2 = isDbt && slideType === 'weird_hack_v2';
+                const isPermissionV1 = isDbt && slideType === 'permission_v1';
 
                 // DBT-Mind: caption framework is enforced via dedicated prompt rules
                 const needsDbtBrandingInDescription = isDbt;
@@ -1444,7 +1519,190 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
 
                 // Build branding instruction
                 let brandingInstruction = '';
-                if (isDbt) {
+                if (isWeirdHackV2) {
+                    brandingInstruction = `
+## CRITICAL: WEIRD_HACK_V2 CAPTION FRAMEWORK (GEN-Z DEADPAN VOICE)
+
+This caption must match the deadpan, self-deprecating, slightly-exhausted voice of the slide carousel. Not therapeutic. Not educational. Not polished. Written like someone typing a confession into notes app at 11pm.
+
+### STRUCTURE (4 parts, in this exact order):
+
+1) **App mention as opener (1 line, ≤15 words)**
+   - MUST start with "the dbt-mind app" as the first 3 words of the description.
+   - The sentence frames the app as a tool the narrator uses, casually, like mentioning a productivity tool to a friend.
+   - Reference at least one specific hack or concept from the slides (90-minute rule, screenshot predictions, the scan, the paragraph text, etc).
+   - Example openers:
+     - "the dbt-mind app is where i keep the 90-min rule now. also the screenshot one."
+     - "the dbt-mind app has check the facts built in. that's mostly what i use it for."
+     - "the dbt-mind app tracks this for me. i'd forget otherwise."
+   - NEVER write "download the dbt-mind app" or "check out dbt-mind" — those are ad voices.
+   - NEVER write "DBT-Mind" with capitals. Always lowercase "dbt-mind app".
+
+2) **Deadpan reflection (1 line, ≤15 words)**
+   - Continues the confession voice of the slides.
+   - Names something real the narrator still struggles with. Keeps emotional tension — does NOT wrap things up tidily.
+   - Examples:
+     - "the scan still happens. i just lose to it less."
+     - "honestly made peace with the fact that 'just stop scanning' was never gonna be the answer."
+     - "not fixed. just slightly less feral at 2am."
+   - Lowercase. Fragments welcome. No semicolons.
+
+3) **Micro-closer (optional, 1 short line)**
+   - Only include if it adds something — otherwise skip.
+   - Can be a single word or phrase. Examples: "anyway.", "that's it.", "ok bye.", "wish i'd learned this sooner."
+   - Never motivational ("you've got this!"). Never earnest ("healing is a journey").
+
+4) **Hashtags (final line, on its own line)**
+   - Always include: #bpd #bpdtiktok #dbt #bpdrecovery
+   - Add 1-2 topic-specific hashtags based on slide content. Good options: #fp #quietbpd #dbtskills #splitting #rsd #fpdynamics #attachmentstyle
+   - Total 5-7 hashtags MAX. Never exceed 7.
+   - NEVER use #fyp or #foryou — these are dead signals in 2026 and get downranked.
+
+### EMOJI RULES (STRICT):
+
+Allowed emojis only (use 0-2 total across the entire caption):
+- 🫶 (soft affection, replacement for ❤️)
+- 🫠 (melting face — overwhelm, dissociation, "i can't")
+- 😵‍💫 (spiral eyes — anxiety, brain rot)
+- 🫥 (dotted line face — invisible, ghosted)
+- 😶‍🌫️ (face in clouds — dissociating, spacing out)
+- 🥲 (tearful smile — bittersweet, coping)
+- 💀 (self-deprecating laughter after a painful admission)
+- 😭 (laughing OR actually crying, context-dependent)
+- 😔 (quiet sad)
+
+BANNED emojis (reading as millennial-coded, corporate, or overused):
+- ❌ ❤️ ✨ 💅 😂 👍 🙌 🔥 💯 🎉 🥰 🥹 🤍 💕
+
+Emoji placement: end of a line, never mid-sentence. Stacking emojis (🫠🫠🫠) is banned — one emoji does the work.
+
+Default to ZERO emojis. Only add one if it genuinely lands. Over-use of emojis is the #1 tell of generated content.
+
+### TITLE RULES (for the "title" field):
+
+- 1 line, ≤60 characters
+- Lowercase
+- Fragment allowed
+- Should work as a scroll-stopper if used as the video's visible title
+- Pull the strongest reframe phrase from slide 6 or the hook as the title
+- Examples:
+  - "treating his typing speed like a vital sign 😶‍🌫️"
+  - "the scan just never got the memo"
+  - "my brain wrote the breakup in 3 seconds"
+- NEVER title-case. NEVER include "BPD tips" or "DBT hacks" framing — those are content-marketer titles.
+
+### LANGUAGE: ENGLISH
+
+### EXAMPLE OUTPUT for this voice:
+{"title":"treating his typing speed like a vital sign","description":"the dbt-mind app is where the 90-min rule lives now. also the screenshot one. that's mostly what i use it for.\nthe scan still happens. i just lose to it less 🫠\nanyway.\n#bpd #bpdtiktok #dbt #bpdrecovery #fp #attachmentstyle"}
+
+### WHAT TO AVOID:
+- ❌ "Struggling with BPD? Here's what helped me!" (ad voice)
+- ❌ "This post hit different 💯🔥" (wrong emojis, wrong voice)
+- ❌ "Healing is not linear ✨" (corny + banned emoji)
+- ❌ "Tag someone who needs this" (engagement farming)
+- ❌ "Download DBT-Mind today" (ad voice)
+- ❌ Mentioning the app more than once in the description
+`;
+                } else if (isPermissionV1) {
+                    brandingInstruction = `
+CRITICAL: PERMISSION_V1 CAPTION FRAMEWORK (WARM, DIRECT, BPD-COMMUNITY VOICE)
+
+This caption must match the warm, direct, permission-giving voice of the permission_v1 slide carousel. Unlike weird_hack_v2's deadpan-confession voice, permission_v1 is warmer - "a friend telling you something they've been wanting to say." Quiet. Kind. Still Gen-Z, still lowercase, still fragment-tolerant, but softer.
+
+The slides follow this emotional arc: shame-word hook -> shared accusations -> mechanism reveal -> identity reframe -> positive flip -> explicit permission -> naming the secret effort. The caption should extend this arc, not restart it.
+
+STRUCTURE (3 parts, in this exact order):
+
+App mention as opener (1 line, <=22 words)
+
+- MUST start with "the dbt-mind app" as the first 3 words.
+- The sentence frames the app as something the narrator personally uses. Casual, first-person. Never "download" or "check out" voice.
+- The app capability referenced MUST match the topic of the post. Use the slide content to infer the topic. Match examples:
+
+Identity/self topics ("empty", "broken", "unstable", "pathetic", "a burden") -> "where i started writing down who i actually am" / "where i keep what i'm learning about myself" / "where i hold the new version of me when the old story tries to come back"
+Emotion/regulation topics ("too much", "too intense", "dramatic", "oversensitive", "crazy", "irrational") -> "where the reframes live when i can't find them at 3am" / "where i track what actually works when i'm dysregulated"
+Attachment/relational topics ("needy", "obsessive", "attention-seeking", "manipulative", "exhausting") -> "where i track what my brain forgets about people" / "where i keep the proof of love when my brain tries to delete it"
+
+- Reference the specific reframe or mechanism from this post, not a generic feature. Read the slide text and pull something concrete.
+- NEVER write "DBT-Mind" with capitals. Always lowercase "dbt-mind app".
+
+Reflection line (1-2 lines, <=25 words total)
+
+- Echoes the shame-word from slide 1 in quotation marks (essential - keeps caption-to-post cohesion)
+- Mirrors the parallel-construction move from slide 4 ("you're not 'X'. you're [Y].")
+- Warm, tired, Gen-Z-coded. Ends on a resigned-but-accepting phrase like "but here we are." / "turns out." / "who knew." / "wish i'd known sooner."
+- This line functions as the caption's emotional landing - it should feel like a private thought spoken aloud.
+
+Hashtags (final line, on its own line)
+
+- Always include: #bpd #bpdtiktok #dbt #bpdrecovery
+- Add 1-2 topic-specific hashtags based on the topic. Matching:
+
+Identity topics -> #quietbpd #identitydisturbance
+External shame topics -> #bpdawareness (use sparingly)
+Attachment topics -> #fp #attachmentstyle
+Regulation topics -> #dbtskills #emotionalregulation
+Splitting/cognition topics -> #splitting #blackandwhitethinking
+
+- Total 5-7 hashtags MAX. Never exceed 7.
+- NEVER use #fyp or #foryou - dead signals, downranked in 2026.
+
+EMOJI RULES (STRICT - quieter than weird_hack_v2):
+Permission_v1 is a quieter format than v2. Emojis should be RARE.
+Default to ZERO emojis. If you add one, it must be from this allowlist only:
+
+- 🫶 (soft affection)
+- 🫠 (melting - overwhelm)
+- 😵‍💫 (spiral - anxiety, brain rot)
+- 🫥 (dotted line - invisible, ghosted)
+- 😶‍🌫️ (face in clouds - dissociating)
+- 🥲 (tearful smile - bittersweet)
+- 💀 (self-deprecating laughter)
+- 😭 (laughing OR crying, context-dependent)
+- 😔 (quiet sad)
+
+RULE: For HEAVY topics, use ZERO emojis. Heavy topics include: "empty", "broken", "crazy", "unstable", "a burden", "pathetic", "exhausting", "attention-seeking", "manipulative", "too much".
+For LIGHT topics, optionally use ONE emoji at the end of the reflection line. Light topics include: "dramatic", "intense", "obsessive", "needy", "oversensitive", "irrational".
+NEVER use two emojis. NEVER stack emojis. If in doubt, use zero.
+
+BANNED (reading as millennial-coded, corporate, overused):
+❌ ❤️ ✨ 💅 😂 👍 🙌 🔥 💯 🎉 🥰 🥹 🤍 💕
+
+TITLE RULES (for the "title" field):
+- 1 line, <=60 characters
+- Lowercase
+- Fragment allowed
+- Pull the single most evocative phrase from the slides - typically from slide 5 (the positive flip) or slide 4 (the reframe)
+- Should work as a scroll-stopping fragment in the viewer's FYP
+- NEVER title-case, NEVER "BPD tips" / "DBT hacks" framing
+- Examples of the right voice:
+
+"worn as emptiness because no one named it right"
+"you're not too much. you're a sensor."
+"the labor of holding everyone else"
+"you didn't form around yourself"
+
+EXAMPLE OUTPUT for this voice (topic: "empty"):
+{"title":"worn as emptiness because no one named it right","description":"the dbt-mind app is where i started writing down who i actually am. slow process. the reframes from this post are in there too.\nno one ever told me \"empty\" was just unanchored. but here we are.\n#bpd #bpdtiktok #dbt #bpdrecovery #quietbpd #identitydisturbance"}
+
+EXAMPLE OUTPUT for a LIGHT topic (topic: "dramatic"):
+{"title":"your brain isn't being dramatic. it's reading the room.","description":"the dbt-mind app is where the reframes live when i can't find them at 3am. this exact post is basically notes-to-self 😔\n\"dramatic\" was never the right word. turns out rsd has a name.\n#bpd #bpdtiktok #dbt #bpdrecovery #rsd #rejectionsensitivity"}
+
+WHAT TO AVOID:
+
+❌ "Struggling with feeling empty? Here's what helped!" (ad voice)
+❌ "You are not broken, you are beautiful ✨" (wrong emojis, wrong voice, corny)
+❌ "Save this for later 💯" (engagement farming, banned emoji)
+❌ "Tag someone who needs to hear this" (engagement farming)
+❌ "Download DBT-Mind to start healing today!" (ad voice)
+❌ Using "the dbt-mind app" more than once in the description
+❌ Adding motivational closers ("you've got this!", "healing is a journey")
+❌ Capitalized "DBT-Mind" in the description
+❌ Two or more emojis in the caption
+❌ Any emoji at all on heavy topics (empty, broken, crazy, exhausting, etc.)
+`;
+                } else if (isDbt) {
                     brandingInstruction = `
 ## CRITICAL: DBT-MIND CAPTION FRAMEWORK (4 PARTS, IN THIS ORDER)
 Write the description as exactly four parts:
@@ -1547,11 +1805,23 @@ Example output: {"title":"my brain wrote the breakup in 3 seconds","description"
 Example output: {"title": "wenn dein hund besser schlÃƒÂ¤ft als du", "description": "Er schnarcht. Ich google. So lÃƒÂ¤uft das hier. Ã°Å¸Ââ€¢Ã°Å¸Ëœâ€¦ #hundemama #haustier #schlaflos"}`;
 
                 // Reminder for description branding
-                const brandingReminder = needsDbtBrandingInDescription
-                    ? ' Follow the 4-part DBT caption framework exactly.'
-                    : needsSypBrandingInDescription
-                        ? ' KRITISCH: saveyourpet.de MUSS AM ANFANG der Description stehen (z.B. "saveyourpet.de hat mir den A*sch gerettet Ã°Å¸Ëœâ€š") - kreativ, nicht werblich!'
-                        : '';
+                const brandingReminder = isWeirdHackV2
+                    ? ' CRITICAL: description must start with "the dbt-mind app" as the first 3 words. Follow the weird_hack_v2 caption framework and emoji rules exactly.'
+                    : isPermissionV1
+                        ? ' CRITICAL: description must start with "the dbt-mind app" as the first 3 words. Follow the permission_v1 caption framework - warmer than v2, quieter on emojis, echo the shame-word in quotes.'
+                    : needsDbtBrandingInDescription
+                        ? ' Follow the 4-part DBT caption framework exactly.'
+                        : needsSypBrandingInDescription
+                            ? ' KRITISCH: saveyourpet.de MUSS AM ANFANG der Description stehen (z.B. "saveyourpet.de hat mir den A*sch gerettet Ã°Å¸Ëœâ€š") - kreativ, nicht werblich!'
+                            : '';
+
+                const formatTailInstruction = isWeirdHackV2
+                    ? `\n\nFor weird_hack_v2 captions: description opens with "the dbt-mind app", uses the deadpan confession voice, 0-2 emojis from the allowed list only, 5-7 hashtags max on the final line. Never title-case. Never use banned emojis.`
+                    : isPermissionV1
+                        ? `\n\nFor permission_v1 captions: description opens with "the dbt-mind app", uses the warm-but-direct permission voice, echoes the shame-word from slide 1 in quotes, trends toward ZERO emojis (one max, never for heavy topics like 'empty'/'broken'/'exhausting'), 5-7 hashtags max on the final line. Never title-case. Never use banned emojis.`
+                    : isDbt
+                        ? `\n\nFor DBT captions: output 4 parts with line breaks and hashtags on the final line only.`
+                        : `\n\nFor non-DBT captions: keep it to 1-2 sentences max, 1-2 emojis used wisely, 3-5 relevant hashtags.`;
 
                 const systemPrompt = `You are a TikTok Content Strategist. Your job is to write a catchy title (1-line) and a relatable description (caption) for a photo carousel.
 ${languageInstructions}
@@ -1559,7 +1829,7 @@ ${brandingInstruction}
 ## YOUR TASK:
 Based on the provided slide texts, generate:
 1. A catchy Title for the post (one line, lowercase is fine).
-2. A Description/Caption for the post.${brandingReminder}` + (isDbt ? `\n\nFor DBT captions: output 4 parts with line breaks and hashtags on the final line only.` : `\n\nFor non-DBT captions: keep it to 1-2 sentences max, 1-2 emojis used wisely, 3-5 relevant hashtags.`) + `
+2. A Description/Caption for the post.${brandingReminder}${formatTailInstruction}
 
 OUTPUT: Return ONLY a JSON object with "title" and "description" fields. No markdown, no explanation.`;
 
@@ -1589,21 +1859,22 @@ OUTPUT: Return ONLY a JSON object with "title" and "description" fields. No mark
                 const rawData = await claudeResponse.json() as any;
                 const resultText = rawData.content?.[0]?.text || '';
 
-                // Resilient JSON extraction
-                let cleanedText = resultText.trim();
-                const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+                const extractedJson = extractBalancedJson(resultText) || stripMarkdownCodeFences(resultText);
 
                 let parsed;
                 try {
-                    parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleanedText);
+                    parsed = JSON.parse(extractedJson);
                 } catch (parseErr) {
-                    console.error("[Metadata Gen] JSON Parse Error:", parseErr);
-                    console.info("[Metadata Gen] Raw AI Response:", resultText);
-                    return sendJSON({
-                        error: "Failed to parse metadata JSON",
-                        details: String(parseErr),
-                        rawText: resultText.substring(0, 1000)
-                    }, 500);
+                    parsed = fallbackParseMetadataObject(resultText);
+                    if (!parsed) {
+                        console.error("[Metadata Gen] JSON Parse Error:", parseErr);
+                        console.info("[Metadata Gen] Raw AI Response:", resultText);
+                        return sendJSON({
+                            error: "Failed to parse metadata JSON",
+                            details: String(parseErr),
+                            rawText: resultText.substring(0, 1000)
+                        }, 500);
+                    }
                 }
 
                 const formatMetadataDescription = (rawDescription: string, dbtMode: boolean): string => {
@@ -2356,7 +2627,9 @@ Output ONLY the JSON object.No markdown, no explanation.`
                     if (!prompt) {
                         return sendJSON({ error: "Prompt is required" }, 400);
                     } else {
-                        console.log(`[Custom Image] Generating with raw prompt and ${referenceImages.length} refs: ${prompt.substring(0, 50)}...`);
+                        console.log(
+                            `[Custom Image] Generating with model=${OPENAI_IMAGE_MODEL} and ${referenceImages.length} refs: ${prompt.substring(0, 50)}...`
+                        );
 
                         const imageSize = requestedImageSize || getImageSizeForFlow(service, flow);
                         let result;
@@ -2382,6 +2655,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
 
                             return sendJSON({
                                 success: true,
+                                model: OPENAI_IMAGE_MODEL,
                                 image: {
                                     data: firstImage.data,
                                     mime_type: firstImage.mimeType

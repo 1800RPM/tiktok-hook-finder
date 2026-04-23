@@ -111,6 +111,8 @@ const dbtCharacterTemplates = {
             weird_hack_v2: {
                 0: 'slide1.png'
             },
+            permission_v1: {
+            },
             three_tips: {
                 5: 'assets/dbt-templates/cta_slide_template.jpg'
             },
@@ -128,6 +130,8 @@ const dbtCharacterTemplates = {
             weird_hack_v2: {
                 0: 'assets/dbt-templates/brendabpd/slide1.png'
             },
+            permission_v1: {
+            },
             three_tips: {
                 5: 'assets/dbt-templates/cta_slide_template.jpg'
             },
@@ -144,6 +148,8 @@ const dbtCharacterTemplates = {
             },
             weird_hack_v2: {
                 0: 'assets/dbt-templates/weidhackv2/custom-image-1775651626440.png'
+            },
+            permission_v1: {
             },
             three_tips: {
                 5: 'assets/dbt-templates/cta_slide_template.jpg'
@@ -782,7 +788,12 @@ function updateSelectedSlideEditor() {
 function getDefaultSlidePosition(index) {
     // Slide 1: centered in lower half. Legacy weird_hack keeps Slide 6 slightly lower.
     if (index === 0) return { x: 50, y: 72 };
-    if (index === 5 && state.currentService === 'dbt' && state.currentDbtSlideType !== 'weird_hack_v2') {
+    if (
+        index === 5 &&
+        state.currentService === 'dbt' &&
+        state.currentDbtSlideType !== 'weird_hack_v2' &&
+        state.currentDbtSlideType !== 'permission_v1'
+    ) {
         return { x: 50, y: 78 };
     }
     return { x: 50, y: 50 };
@@ -849,7 +860,10 @@ function normalizeSlidePosition(slide, index) {
 
 function shouldApplyDarkOverlayToSlide(slideIndex) {
     if (!Number.isInteger(slideIndex)) return false;
-    if (state.currentService === 'dbt' && state.currentDbtSlideType === 'weird_hack_v2') {
+    if (
+        state.currentService === 'dbt' &&
+        (state.currentDbtSlideType === 'weird_hack_v2' || state.currentDbtSlideType === 'permission_v1')
+    ) {
         return slideIndex >= 1 && slideIndex <= 7;
     }
     return slideIndex >= 1 && slideIndex <= 4;
@@ -860,7 +874,7 @@ function isDbtStoryTellingFlow(slideType = getSelectedDbtSlideType()) {
 }
 
 function doesDbtSlideTypeUseViralTopic(slideType = getSelectedDbtSlideType()) {
-    return !isDbtStoryTellingFlow(slideType) && slideType !== 'weird_hack_v2';
+    return !isDbtStoryTellingFlow(slideType) && slideType !== 'weird_hack_v2' && slideType !== 'permission_v1';
 }
 
 function getDbtGenerateButtonLabel(slideType = getSelectedDbtSlideType()) {
@@ -869,6 +883,7 @@ function getDbtGenerateButtonLabel(slideType = getSelectedDbtSlideType()) {
     if (slideType === 'story_telling_gf') return 'Generate Story Telling GF (Opus)';
     if (slideType === 'i_say_they_say') return 'Generate I Say/They Say (Opus)';
     if (slideType === 'weird_hack_v2') return 'Generate Weird Therapist Hacks V2 (Opus)';
+    if (slideType === 'permission_v1') return 'Generate Permission V1 (Opus)';
     return 'Generate Weird Therapist Hacks (Opus)';
 }
 
@@ -1484,7 +1499,7 @@ async function generateNativeSlides() {
                     ? [0, 1, 2, 3, 4]
                     : slideType === 'i_say_they_say'
                         ? state.slides.map((_, index) => index)
-                        : slideType === 'weird_hack_v2'
+                        : slideType === 'weird_hack_v2' || slideType === 'permission_v1'
                             ? state.slides
                                 .map((_, index) => index)
                                 .filter(index => index >= 1)
@@ -3390,6 +3405,7 @@ async function generateMetadata(options = {}) {
                 format: state.currentFormat,
                 topic: state.currentTopic,
                 service: state.currentService,
+                slideType: state.currentDbtSlideType,
                 includeBranding: state.includeBranding,
                 brandingMode: brandingMode
             })
