@@ -1,0 +1,1849 @@
+[
+  {
+    "id": "23d303b0e017eacd009d",
+    "hash": "42f4515ee1babaa58d357a6267a28820d554b3b47980512477a2187afc94edd5",
+    "file": "Cats/cat-confused.png",
+    "name": "cat confused",
+    "src": "assets/meme-slides/indexed/42f4515ee1babaa58d357a6267a28820d554b3b47980512477a2187afc94edd5.png",
+    "width": 1124,
+    "height": 823,
+    "labels": {
+      "description": "Close-up cutout of Grumpy Cat (Tardar Sauce), a flat-faced Siamese-mix cat with dark brown and white markings, amber eyes heavily lidded in a downward scowl, and a pronounced frown. No visible text. White background.",
+      "emotion": "deeply unimpressed, grumpy, disapproving",
+      "meaning": "Classic reaction to anything unwanted, annoying, or exhausting. Functions as a visual 'no', 'I hate this', or 'absolutely not.' Suits moments of low tolerance, frustration with plans, or sardonic refusal. In DBT contexts can humorously represent the wise-mind verdict on a bad idea.",
+      "tags": [
+        "grumpy",
+        "disapproval",
+        "refusal",
+        "frustrated",
+        "no",
+        "unimpressed",
+        "scowl",
+        "Grumpy Cat",
+        "cat",
+        "reaction"
+      ],
+      "role": "character"
+    },
+    "override": ""
+  },
+  {
+    "id": "befdcc88128c0f258b79",
+    "hash": "7ecf7db90b3277090f4d449bd1c48f0350fc8ed2b8a852a5bc8b0bb4dbeeedad",
+    "file": "Cats/cat-meme-featuring.png",
+    "name": "cat meme featuring",
+    "src": "assets/meme-slides/indexed/7ecf7db90b3277090f4d449bd1c48f0350fc8ed2b8a852a5bc8b0bb4dbeeedad.png",
+    "width": 208,
+    "height": 159,
+    "labels": {
+      "description": "Cutout of a white cat photographed at a dinner table — the 'Woman Yelling at Cat' meme's cat half. The cat sits upright, head slightly tilted, mouth slightly open as if talking back or being defensive, with a mildly incredulous side-eye expression. No visible text. White background.",
+      "emotion": "defensive, bewildered, mildly offended, talking back",
+      "meaning": "Represents the 'well actually…' or 'I don't see the problem' reaction when being called out. Often paired with an accusing figure. Alone it works as self-deprecating humour for rationalising behaviour, arguing with yourself, or being confused by criticism. Ambiguous — could also read as simply bewildered.",
+      "tags": [
+        "defensive",
+        "confused",
+        "talking back",
+        "dinner table cat",
+        "called out",
+        "bewildered",
+        "white cat",
+        "reaction",
+        "cat"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "2ff88b789f3c154862a2",
+    "hash": "ac6041f51e7126cbe962b5b7e0c19dc53fa38a5cc720395b16fe3dc285e443de",
+    "file": "Cats/cat-meme-smug.png",
+    "name": "cat meme smug",
+    "src": "assets/meme-slides/indexed/ac6041f51e7126cbe962b5b7e0c19dc53fa38a5cc720395b16fe3dc285e443de.png",
+    "width": 478,
+    "height": 478,
+    "labels": {
+      "description": "Cutout of a white and orange tabby cat with very large, glossy, teary eyes giving a thumbs-up with one paw raised. The cat looks genuinely sad or overwhelmed despite the positive gesture. No visible text. Transparent/white background.",
+      "emotion": "sad but supportive, bravely okay, emotionally conflicted",
+      "meaning": "Classic 'I'm fine' or 'everything is fine' irony meme — outwardly signalling okay while clearly distressed. Useful for relatable humour around masking emotions, pushing through a hard day, or performing wellness. In DBT contexts can gently illustrate the gap between how we present and how we feel, without diagnosing.",
+      "tags": [
+        "crying",
+        "thumbs up",
+        "I'm fine",
+        "brave face",
+        "emotional masking",
+        "sad",
+        "okay",
+        "irony",
+        "overwhelmed",
+        "cat",
+        "reaction"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "52c4c907bb595280006f",
+    "hash": "9d1aa84adf4e10a2b2d47578ff6b0e9f1ac30c5835c5ffd3fbdeae74c2a4b51c",
+    "file": "Cats/cat-sunglasses.png",
+    "name": "cat sunglasses",
+    "src": "assets/meme-slides/indexed/9d1aa84adf4e10a2b2d47578ff6b0e9f1ac30c5835c5ffd3fbdeae74c2a4b51c.png",
+    "width": 455,
+    "height": 416,
+    "labels": {
+      "description": "Cutout of a chunky orange and white cat seated upright, wearing large dark wraparound sunglasses and appearing to adjust them with one paw. Expression is calm and self-satisfied. No visible text. White/transparent background.",
+      "emotion": "cool, smug, unbothered, self-assured",
+      "meaning": "Represents effortless confidence, not caring what others think, or 'deal with it' energy. Works as a reaction to successfully handling a situation, practising a DBT skill smoothly, or embodying radical acceptance with style. Can also signal lighthearted smugness after a win.",
+      "tags": [
+        "sunglasses",
+        "cool",
+        "unbothered",
+        "smug",
+        "deal with it",
+        "confident",
+        "self-assured",
+        "cat",
+        "props",
+        "reaction"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "140c64c86df573d645a2",
+    "hash": "7652e89f82e22fe1ee4d28a914ee9acb1308239bcc2f775e19a2f79b372ce3d8",
+    "file": "Cats/cat-suprised.png",
+    "name": "cat suprised",
+    "src": "assets/meme-slides/indexed/7652e89f82e22fe1ee4d28a914ee9acb1308239bcc2f775e19a2f79b372ce3d8.png",
+    "width": 410,
+    "height": 449,
+    "labels": {
+      "description": "Close-up of a white short-haired cat with visible tears streaming down both cheeks, mouth closed, sitting upright against a transparent/white background. No visible text.",
+      "emotion": "Sad, tearful, quietly devastated — despite the filename suggesting surprise, the dominant expression is clearly crying/sorrowful",
+      "meaning": "Classic 'crying cat' meme used to express genuine or exaggerated sadness, emotional overwhelm, or relatable heartbreak. Works as a reaction to disappointing news, rejection, or 'this hits too close to home' moments. Ambiguous note: filename says 'surprised' but the image shows no surprise markers — tears are the defining feature.",
+      "tags": [
+        "crying",
+        "sad",
+        "tears",
+        "emotional",
+        "heartbreak",
+        "overwhelmed",
+        "relatable pain",
+        "white cat",
+        "quiet suffering"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "b6a1681f1c29ebfe9519",
+    "hash": "13af3b86b9c7cf58ee9e2911f53b5ae707d095d96f575dd6b1b4a7b0d19e2760",
+    "file": "Cats/cat_cheeky_side_view.jpg",
+    "name": "cat cheeky side view",
+    "src": "assets/meme-slides/indexed/13af3b86b9c7cf58ee9e2911f53b5ae707d095d96f575dd6b1b4a7b0d19e2760.png",
+    "width": 736,
+    "height": 736,
+    "labels": {
+      "description": "Extreme close-up selfie-angle of a white cat with blue-grey eyes, looking upward and slightly to the side with a subtly smug, calculating expression. Mouth closed. No visible text. Transparent background.",
+      "emotion": "Smug, sly, quietly plotting — a low-key scheming or 'I know something you don't' look",
+      "meaning": "Functions as a reaction for passive scheming, barely concealed self-satisfaction, or the moment before executing a sneaky plan. Good for 'me pretending to be fine while actually plotting' or 'using a DBT skill... reluctantly' jokes.",
+      "tags": [
+        "smug",
+        "sly",
+        "plotting",
+        "side-eye",
+        "cheeky",
+        "white cat",
+        "close-up",
+        "scheming",
+        "calm chaos"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "15521e9a49b5a363e887",
+    "hash": "6451cfe5c83dd188901fcd947e6a78a484a98d9d41e6239dc4de8b76fb2015aa",
+    "file": "Cats/cat_cheeky_tongue_sticks_out.jpg",
+    "name": "cat cheeky tongue sticks out",
+    "src": "assets/meme-slides/indexed/6451cfe5c83dd188901fcd947e6a78a484a98d9d41e6239dc4de8b76fb2015aa.png",
+    "width": 736,
+    "height": 827,
+    "labels": {
+      "description": "Close-up of a grey tabby cat with amber/green eyes, tongue visibly sticking out in a blep, with a slightly wild asymmetric gaze. White background. No visible text.",
+      "emotion": "Cheeky, goofy, irreverent — a playful 'pfft' or 'whatever' energy",
+      "meaning": "Ideal reaction for dismissing something absurd, expressing light rebellion, or punctuating a joke with irreverence. The blep tongue adds goofiness over aggression. Suits 'me when someone tells me to just think positive' or silly self-deprecating moments.",
+      "tags": [
+        "blep",
+        "tongue out",
+        "cheeky",
+        "goofy",
+        "tabby",
+        "grey cat",
+        "dismissive",
+        "playful",
+        "irreverent"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "46872d4ba348c3e9151f",
+    "hash": "978976c685fd636b39ddc57fb1d6cb313d0bb80d20044facb69fa81ab44b3933",
+    "file": "Cats/cat_close_selfie_smirking.jpg",
+    "name": "cat close selfie smirking",
+    "src": "assets/meme-slides/indexed/978976c685fd636b39ddc57fb1d6cb313d0bb80d20044facb69fa81ab44b3933.png",
+    "width": 736,
+    "height": 989,
+    "labels": {
+      "description": "Orange tabby cat photographed at extreme close selfie distance, face filling the frame, front paws stretched toward the camera, wearing a wide toothy grin with large dilated eyes. Slightly blurry due to proximity. White background. No visible text.",
+      "emotion": "Chaotically enthusiastic, manic grin, over-eager — intense happiness verging on unhinged",
+      "meaning": "Perfect for 'too much energy', hyperfocus, or the moment a plan comes together in a slightly unhinged way. Can represent overcorrecting into forced positivity, the 'I used my coping skill and now I'm feral about it' vibe, or chaotic excitement. The paws-toward-camera pose adds an endearing invasive quality.",
+      "tags": [
+        "grinning",
+        "excited",
+        "manic",
+        "chaotic",
+        "orange cat",
+        "selfie",
+        "paws out",
+        "enthusiastic",
+        "unhinged joy",
+        "close-up"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "5f9830a53e0708937d5b",
+    "hash": "75b90646e29e547314672bae7cce034de1ca01d41a8d83a0dbfbba76f613d91c",
+    "file": "Cats/cat_eyes_closed_looking_like_meditation-jpg.jpg",
+    "name": "cat eyes closed looking like meditation jpg",
+    "src": "assets/meme-slides/indexed/75b90646e29e547314672bae7cce034de1ca01d41a8d83a0dbfbba76f613d91c.png",
+    "width": 474,
+    "height": 451,
+    "labels": {
+      "description": "Close-up of a white and tabby cat with eyes gently closed, chin slightly lifted, wearing a soft, blissful expression. No visible text. Transparent background.",
+      "emotion": "serene, content, blissful — like suppressed smug satisfaction or deep peace",
+      "meaning": "Functions as a reaction to successfully practicing a DBT skill (e.g., mindfulness, TIPP breathing, radical acceptance). Works as 'me after actually doing my coping skill' or 'achieving 10 seconds of inner peace.' Can also read as gentle smugness — 'I handled that with grace.' Ambiguously could also be 'ignoring the chaos on purpose.'",
+      "tags": [
+        "mindfulness",
+        "meditation",
+        "calm",
+        "coping skill success",
+        "radical acceptance",
+        "self-care win",
+        "breathing exercise",
+        "peace",
+        "smug",
+        "eyes closed",
+        "white cat",
+        "tabby"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "6bf2a23306b1fc2c4ba7",
+    "hash": "be4d36371f102fd8fcbb0af7f3e40d35c79c555f32cb9528ee71b67201779eb8",
+    "file": "Cats/cat_in_shock_and_wet_during_bath.jpg",
+    "name": "cat in shock and wet during bath",
+    "src": "assets/meme-slides/indexed/be4d36371f102fd8fcbb0af7f3e40d35c79c555f32cb9528ee71b67201779eb8.png",
+    "width": 1164,
+    "height": 1283,
+    "labels": {
+      "description": "A grey long-haired cat, visibly wet and matted from a bath, with enormous wide yellow eyes, mouth open in a small horrified gape, and wild stray whiskers pointing in all directions. Transparent background.",
+      "emotion": "pure shock, horror, overwhelm, feeling ambushed",
+      "meaning": "Ideal reaction to unexpected bad news, sudden emotional flooding, or being blindsided by a trigger. Works for 'when your therapist points out a pattern you didn't know you had,' 'when Monday hits,' or 'when someone asks how you're doing and you're NOT okay.' The wet fur adds a layer of 'I did not consent to this experience.'",
+      "tags": [
+        "shock",
+        "overwhelm",
+        "triggered",
+        "bad news",
+        "ambushed",
+        "wet cat",
+        "bath",
+        "wide eyes",
+        "panic",
+        "flooding",
+        "Monday",
+        "unexpected"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "ffd4471bfd0ef70cfd65",
+    "hash": "8d287506ee87f2d0054c8a342cbb0104834fd3d7f28b9421f7e311a69b0655d1",
+    "file": "Cats/cat_leaning_on_table_shocked_face.jpg",
+    "name": "cat leaning on table shocked face",
+    "src": "assets/meme-slides/indexed/8d287506ee87f2d0054c8a342cbb0104834fd3d7f28b9421f7e311a69b0655d1.png",
+    "width": 735,
+    "height": 980,
+    "labels": {
+      "description": "A black-and-white tuxedo cat resting its front paws on a wooden table, seated in a wooden chair, mouth slightly open showing lower teeth, eyes wide and round with a startled expression. A grey cushion is visible behind it. Indoor setting.",
+      "emotion": "startled, caught off guard, mildly scandalised, confused",
+      "meaning": "Works as 'me when someone says something I was not prepared for,' 'caught doing something I shouldn't,' or reacting to unexpected oversharing in group settings. The table-leaning pose also suggests 'I am trying to hold myself together while processing this information.' Slightly less intense than full panic — more 'wait, what?' energy.",
+      "tags": [
+        "startled",
+        "caught off guard",
+        "confused",
+        "oversharing",
+        "unexpected",
+        "tuxedo cat",
+        "table",
+        "chair",
+        "indoor",
+        "mild shock",
+        "processing"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "057506783d7c9f8499e5",
+    "hash": "ba46ea33fa6d81d55fc5b27b83ab0041df271ad3765eef2f7a5041036a95a949",
+    "file": "Cats/cat_looking_like_chad.jpg",
+    "name": "cat looking like chad",
+    "src": "assets/meme-slides/indexed/ba46ea33fa6d81d55fc5b27b83ab0041df271ad3765eef2f7a5041036a95a949.png",
+    "width": 736,
+    "height": 981,
+    "labels": {
+      "description": "A brown tabby cat photographed straight-on with a low-angle, slightly upward tilt. Eyes are heavy-lidded and narrowed, expression is stoic and unimpressed, chin slightly raised. Very long wispy whiskers extend wide. Transparent background.",
+      "emotion": "unimpressed, stoic, quietly confident, mildly contemptuous — classic 'chad' expression",
+      "meaning": "Functions as a power-move reaction: 'me after setting a boundary,' 'radical acceptance but make it cool,' or 'I did not react impulsively and I look amazing.' Great for slides about opposite action or walking away from an argument. The heavy-lidded stare communicates effortless self-possession. Could ambiguously read as tired or judgmental depending on context.",
+      "tags": [
+        "chad",
+        "unbothered",
+        "boundary setting",
+        "confident",
+        "stoic",
+        "unimpressed",
+        "opposite action",
+        "cool",
+        "tabby",
+        "long whiskers",
+        "self-possessed",
+        "walking away"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "ba4cc3f83ba616ddd0e4",
+    "hash": "e60bd0b43453bf119274a7970c33c4cead237d233a2e7034b3484d8c4fe940d4",
+    "file": "Cats/cat_looking_like_huuuh_face.jpg",
+    "name": "cat looking like huuuh face",
+    "src": "assets/meme-slides/indexed/e60bd0b43453bf119274a7970c33c4cead237d233a2e7034b3484d8c4fe940d4.png",
+    "width": 711,
+    "height": 630,
+    "labels": {
+      "description": "Close-up photo of a white cat with a transparent background. The cat's mouth is slightly open, eyes are half-lidded and narrowed, and its expression is flat and unimpressed. No visible text. Chin is slightly tucked, giving a 'double-chin' effect.",
+      "emotion": "Blank, confused, mildly offended disbelief — the 'huh?' face",
+      "meaning": "Reacts to something absurd, unexpected, or hard to process. The open-mouth blankness reads as 'did you just say that?' or 'I cannot compute this.' Good for moments of emotional overwhelm presented as dumb confusion, or when DBT skills feel completely foreign.",
+      "tags": [
+        "confusion",
+        "disbelief",
+        "what",
+        "huh",
+        "unimpressed",
+        "blank stare",
+        "white cat",
+        "reaction",
+        "processing",
+        "overwhelm"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "625198c790500a13893f",
+    "hash": "01da1ab451dacd6f6dc5acdbeffa62c2c90486ac831bcc0d675c3d93650cdee0",
+    "file": "Cats/cat_looking_like_on_testosterona_face_like_chad.png",
+    "name": "cat looking like on testosterona face like chad",
+    "src": "assets/meme-slides/indexed/01da1ab451dacd6f6dc5acdbeffa62c2c90486ac831bcc0d675c3d93650cdee0.png",
+    "width": 1152,
+    "height": 1875,
+    "labels": {
+      "description": "Close-up photo of a large orange tabby cat with a transparent background. The cat has a very wide, heavy jaw and thick neck giving a 'chad' physique impression. Eyes are narrowed and stern, whiskers prominent, expression is stoic and dominant. No visible text.",
+      "emotion": "Stoic, unbothered, supremely confident — the 'chad' face",
+      "meaning": "Represents peak self-assurance, radical acceptance with swagger, or successfully not reacting to provocation. Can be used humorously when someone uses a DBT skill correctly or when choosing not to engage with drama. Ambiguously could also read as grumpy or judgmental depending on context.",
+      "tags": [
+        "confident",
+        "chad",
+        "unbothered",
+        "stoic",
+        "strong",
+        "orange cat",
+        "tabby",
+        "reaction",
+        "calm",
+        "radical acceptance",
+        "not my problem"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "033ec4ab2dccb485d159",
+    "hash": "1614a2673d984eb5025b471ec887440d0e04162694f999ee75a9313e30d238ef",
+    "file": "Cats/cat_sighing.jpg",
+    "name": "cat sighing",
+    "src": "assets/meme-slides/indexed/1614a2673d984eb5025b471ec887440d0e04162694f999ee75a9313e30d238ef.png",
+    "width": 365,
+    "height": 355,
+    "labels": {
+      "description": "Low-resolution, slightly blurry close-up of a tan/beige cat (possibly a puma-like large cat or a domestic cat with a wide flat face) with a transparent-ish background. Eyes are heavy-lidded and downcast, cheeks are puffed slightly, mouth is closed with a subtle downward pull — the expression strongly suggests a slow, resigned exhale. No visible text.",
+      "emotion": "Weary, resigned, quietly exhausted — the long sigh",
+      "meaning": "Captures the feeling of tired acceptance or low-grade exasperation — not dramatic, just done. Useful for 'here we go again,' 'I tried my best,' or 'this is fine I guess' moments. Fits situations involving repeated frustration, practicing distress tolerance for the tenth time, or accepting imperfection. The blurriness adds to the deflated energy.",
+      "tags": [
+        "sigh",
+        "tired",
+        "resigned",
+        "exhausted",
+        "done",
+        "acceptance",
+        "exasperation",
+        "weary",
+        "calm",
+        "beige cat",
+        "low energy",
+        "whatever"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "5ad968a32eab1108f6d3",
+    "hash": "255f494b6d7d46a2de2c31bcb2d8ab18bab04d81c74389843e60ef84eaeac263",
+    "file": "Cats/cat_slightly_depressed.jpg",
+    "name": "cat slightly depressed",
+    "src": "assets/meme-slides/indexed/255f494b6d7d46a2de2c31bcb2d8ab18bab04d81c74389843e60ef84eaeac263.png",
+    "width": 719,
+    "height": 685,
+    "labels": {
+      "description": "Close-up front-facing photo of a tabby cat with green eyes, heavy-lidded drooping eyelids, and a neutral-to-downturned mouth expression, cut out against a white background. A small mute-speaker icon is visible in the bottom-right corner.",
+      "emotion": "Low-grade melancholy, unimpressed, mildly dissatisfied — not devastated, just quietly done with everything",
+      "meaning": "Conveys that 'slightly off' feeling where nothing is catastrophically wrong but motivation or joy is simply absent. Works as a relatable reaction to low-energy days, minor disappointments, or the baseline 'meh' state. The heavy-lidded look reads as emotionally depleted rather than furious.",
+      "tags": [
+        "low mood",
+        "meh",
+        "unimpressed",
+        "low energy",
+        "dissatisfied",
+        "tabby",
+        "green eyes",
+        "close-up",
+        "monday energy",
+        "can't be bothered"
+      ],
+      "role": "character"
+    },
+    "override": ""
+  },
+  {
+    "id": "3874f8ffe9294ba07304",
+    "hash": "090c2fc2666603ef5d5d3ea0d3ae807edaf537524c22c9b15619643cd687c81e",
+    "file": "Cats/cat_squinshing_eyes.jpg",
+    "name": "cat squinshing eyes",
+    "src": "assets/meme-slides/indexed/090c2fc2666603ef5d5d3ea0d3ae807edaf537524c22c9b15619643cd687c81e.png",
+    "width": 454,
+    "height": 590,
+    "labels": {
+      "description": "Chubby orange-and-white tabby cat sitting with both front paws tucked under its body, eyes almost completely shut in a contented squint, pink nose, and a soft rounded chin creating an impression of a pleased smile.",
+      "emotion": "Blissful contentment, quiet happiness, serene satisfaction",
+      "meaning": "The classic 'loaf cat with happy squint' signals cozy joy, self-satisfaction, or peaceful acceptance. Useful for moments of small wins, self-care success, comfort activities, or after using a coping skill that actually worked.",
+      "tags": [
+        "happy",
+        "content",
+        "cozy",
+        "self-care",
+        "loaf",
+        "squinting",
+        "warm",
+        "peaceful",
+        "small wins",
+        "orange cat"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "718d504afd08ccd2ef0d",
+    "hash": "fbd85c5441f10e0f1eafdbf3ef2507cb89278443805db738bec184d55afaeeba",
+    "file": "Cats/cat_standing_view_super_close_looking_into_camera_from_the_top.png",
+    "name": "cat standing view super close looking into camera from the top",
+    "src": "assets/meme-slides/indexed/fbd85c5441f10e0f1eafdbf3ef2507cb89278443805db738bec184d55afaeeba.png",
+    "width": 448,
+    "height": 539,
+    "labels": {
+      "description": "Extreme close-up of a tabby cat's face shot from directly above and slightly in front, so the cat appears to be staring down the camera lens with one large, intense eye dominating the frame. The image is slightly blurry and the perspective is disorienting — whiskers and striped fur are visible.",
+      "emotion": "Intense curiosity, mild alarm, overwhelming nosiness, or confrontational staring",
+      "meaning": "The dramatic top-down angle makes the cat look like it is aggressively investigating something or invading personal space. Works as a reaction to feeling scrutinised, being overly curious, or as a humorous stand-in for hyper-vigilance or anxious checking behaviour. Could also represent an intrusive thought looming in.",
+      "tags": [
+        "curiosity",
+        "staring",
+        "intense",
+        "close-up",
+        "overhead",
+        "intrusive",
+        "nosiness",
+        "hypervigilance",
+        "tabby",
+        "blurry",
+        "confrontational"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "6c994a9659bf901edb6e",
+    "hash": "7055fbbd724b19824c12778c1b5e1144d33116815b78d4887558adf8f017da46",
+    "file": "Cats/cat_super_angry.jpg",
+    "name": "cat super angry",
+    "src": "assets/meme-slides/indexed/7055fbbd724b19824c12778c1b5e1144d33116815b78d4887558adf8f017da46.png",
+    "width": 311,
+    "height": 458,
+    "labels": {
+      "description": "Grey tabby cat photographed straight-on, sitting upright with ears slightly back, eyes narrowed into a hard glare, and brow furrowed into a deep scowl. The image is somewhat grainy and the right side of the cat's face is lit with a warm orange-red tone.",
+      "emotion": "Fierce anger, intense displeasure, seething irritation",
+      "meaning": "One of the strongest 'angry cat' reaction images — the furrowed brow and hard stare read as genuine fury rather than mild annoyance. Suitable for moments of frustration, feeling wronged, or the emotion of anger in DBT contexts (e.g., illustrating the 'anger' emotion before discussing regulation skills). The dramatic red-orange lighting amplifies the intensity.",
+      "tags": [
+        "anger",
+        "furious",
+        "scowl",
+        "glare",
+        "irritation",
+        "frustration",
+        "intense",
+        "grey cat",
+        "dramatic lighting",
+        "emotion identification"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "a22b72e0715f1e1666b1",
+    "hash": "06aacb79b58498feca47e63db1c914a13354fffbbba14227b15411a9158a7822",
+    "file": "Cats/cat_super_close_to_camera_wide_eyes.jpg",
+    "name": "cat super close to camera wide eyes",
+    "src": "assets/meme-slides/indexed/06aacb79b58498feca47e63db1c914a13354fffbbba14227b15411a9158a7822.png",
+    "width": 1095,
+    "height": 1682,
+    "labels": {
+      "description": "A tabby cat photographed extremely close to the camera lens, causing a fisheye-like distortion. The cat's face dominates the frame with comically enlarged, wide, round eyes and a tiny body visible at the bottom. No visible text. White/transparent background.",
+      "emotion": "Startled, intensely curious, manic alertness",
+      "meaning": "Used to react to something overwhelming, surprising, or anxiety-inducing — the distorted proximity amplifies the sense of 'too much, too close, too fast.' Works well for moments of sudden panic, overstimulation, or hyperfocus on a problem.",
+      "tags": [
+        "startled",
+        "overwhelmed",
+        "wide eyes",
+        "close-up",
+        "distortion",
+        "panic",
+        "overstimulation",
+        "curiosity",
+        "tabby",
+        "fisheye"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "24cbdf40726e62cd1cfe",
+    "hash": "f881b2421391dc69380b89631608ae8fa67294639d8bbddc472cce1ed1a3ff41",
+    "file": "Cats/cat_taking_confident_selfie.jpg",
+    "name": "cat taking confident selfie",
+    "src": "assets/meme-slides/indexed/f881b2421391dc69380b89631608ae8fa67294639d8bbddc472cce1ed1a3ff41.png",
+    "width": 1104,
+    "height": 1727,
+    "labels": {
+      "description": "An orange/ginger tabby cat photographed from a low angle looking down at the camera with half-lidded, slightly narrowed dark eyes and a relaxed posture. One paw is partially visible. No visible text. White/transparent background.",
+      "emotion": "Smug, self-assured, unbothered, mildly judgmental",
+      "meaning": "Conveys quiet confidence or low-key superiority — the 'I've got this' or 'I know something you don't' energy. Suits moments of setting a boundary calmly, choosing not to engage with drama, or representing the 'wise/regulated self' in a carousel.",
+      "tags": [
+        "smug",
+        "confident",
+        "unbothered",
+        "calm",
+        "self-assured",
+        "ginger cat",
+        "low angle",
+        "boundary-setting",
+        "chill"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "f142184059d5d744f9f0",
+    "hash": "71e9a77dc92617cf55288e922f95131b4e0b6e9e25d96d7c49a59a0dfaf48b48",
+    "file": "Cats/cat_tongue_out_and_winking.png",
+    "name": "cat tongue out and winking",
+    "src": "assets/meme-slides/indexed/71e9a77dc92617cf55288e922f95131b4e0b6e9e25d96d7c49a59a0dfaf48b48.png",
+    "width": 361,
+    "height": 485,
+    "labels": {
+      "description": "A fluffy grey-and-white tabby cat with one eye closed in a wink and its long pink tongue extended fully out of its mouth. The cat's body is slightly rotated. No visible text. White/transparent background.",
+      "emotion": "Playful, goofy, silly, carefree",
+      "meaning": "Classic 'I'm having fun and I don't care how I look' reaction. Good for lighthearted self-deprecating moments, celebrating small wins in a silly way, or representing the 'opposite action' skill when choosing joy over rumination.",
+      "tags": [
+        "wink",
+        "tongue out",
+        "playful",
+        "goofy",
+        "silly",
+        "fun",
+        "carefree",
+        "celebration",
+        "fluffy cat",
+        "humor"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "bbcb5328816e5608081d",
+    "hash": "960662460c719ec826f5a7d56394ec2ceebb1db6fd07ca865acbcdf18b20fc88",
+    "file": "Cats/cat_wide-eyes.png",
+    "name": "cat wide eyes",
+    "src": "assets/meme-slides/indexed/960662460c719ec826f5a7d56394ec2ceebb1db6fd07ca865acbcdf18b20fc88.png",
+    "width": 301,
+    "height": 473,
+    "labels": {
+      "description": "A grey-and-white tabby cat photographed straight-on with very large, round, wide-open eyes staring directly into the camera. The expression is symmetrical and intensely focused. No visible text. Appears as a GIF (looping animation likely). White/transparent background.",
+      "emotion": "Shocked, frozen, deer-in-headlights, anxious alertness",
+      "meaning": "The classic 'staring blankly in disbelief or anxiety' reaction. Suits moments of receiving unexpected news, freezing when overwhelmed, or the 'what just happened' feeling. More composed than a22b72e0 — less manic, more stunned stillness.",
+      "tags": [
+        "wide eyes",
+        "shocked",
+        "frozen",
+        "disbelief",
+        "anxiety",
+        "staring",
+        "deer in headlights",
+        "grey cat",
+        "still",
+        "stunned"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "e39c19a74dc7af86b62d",
+    "hash": "3657e276bd068cb98daa663eb820be01a81254716952568ce0efe63f8dded15f",
+    "file": "Cats/cat_with_akermit_hat_funny.png",
+    "name": "cat with akermit hat funny",
+    "src": "assets/meme-slides/indexed/3657e276bd068cb98daa663eb820be01a81254716952568ce0efe63f8dded15f.png",
+    "width": 433,
+    "height": 414,
+    "labels": {
+      "description": "Close-up of a grey-and-white fluffy cat wearing a hand-crocheted green frog hat with two large bulging eyes on top. A small decorative sprig of greenery is tucked into the hat on the right side. A human hand holding a thin stick or wand enters the frame from the lower right. No visible text.",
+      "emotion": "Deeply unimpressed, heavy-lidded, vaguely suspicious — classic 'done with everything' cat face",
+      "meaning": "The absurd costume paired with the cat's utter disdain creates a 'I am being forced to participate in something ridiculous and I hate it' reaction meme. Works as a joke about being dragged into activities, therapy homework, group events, or any situation where you show up but make no effort to hide your reluctance.",
+      "tags": [
+        "cat",
+        "frog hat",
+        "crochet",
+        "unimpressed",
+        "reluctant participation",
+        "costume",
+        "forced fun",
+        "grumpy",
+        "silly accessory",
+        "DBT homework"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "6a98995e423edfd8a37f",
+    "hash": "ee7908c108fb720c7d8852193e9f9cb2c5f0e9d2a6e74b0b994ff94b1b706767",
+    "file": "Cats/cat_with_eye_lashes.jpg",
+    "name": "cat with eye lashes",
+    "src": "assets/meme-slides/indexed/ee7908c108fb720c7d8852193e9f9cb2c5f0e9d2a6e74b0b994ff94b1b706767.png",
+    "width": 736,
+    "height": 1008,
+    "labels": {
+      "description": "Close-up of an orange tabby cat with dramatically long, thick false eyelashes digitally added over its eyes. The cat stares directly into the camera with a slightly upward, deadpan gaze. No visible text. White background.",
+      "emotion": "Deadpan, vaguely judgmental, poker-faced with an air of unearned glamour",
+      "meaning": "The contrast between glamorous lashes and the cat's completely blank expression is the joke — functioning as a 'I dressed up / made an effort but feel nothing inside' or 'unbothered and gorgeous' reaction. Suits moments of ironic self-care, putting on a face for the world while internally flat, or sarcastically claiming confidence.",
+      "tags": [
+        "cat",
+        "false eyelashes",
+        "glamour",
+        "deadpan",
+        "self-care",
+        "unbothered",
+        "irony",
+        "mascara",
+        "making effort",
+        "flat affect"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "3c0ce75832aac5b8ec77",
+    "hash": "866a32913927f20e593ac34620953d96cde22e4cd8c695764ccbd98f7526f5e4",
+    "file": "Cats/cat_with_loading_circle_on_forehead.png",
+    "name": "cat with loading circle on forehead",
+    "src": "assets/meme-slides/indexed/866a32913927f20e593ac34620953d96cde22e4cd8c695764ccbd98f7526f5e4.png",
+    "width": 386,
+    "height": 468,
+    "labels": {
+      "description": "A black cat photographed mid-motion with one paw raised, body slightly twisted. A digital loading spinner (circular dashed wheel, like a computer buffering icon) is overlaid on the cat's forehead between its bright yellow-green eyes. No visible text. White background.",
+      "emotion": "Wide-eyed, mid-action, slightly frantic — but the loading symbol implies frozen or buffering",
+      "meaning": "The loading spinner on the forehead is a classic 'brain not responding / still processing' joke. Ideal for moments of overwhelm, dissociation, decision fatigue, or when someone asks a question and the mind just goes blank. Ambiguously could also read as 'about to do something chaotic but lagging first.'",
+      "tags": [
+        "cat",
+        "loading",
+        "buffering",
+        "brain fog",
+        "overwhelm",
+        "processing",
+        "dissociation",
+        "freeze response",
+        "spinning wheel",
+        "black cat"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "7e1bcfba925eb1c20d2f",
+    "hash": "ec7aa10783ca41c8dbfba03312584868c6781a3cb43d513835d55e7c857da167",
+    "file": "Cats/depressed_looking_cat_with_milkshake_in_hand.png",
+    "name": "depressed looking cat with milkshake in hand",
+    "src": "assets/meme-slides/indexed/ec7aa10783ca41c8dbfba03312584868c6781a3cb43d513835d55e7c857da167.png",
+    "width": 479,
+    "height": 485,
+    "labels": {
+      "description": "A cream/white cat with dark markings around the eyes giving a naturally downturned, weary expression, sipping from a straw in a clear cup that appears to contain a milkshake or bubble tea. A human hand with a pink-painted fingernail gently holds or gestures toward the cup from the right side. No visible text. White background.",
+      "emotion": "Profoundly sad, tired, resigned — yet still drinking the milkshake",
+      "meaning": "The combination of miserable expression and self-soothing treat is the heart of the joke: 'I am suffering but I will have my little drink.' Functions as a relatable reaction to coping through small pleasures, sad-but-treating-yourself energy, or 'this is fine' moments. Highly versatile for DBT self-soothe skill slides. The supporting human hand adds a nurturing or enabling layer — ambiguously caring or enabling depending on context.",
+      "tags": [
+        "cat",
+        "milkshake",
+        "bubble tea",
+        "sad",
+        "self-soothe",
+        "coping",
+        "treat",
+        "depressed",
+        "resilience",
+        "comfort drink",
+        "straw",
+        "white cat"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "2682d0f9ca95c3802152",
+    "hash": "6c927b8099bab183667022bceb31cd18a479c2b9fd6b61127f4674e28db8c78b",
+    "file": "Cats/disturbed_looking_cat_like_freshly_woken_up.png",
+    "name": "disturbed looking cat like freshly woken up",
+    "src": "assets/meme-slides/indexed/6c927b8099bab183667022bceb31cd18a479c2b9fd6b61127f4674e28db8c78b.png",
+    "width": 500,
+    "height": 500,
+    "labels": {
+      "description": "Close-up of a small orange/ginger kitten with wide, slightly unfocused eyes, flattened ears, ruffled fur, and mouth open mid-vocalization. Transparent background, no visible text. Fur looks slightly disheveled.",
+      "emotion": "Disturbed, startled, vaguely unhinged — like something alarming was just witnessed or the kitten was abruptly woken up",
+      "meaning": "Reaction meme for being rudely awakened, overstimulated, or confronted with something deeply unwelcome before being ready. Works as 'me when my alarm goes off' or 'me when someone talks to me before coffee.' Can also represent sensory overwhelm or morning dysregulation humor.",
+      "tags": [
+        "waking up",
+        "morning",
+        "startled",
+        "overstimulated",
+        "alarm",
+        "kitten",
+        "disheveled",
+        "chaos",
+        "ginger cat",
+        "open mouth"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "bed84987bca0e5693598",
+    "hash": "321def39479c6d8a902e267bcf93d8afe2e3a5d3ac0fc7236a8f2642237b31f3",
+    "file": "Cats/funny-ginger.png",
+    "name": "funny ginger",
+    "src": "assets/meme-slides/indexed/321def39479c6d8a902e267bcf93d8afe2e3a5d3ac0fc7236a8f2642237b31f3.png",
+    "width": 829,
+    "height": 810,
+    "labels": {
+      "description": "Adult orange and white cat, head and chest visible, mouth wide open, eyes extremely wide with large dilated pupils, looking directly at camera. Transparent background, no visible text. Expression is maximally shocked.",
+      "emotion": "Extreme shock, disbelief, sudden alarm — the peak of a jump-scare or unexpected revelation face",
+      "meaning": "Reaction meme for jaw-dropping news, sudden realizations, or anything that triggers an immediate 'WHAT' response. Suits carousel slides about unexpected emotional reactions, crisis moments, or the feeling when a thought spiral hits out of nowhere.",
+      "tags": [
+        "shock",
+        "surprise",
+        "disbelief",
+        "wide eyes",
+        "open mouth",
+        "ginger cat",
+        "reaction",
+        "jump scare",
+        "revelation",
+        "overwhelm"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "0ff39fdfcf9338f4c257",
+    "hash": "07a125db3ff6f3daaaceda3807c414a5ae0ba4706539b9d92582f85be013caa7",
+    "file": "Cats/grumpy.png",
+    "name": "grumpy",
+    "src": "assets/meme-slides/indexed/07a125db3ff6f3daaaceda3807c414a5ae0ba4706539b9d92582f85be013caa7.png",
+    "width": 1091,
+    "height": 836,
+    "labels": {
+      "description": "Grey and white tabby cat, head and upper chest visible, staring upward with very wide, rounded eyes and a subtly open, tense mouth. Expression reads as fearful or deeply anxious rather than grumpy despite filename hint. Transparent background, no visible text.",
+      "emotion": "Anxious, fearful, deer-in-headlights — quietly panicking while looking to something above or beyond",
+      "meaning": "Reaction meme for quiet dread, anticipatory anxiety, or the moment before something goes wrong. Suits slides about anxiety spirals, catastrophizing, or watching a situation escalate. The upward gaze adds a 'waiting for the other shoe to drop' quality. Filename says grumpy but expression reads more scared/dissociated.",
+      "tags": [
+        "anxiety",
+        "fear",
+        "dread",
+        "wide eyes",
+        "tabby",
+        "grey cat",
+        "panic",
+        "anticipation",
+        "dissociation",
+        "staring"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "f35696550975e1d958e1",
+    "hash": "9f1cbb7623749b1e14357eebcbee879dc92f19494e3c97532f3056a704005328",
+    "file": "Cats/hilarious-cat.png",
+    "name": "hilarious cat",
+    "src": "assets/meme-slides/indexed/9f1cbb7623749b1e14357eebcbee879dc92f19494e3c97532f3056a704005328.png",
+    "width": 800,
+    "height": 548,
+    "labels": {
+      "description": "Adult orange tabby cat photographed from a low angle with both front paws stretched wide toward the camera, mimicking a selfie pose. Cat has a calm, slightly smug, direct gaze. Transparent background, no visible text. Full chest and outstretched legs visible.",
+      "emotion": "Confident, self-satisfied, unbothered — radiating a relaxed 'I've got this' or 'look at me' energy",
+      "meaning": "Humor meme for self-care wins, boundary-setting victories, or moments of unexpected confidence. Works as 'me after one (1) productive day' or 'treating myself like the main character.' Can represent healthy self-compassion humor in DBT contexts — celebrating small wins or radical acceptance moments.",
+      "tags": [
+        "confidence",
+        "selfie",
+        "self-care",
+        "smug",
+        "ginger cat",
+        "outstretched paws",
+        "main character",
+        "win",
+        "positive",
+        "unbothered"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "99930221d95b8102fd9d",
+    "hash": "3a527d669059c91cbb6ccf3683942d5733e44fad6c96a216ba67490ca7064de9",
+    "file": "Cats/sad-cat-meme-transparent-free-png.png",
+    "name": "sad cat meme transparent free png",
+    "src": "assets/meme-slides/indexed/3a527d669059c91cbb6ccf3683942d5733e44fad6c96a216ba67490ca7064de9.png",
+    "width": 875,
+    "height": 720,
+    "labels": {
+      "description": "Cropped head of a cream/pale-yellow cat on a transparent background. Mouth is open wide, eyes are wide and round with large dark pupils, giving a look of shock or distress. No visible text.",
+      "emotion": "shocked, panicked, distressed",
+      "meaning": "Reacts to something alarming, overwhelming, or deeply upsetting — the 'I cannot believe this is happening' face. Despite the filename hint of 'sad,' the expression reads more as horrified shock or anxious panic than quiet sadness. Suitable for moments of sudden overwhelm, bad news, or crisis.",
+      "tags": [
+        "shock",
+        "panic",
+        "overwhelm",
+        "distress",
+        "bad news",
+        "anxiety",
+        "crisis",
+        "open mouth",
+        "wide eyes",
+        "cream cat",
+        "transparent"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "667cd42929c6f9a220c9",
+    "hash": "10958a1653e18dc0e5d4b625e86f2f43da7caaa634689fcf89f4ff7b3a584829",
+    "file": "Cats/sad.png",
+    "name": "sad",
+    "src": "assets/meme-slides/indexed/10958a1653e18dc0e5d4b625e86f2f43da7caaa634689fcf89f4ff7b3a584829.png",
+    "width": 466,
+    "height": 412,
+    "labels": {
+      "description": "Cropped head of a white/grey cat on a near-transparent background. Eyes are gently closed or half-closed, mouth slightly open in a soft, content expression. No visible text.",
+      "emotion": "content, peaceful, blissful — possibly smug or unbothered",
+      "meaning": "Despite the filename hint 'sad,' the visible expression reads as calm satisfaction or serene unbotheredness. Can function as 'I have made peace with this' or a gentle self-soothing reaction. Ambiguously could represent dissociation or forced calm. Suitable for radical acceptance, self-care moments, or choosing not to engage.",
+      "tags": [
+        "calm",
+        "content",
+        "peaceful",
+        "unbothered",
+        "acceptance",
+        "serene",
+        "smug",
+        "white cat",
+        "eyes closed",
+        "transparent"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "0e68a588eaa3f9a373b1",
+    "hash": "9309b164d1fb0acbec711eb0072c903bfa63a00fd0fbe6ac5b6c36cba4d1e04d",
+    "file": "Cats/sticker1.jpg",
+    "name": "sticker1",
+    "src": "assets/meme-slides/indexed/9309b164d1fb0acbec711eb0072c903bfa63a00fd0fbe6ac5b6c36cba4d1e04d.png",
+    "width": 428,
+    "height": 454,
+    "labels": {
+      "description": "Cream and white cat with large round dark eyes, facing forward, with two cartoon emoji-style yellow gloved hands pointing downward toward a wristwatch on the cat's wrist. No visible text on the image.",
+      "emotion": "earnest, attentive, slightly urgent",
+      "meaning": "Classic 'tapping the watch' meme — used to signal that it is time for something, a deadline is approaching, or urging someone not to forget an obligation. Suitable for reminders about DBT skills practice, appointments, medication, coping strategies that need to be used now.",
+      "tags": [
+        "reminder",
+        "time",
+        "watch",
+        "deadline",
+        "tapping watch",
+        "now",
+        "schedule",
+        "appointment",
+        "urgency",
+        "emoji hands",
+        "cream cat"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "9e57e20ff0791ab3a05e",
+    "hash": "116915daa4abec6c8606710c2f145b0777a631cacb7f176e25ccefb14f1fa3d1",
+    "file": "Cats/sticker10.jpg",
+    "name": "sticker10",
+    "src": "assets/meme-slides/indexed/116915daa4abec6c8606710c2f145b0777a631cacb7f176e25ccefb14f1fa3d1.png",
+    "width": 704,
+    "height": 614,
+    "labels": {
+      "description": "An orange/ginger tabby cat wearing a red collar with a bell, posed upright and gripping a large realistic-looking hand grenade prop that is oversized relative to the cat. The cat's expression is alert and slightly stern. No visible text.",
+      "emotion": "determined, stern, slightly aggressive",
+      "meaning": "Humorous escalation meme — the cat dramatically armed with an absurdly large weapon signals 'I am done, I am going nuclear, this is my final answer.' Suitable for joking about reaching a limit, choosing a boundary firmly, or the moment before a big (safe) confrontation. The grenade is a prop/sticker overlay on the cat. Note: purely comedic; not depicting real danger.",
+      "tags": [
+        "grenade",
+        "done",
+        "limit reached",
+        "boundary",
+        "escalation",
+        "dramatic",
+        "armed",
+        "orange cat",
+        "red collar",
+        "prop weapon",
+        "humor"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "54f45e015d15d6d0d873",
+    "hash": "e66688aa74bb751a206170446dbaa39378f7a8bfe0135aae2587ccd04b528405",
+    "file": "Cats/sticker11.jpg",
+    "name": "sticker11",
+    "src": "assets/meme-slides/indexed/e66688aa74bb751a206170446dbaa39378f7a8bfe0135aae2587ccd04b528405.png",
+    "width": 607,
+    "height": 535,
+    "labels": {
+      "description": "An orange-and-white tabby cat sits upright on a white background. A disembodied human hand extends from the left holding a silver handheld microphone toward the cat's face. The cat's expression is deadpan and slightly uncomfortable, mouth closed, eyes wide and glassy. No visible text.",
+      "emotion": "Deadpan, awkward, reluctant",
+      "meaning": "The 'mic is shoved in your face' reaction meme — used to humorously represent being put on the spot, asked to explain yourself, or pressured to respond to something. Works as a reaction to being called out or unexpectedly interviewed about feelings/behaviour.",
+      "tags": [
+        "microphone",
+        "interview",
+        "put on the spot",
+        "called out",
+        "awkward",
+        "confrontation",
+        "explain yourself",
+        "cat",
+        "tabby",
+        "orange cat"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "ed8daf8207b002b39d84",
+    "hash": "fafb289e0f13f9ed9a59ae12e1f2e12aaef3ec1cd74d60385384819ff7312a72",
+    "file": "Cats/sticker12.jpg",
+    "name": "sticker12",
+    "src": "assets/meme-slides/indexed/fafb289e0f13f9ed9a59ae12e1f2e12aaef3ec1cd74d60385384819ff7312a72.png",
+    "width": 428,
+    "height": 438,
+    "labels": {
+      "description": "A tabby cat wearing a red collar stands in a dynamic action pose, arms raised, appearing to slam or throw a large red UNO reverse card that is motion-blurred and glowing. The cat's expression is determined and slightly aggressive. The UNO card's printed symbols are faintly visible.",
+      "emotion": "Determined, defiant, triumphant",
+      "meaning": "The 'UNO reverse card' meme — used to humorously deflect criticism, blame, or a bad situation back onto whoever sent it. Suitable for 'no, YOU deal with this' or 'right back at you' moments, self-advocacy humour, or refusing to accept guilt.",
+      "tags": [
+        "UNO reverse",
+        "reverse card",
+        "deflect",
+        "no you",
+        "comeback",
+        "self-defence",
+        "action",
+        "cat",
+        "tabby",
+        "collar",
+        "card game"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "66c7f8416cf867aa462e",
+    "hash": "2470b16098a34bf030316fa4fcd18d5a11df309106d616af50e259fe2ed35f12",
+    "file": "Cats/sticker13.jpg",
+    "name": "sticker13",
+    "src": "assets/meme-slides/indexed/2470b16098a34bf030316fa4fcd18d5a11df309106d616af50e259fe2ed35f12.png",
+    "width": 494,
+    "height": 594,
+    "labels": {
+      "description": "A dark black cat sits facing forward with a serious, slightly judgmental expression and wide green eyes. Above its head is a drawn loading/buffering spinner icon (white radiating dashes in a circle), suggesting a thought in progress. No visible text.",
+      "emotion": "Blank, processing, mildly bewildered",
+      "meaning": "The 'buffering' or 'loading' reaction meme — represents being so overwhelmed, confused, or emotionally overloaded that the brain has frozen mid-thought. Useful for moments of information overload, emotional dysregulation, or simply having no words.",
+      "tags": [
+        "loading",
+        "buffering",
+        "processing",
+        "overwhelmed",
+        "confused",
+        "frozen",
+        "blank",
+        "black cat",
+        "cat",
+        "spinner"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "c09f8e86c96883abbae9",
+    "hash": "fb7f66892cc5e097bc25372c95ffa438cb22c2963d7f80a1f9bd39c53e76ac01",
+    "file": "Cats/sticker14.jpg",
+    "name": "sticker14",
+    "src": "assets/meme-slides/indexed/fb7f66892cc5e097bc25372c95ffa438cb22c2963d7f80a1f9bd39c53e76ac01.png",
+    "width": 649,
+    "height": 944,
+    "labels": {
+      "description": "A large orange tabby cat holds a smaller grey tabby cat tightly in its arms. The orange cat stares directly at the viewer with a calm, possessive, and slightly smug expression. The smaller grey cat looks sleepy or resigned, eyes half-closed. No visible text.",
+      "emotion": "Possessive, smug, protective (orange cat); resigned, sleepy (grey cat)",
+      "meaning": "The 'I will not let go / this is mine now' holding meme — used to represent clinging to something (a comfort, a person, a coping mechanism) or the humour of being overly attached. Can also represent being the one who is reluctantly but firmly held. Suits themes of attachment, comfort-seeking, or refusing to let go of something.",
+      "tags": [
+        "hug",
+        "holding",
+        "attachment",
+        "clingy",
+        "possessive",
+        "comfort",
+        "cope",
+        "orange cat",
+        "grey cat",
+        "two cats",
+        "cuddle"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "1797ab05ff78851c66bc",
+    "hash": "4bf6fe009c38dc099a354afb300fac875648b2d77d1bf115899e743145b143a9",
+    "file": "Cats/sticker15.jpg",
+    "name": "sticker15",
+    "src": "assets/meme-slides/indexed/4bf6fe009c38dc099a354afb300fac875648b2d77d1bf115899e743145b143a9.png",
+    "width": 735,
+    "height": 734,
+    "labels": {
+      "description": "Extreme close-up of a light-grey tabby cat's face filling the entire frame. The background and foreground are overlaid with hand-drawn-style white chalk mathematical equations, formulas, and geometric diagrams (including E=mc², integrals, fractions, coordinate axes, and various algebraic expressions). The cat's mouth is slightly open and its large dark eyes stare directly at the camera with a dazed, overwhelmed look.",
+      "emotion": "overwhelmed, mentally overloaded, deer-in-headlights",
+      "meaning": "Represents the feeling of being cognitively flooded or completely lost when faced with something complex or confusing. Works as a reaction to overthinking, analysis paralysis, or when a situation feels impossibly complicated. Can humorously illustrate the DBT concept of being in 'emotion mind' chaos or hitting cognitive overload.",
+      "tags": [
+        "overthinking",
+        "overwhelmed",
+        "confusion",
+        "math",
+        "cognitive flood",
+        "analysis paralysis",
+        "problem solving",
+        "stress",
+        "equations",
+        "dazed"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "adb34d1af7b398707703",
+    "hash": "478cc1dc35b3b6c96cc7cc8e9bd8123974652ab52516f07c66b32112b9cbc4ec",
+    "file": "Cats/sticker16.jpg",
+    "name": "sticker16",
+    "src": "assets/meme-slides/indexed/478cc1dc35b3b6c96cc7cc8e9bd8123974652ab52516f07c66b32112b9cbc4ec.png",
+    "width": 486,
+    "height": 573,
+    "labels": {
+      "description": "Close-up photo of a light-tan cat staring directly into the camera with a flat, deadpan expression. The cat's face fills almost the entire frame, creating a slightly unsettling, intense look. Bold black text below reads 'Excujme?' (a playful misspelling of 'Excuse me?'). White sticker-cut background.",
+      "emotion": "Deadpan, mildly offended, intensely confrontational",
+      "meaning": "Used as a reaction to something surprising, rude, or absurd — the cat's unblinking stare paired with the misspelled 'Excuse me?' signals disbelief or mild indignation in a humorous way. Suitable for moments when a boundary has been nudged, something unexpected was said, or when reacting to a ridiculous situation with dramatic faux-outrage.",
+      "tags": [
+        "excuse me",
+        "deadpan",
+        "reaction",
+        "disbelief",
+        "boundary",
+        "confrontation",
+        "offended",
+        "cat stare",
+        "close-up",
+        "misspelling",
+        "humor"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "231d0c1dd42b76c00eaf",
+    "hash": "2b2dfe13fddb3ae9f5b29b789df26c6a5d28358f8070f8d30dc750d2783ac121",
+    "file": "Cats/sticker17.jpg",
+    "name": "sticker17",
+    "src": "assets/meme-slides/indexed/2b2dfe13fddb3ae9f5b29b789df26c6a5d28358f8070f8d30dc750d2783ac121.png",
+    "width": 576,
+    "height": 579,
+    "labels": {
+      "description": "A grey-and-white cat wearing an oversized dark-pink/mauve baseball cap tilted forward, holding a bouquet of pink tulips. The cat's tongue is slightly out, giving a sweet, earnest expression. A small sparkle/star sticker appears near the lower right. White sticker-cut background.",
+      "emotion": "Sweet, bashful, affectionate, earnest",
+      "meaning": "Functions as a wholesome gesture of kindness or apology — the cat offering flowers while looking cute and slightly sheepish reads as 'here, this is for you' or 'please don't be mad.' Ideal for moments of making up after conflict, expressing appreciation, celebrating a friend, or softening difficult conversations with warmth and humor.",
+      "tags": [
+        "flowers",
+        "tulips",
+        "gift",
+        "apology",
+        "affection",
+        "cute",
+        "baseball cap",
+        "sweet",
+        "making up",
+        "celebration",
+        "wholesome"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "a7dae6d94b6bc8cdae65",
+    "hash": "8103d99bc7cafb0450db6cd0b9bd2add968f283cb4fcc699c2407795366140ae",
+    "file": "Cats/sticker18.jpg",
+    "name": "sticker18",
+    "src": "assets/meme-slides/indexed/8103d99bc7cafb0450db6cd0b9bd2add968f283cb4fcc699c2407795366140ae.png",
+    "width": 592,
+    "height": 607,
+    "labels": {
+      "description": "A tabby kitten with a soft, hopeful, slightly sad expression looks toward the viewer. In the foreground, a large yellow emoji-style fist extends toward the viewer holding a single pink tulip emoji flower. The kitten appears to be gently presenting the flower. White sticker-cut background. No visible text.",
+      "emotion": "Hopeful, tender, slightly nervous, earnest",
+      "meaning": "A gentle, slightly awkward offering of affection or peace — the contrast between the soft kitten and the chunky emoji hand adds gentle absurdist humor. Works well for 'I'm sorry,' 'thinking of you,' 'please forgive me,' or cheering someone up after a hard moment. The mismatch of realistic cat and emoji prop makes it endearingly clumsy rather than grand.",
+      "tags": [
+        "flower",
+        "tulip",
+        "gift",
+        "apology",
+        "peace offering",
+        "hopeful",
+        "emoji hand",
+        "tender",
+        "awkward",
+        "making up",
+        "comfort",
+        "kitten"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "270a3c270bf393001db2",
+    "hash": "fe61c55234eb83f9e4e2e0624fd2db5b7edb6151b17c6d511ac50c1703de860b",
+    "file": "Cats/sticker19.jpg",
+    "name": "sticker19",
+    "src": "assets/meme-slides/indexed/fe61c55234eb83f9e4e2e0624fd2db5b7edb6151b17c6d511ac50c1703de860b.png",
+    "width": 354,
+    "height": 683,
+    "labels": {
+      "description": "A small orange-and-white kitten standing upright on its hind legs, body twisted and craned dramatically backward/upward as if straining or recoiling. No visible text. Transparent background.",
+      "emotion": "Strained, startled, dramatically overwhelmed",
+      "meaning": "Captures the feeling of physically recoiling from something shocking, exhausting, or too much to handle — a comedic 'nope,' 'I can't,' or 'this is too much for me' reaction. Suitable for moments of overwhelm, avoidance urges, or when distress tolerance feels impossible.",
+      "tags": [
+        "overwhelm",
+        "recoil",
+        "avoidance",
+        "can't cope",
+        "too much",
+        "kitten",
+        "standing",
+        "twisted",
+        "dramatic",
+        "nope"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "b886d42b092b46ee5f39",
+    "hash": "1be103e0054a8634ed9706c2ae4d75a3db4cac8b11e49bd3d4805c59dc0f16e7",
+    "file": "Cats/sticker2.jpg",
+    "name": "sticker2",
+    "src": "assets/meme-slides/indexed/1be103e0054a8634ed9706c2ae4d75a3db4cac8b11e49bd3d4805c59dc0f16e7.png",
+    "width": 523,
+    "height": 527,
+    "labels": {
+      "description": "A fluffy cream-and-peach coloured cat with narrowed, stern eyes and a furrowed brow gazes directly forward with a grumpy expression. A yellow cartoon/emoji-style hand with two fingers raised in a peace or 'I'm watching you' V-sign is held up in front of the cat's nose and mouth area, partially obscuring the lower face. White background.",
+      "emotion": "suspicious, judgmental, unimpressed, passive-aggressively watchful",
+      "meaning": "Conveys a sarcastic or passive-aggressive 'I've got my eye on you' warning. Can be used when calling out dubious behaviour, expressing distrust, or delivering a half-joking threat. Suitable for slides about boundary-setting with a humorous edge, or reacting to someone who is being sneaky.",
+      "tags": [
+        "suspicious",
+        "watching",
+        "distrust",
+        "boundary",
+        "warning",
+        "passive aggressive",
+        "grumpy",
+        "peace sign",
+        "emoji hand",
+        "judgmental"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "dfb70357c8750cb981f5",
+    "hash": "2ec4231022470e1ff09af0dbb27bbdcbb8941899cc275f1b5931e2d25fa15f35",
+    "file": "Cats/sticker20.jpg",
+    "name": "sticker20",
+    "src": "assets/meme-slides/indexed/2ec4231022470e1ff09af0dbb27bbdcbb8941899cc275f1b5931e2d25fa15f35.png",
+    "width": 949,
+    "height": 892,
+    "labels": {
+      "description": "A cat's face photoshopped onto a banana costume, standing upright on small legs. Two large blue cartoon tear-arc arrows curve outward and downward from each side of the face, exaggerating crying. No visible text. Transparent background.",
+      "emotion": "Ugly-crying, deeply distressed, dramatically sad",
+      "meaning": "The 'banana cat crying' meme — represents intense, over-the-top emotional crying, often used humorously to acknowledge big feelings that may feel disproportionate. Useful for slides about emotional intensity, validation of big emotions, or self-compassionate humor about crying spells.",
+      "tags": [
+        "crying",
+        "banana",
+        "ugly cry",
+        "emotional intensity",
+        "overwhelm",
+        "tears",
+        "humor",
+        "validation",
+        "big feelings",
+        "cat"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "d79176995b7b4b77d8cf",
+    "hash": "7d683325d68b7d0efa1dbd21c6aa4e869131587f176053b5fcbc801a7d02ca52",
+    "file": "Cats/sticker21.jpg",
+    "name": "sticker21",
+    "src": "assets/meme-slides/indexed/7d683325d68b7d0efa1dbd21c6aa4e869131587f176053b5fcbc801a7d02ca52.png",
+    "width": 1137,
+    "height": 1418,
+    "labels": {
+      "description": "A cat lying in bed with head on a pillow and body tucked under a white fluffy blanket. The cat's face has a large, exaggerated human-style toothy grin photoshopped over its mouth, showing bright white teeth and pink lips. Wide, slightly unsettling eyes. No visible text. Transparent background.",
+      "emotion": "Forced cheerfulness, unsettling fake happiness, manic grin",
+      "meaning": "Represents masking distress with an exaggerated smile — the 'I'm fine' face when you are decidedly not fine, or the slightly unhinged cheerfulness of dissociation/people-pleasing. Can also humorously depict cozy avoidance ('I will stay in bed and smile about it'). Ambiguously could read as genuinely cozy but the uncanny grin leans toward dark humor about masking.",
+      "tags": [
+        "masking",
+        "fake smile",
+        "I'm fine",
+        "bed",
+        "cozy",
+        "avoidance",
+        "people pleasing",
+        "dissociation",
+        "uncanny",
+        "blanket",
+        "dark humor",
+        "cat"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "07043b14c3c50357716c",
+    "hash": "5b292280bec7f9a0c83a2a21f0abbfea09e169e87f463f46014fbbff5b512d15",
+    "file": "Cats/sticker22.jpg",
+    "name": "sticker22",
+    "src": "assets/meme-slides/indexed/5b292280bec7f9a0c83a2a21f0abbfea09e169e87f463f46014fbbff5b512d15.png",
+    "width": 812,
+    "height": 819,
+    "labels": {
+      "description": "A cat's face digitally composited onto a banana costume character standing upright on small legs. The cat has an exaggerated scrunched, grimacing expression with large animated blue tear streams shooting outward dramatically from both eyes. No visible text. White background.",
+      "emotion": "Dramatic, simultaneous crying and grumpiness — the 'crying but also angry about it' face",
+      "meaning": "Functions as a hyperbolic reaction to emotional overwhelm, minor inconveniences, or situations that are simultaneously sad and frustrating. The banana suit adds absurdity that softens the intensity, making it safe for joking about big feelings. Good for carousel slides about emotion dysregulation, riding the wave, or 'this is fine' moments that are clearly not fine. Ambiguity: could read as purely comedic crying or as self-aware commentary on dramatic emotional responses.",
+      "tags": [
+        "crying",
+        "overwhelmed",
+        "grumpy",
+        "dramatic",
+        "big feelings",
+        "emotion dysregulation",
+        "banana",
+        "costume",
+        "absurd",
+        "sad-angry",
+        "tears",
+        "cat meme"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "4ef20e7bf7c34494b861",
+    "hash": "9c59aa78be83b8a8e330fa33ade0562969b8be6853dea32bc0619dbefa002f68",
+    "file": "Cats/sticker23.jpg",
+    "name": "sticker23",
+    "src": "assets/meme-slides/indexed/9c59aa78be83b8a8e330fa33ade0562969b8be6853dea32bc0619dbefa002f68.png",
+    "width": 698,
+    "height": 709,
+    "labels": {
+      "description": "Close-up of a Scottish Fold cat's face wrapped snugly in a fluffy white towel or blanket, white background, no visible text. Only the face and the top of the wrap are visible.",
+      "emotion": "Deadpan, slightly suspicious, unimpressed — wide dark eyes staring directly at the camera with a flat, stoic expression.",
+      "meaning": "Functions as a 'just got out of the bath and I'm judging everything' or 'cozy but still done with you' reaction. Works for moments of reluctant self-care, post-cry wrap-up, or being dragged into doing something wellness-related while maintaining zero enthusiasm.",
+      "tags": [
+        "cat",
+        "towel",
+        "blanket",
+        "self-care",
+        "bath",
+        "deadpan",
+        "unimpressed",
+        "cozy",
+        "stoic",
+        "stare",
+        "wrapped"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "3f9249b1cc8ae914f38c",
+    "hash": "53321fe0b20341a1794a2dee4265e6e68932309865c1ba2a2bbfe3f34450250e",
+    "file": "Cats/sticker24.jpg",
+    "name": "sticker24",
+    "src": "assets/meme-slides/indexed/53321fe0b20341a1794a2dee4265e6e68932309865c1ba2a2bbfe3f34450250e.png",
+    "width": 630,
+    "height": 491,
+    "labels": {
+      "description": "A small tabby kitten with brown and grey striped fur, sitting hunched over with its head bowed downward toward the ground. A small blue teardrop sticker is overlaid near its eye. White background (cut-out style). No visible text.",
+      "emotion": "Dejected, ashamed, quietly sad — head too heavy to lift",
+      "meaning": "Conveys low-key shame, guilt, or the feeling of being unable to face the world. Works as a reaction to minor embarrassment, a mistake, or that heavy 'I can't look anyone in the eye' sensation. The added tear sticker amplifies sadness without being dramatic.",
+      "tags": [
+        "shame",
+        "guilt",
+        "embarrassment",
+        "low energy",
+        "can't look up",
+        "teardrop",
+        "hunched",
+        "kitten",
+        "sad",
+        "quiet sadness",
+        "DBT opposite action needed",
+        "avoidance"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "946b675bd2e840f1b271",
+    "hash": "4e7bd5cba4bec4f0527724b8296dfa1792704236bf728f443ee8b4adeeb0905b",
+    "file": "Cats/sticker25.jpg",
+    "name": "sticker25",
+    "src": "assets/meme-slides/indexed/4e7bd5cba4bec4f0527724b8296dfa1792704236bf728f443ee8b4adeeb0905b.png",
+    "width": 632,
+    "height": 541,
+    "labels": {
+      "description": "A fluffy golden/cream kitten tucked snugly into a soft pink blanket or sleeping bag, paws peeking out over the edge. It wears a small pink bow on top of its head. Its eyes are large and slightly downcast with a gentle, melancholy expression. A faint teal/blue outline square sticker is overlaid on its cheek area. No visible text.",
+      "emotion": "Cosy but wistful; soft sadness with a hint of 'please leave me here forever'",
+      "meaning": "Perfect for 'comfort cocoon' moments — cancelling plans to stay in bed, self-soothing days, or the bittersweet feeling of being safe but still a little sad. The bow adds a self-aware cuteness that keeps the mood gentle rather than heavy. Suits slides about rest, self-care, or low-spoon days.",
+      "tags": [
+        "cosy",
+        "blanket",
+        "bed",
+        "rest",
+        "self-care",
+        "low energy",
+        "cancel plans",
+        "soft sad",
+        "pink",
+        "bow",
+        "kitten",
+        "comfort",
+        "snuggled",
+        "low spoon day"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "cfda26647a0626a6fe22",
+    "hash": "6cb8b74bece277e5d4d4738f58d7f7654d003da5ea2c9d285cf0ecae2145a5bb",
+    "file": "Cats/sticker26.jpg",
+    "name": "sticker26",
+    "src": "assets/meme-slides/indexed/6cb8b74bece277e5d4d4738f58d7f7654d003da5ea2c9d285cf0ecae2145a5bb.png",
+    "width": 348,
+    "height": 378,
+    "labels": {
+      "description": "A white/light grey cat wrapped tightly in a large grey fleece blanket pulled up over its head like a hood, with only its face visible. The cat has prominent, glistening teary eyes and a slightly scrunched, woeful expression. No visible text.",
+      "emotion": "Full-on devastated; overwhelmed, vulnerable, hiding from the world",
+      "meaning": "The iconic 'crying cat in blanket' meme. Signals emotional overwhelm, a hard cry session, or the urge to completely withdraw and be held by soft fabric. Ideal for slides about emotional flooding, distress tolerance, or the very relatable urge to wrap yourself up and disappear for a while. One of the most widely recognised sad-cat reaction images.",
+      "tags": [
+        "crying",
+        "overwhelmed",
+        "blanket",
+        "hiding",
+        "emotional flood",
+        "distress",
+        "tears",
+        "grey",
+        "cosy sad",
+        "emotional overwhelm",
+        "DBT TIPP",
+        "withdrawal urge",
+        "iconic meme"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "8fca661743b212d2ff56",
+    "hash": "2d0b9c9e50860d8cffc1ee3e104be945c7ab4253f73b57bdf8129edab320f0ee",
+    "file": "Cats/sticker27.jpg",
+    "name": "sticker27",
+    "src": "assets/meme-slides/indexed/2d0b9c9e50860d8cffc1ee3e104be945c7ab4253f73b57bdf8129edab320f0ee.png",
+    "width": 552,
+    "height": 499,
+    "labels": {
+      "description": "Close-up of a tabby kitten's face, streaked with tears running down both cheeks. Its mouth is slightly open showing teeth, expression caught between a cry and a wail — visibly distressed. Dark, slightly blurred background; cut-out style on white. No visible text.",
+      "emotion": "Actively crying and distressed; raw, open emotional pain",
+      "meaning": "Represents that moment when you're not quietly sad but actually mid-cry and can't stop. The open mouth suggests audible crying or trying to hold it together and failing. Useful for slides about emotion regulation, the peak of an emotion wave, or normalising big feelings. More intense than the blanket cat; suits 'it hit different today' contexts.",
+      "tags": [
+        "crying",
+        "tears",
+        "distress",
+        "overwhelmed",
+        "emotion wave",
+        "wailing",
+        "raw emotion",
+        "kitten",
+        "hard cry",
+        "emotion regulation",
+        "DBT ride the wave",
+        "intense feelings"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "94489c7469065e9bfdbd",
+    "hash": "a918bc657e8e2509e5ecec170a4930d6e33c77b5cadddd38f6197ad7b00cfed6",
+    "file": "Cats/sticker28.jpg",
+    "name": "sticker28",
+    "src": "assets/meme-slides/indexed/a918bc657e8e2509e5ecec170a4930d6e33c77b5cadddd38f6197ad7b00cfed6.png",
+    "width": 736,
+    "height": 830,
+    "labels": {
+      "description": "A large orange-and-white cat photographed close-up, holding a modern black smartphone (multi-lens camera visible) toward its face with a human hand. A lit cigarette dangles from the cat's mouth with a small wisp of smoke. Expression is heavy-lidded, deadpan, and world-weary. No visible text. White background.",
+      "emotion": "Deadpan, unbothered, world-weary, too-tired-to-care cool",
+      "meaning": "Functions as a reaction image for 'I have seen things' exhaustion, stress-scrolling, or coping with stress in less-than-ideal ways. The cigarette and phone together suggest 'bad coping habits but make it look cool.' Suitable for carousel slides about unhelpful coping strategies, distraction, or the humor in recognizing our own maladaptive habits without judgment. Ambiguity: cigarette may reference stress/coping symbolically or simply reads as absurd cat humor; context will determine tone.",
+      "tags": [
+        "cat",
+        "phone",
+        "cigarette",
+        "deadpan",
+        "unbothered",
+        "stress",
+        "scrolling",
+        "coping",
+        "exhausted",
+        "cool",
+        "bad habits",
+        "distraction",
+        "cat meme"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "ed3aece9a4ee601d3037",
+    "hash": "0970c82a96145b4e24cdc4ae02b58a984f41c8f5dec17d5500d5dff84085b26d",
+    "file": "Cats/sticker29.jpg",
+    "name": "sticker29",
+    "src": "assets/meme-slides/indexed/0970c82a96145b4e24cdc4ae02b58a984f41c8f5dec17d5500d5dff84085b26d.png",
+    "width": 736,
+    "height": 740,
+    "labels": {
+      "description": "A grey-and-white cat photographed on a white background, holding a small kitchen knife upright in one paw. The cat has wide dark eyes and its mouth is slightly open in a subtle, unsettling grin. No visible text. Cut-out sticker style with no background.",
+      "emotion": "Menacing yet oddly cute; scheming, mildly threatening grin",
+      "meaning": "Classic 'knife cat' meme used to express low-key petty menace, passive aggression, or hyperbolic frustration—e.g., when someone is annoying you but you're still functioning. Works as a humorous reaction to urges to 'fight back' against life stressors, suitable for slides about coping with irritation or the urge to act out (with the joke defusing the intensity).",
+      "tags": [
+        "knife",
+        "threat",
+        "petty",
+        "aggression",
+        "frustration",
+        "coping humor",
+        "passive aggressive",
+        "cat with weapon",
+        "scheming"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "f39b1d291fec72c5d80e",
+    "hash": "01d796815ef171da1795ae97616b8f43a09449be1457795d4a60ee8468350032",
+    "file": "Cats/sticker3.jpg",
+    "name": "sticker3",
+    "src": "assets/meme-slides/indexed/01d796815ef171da1795ae97616b8f43a09449be1457795d4a60ee8468350032.png",
+    "width": 991,
+    "height": 1193,
+    "labels": {
+      "description": "An orange tabby cat wearing a red collar stands upright on its hind legs with one paw raised and extended forward in a presenting or 'look at this' gesture. A large pink rubber flip-flop (thong sandal) is positioned prominently in the foreground to the cat's left, roughly the same size as the cat, as if the cat is displaying or threatening with it. White background.",
+      "emotion": "assertive, threatening (playfully), presenting",
+      "meaning": "The flip-flop is a widely understood cultural symbol of parental/authority discipline (a slipper threat). The cat presenting it humorously signals 'don't test me' or 'consequences are coming.' Useful for joking about setting limits, consequences of crossing boundaries, or the moment you decide to finally enforce a rule.",
+      "tags": [
+        "flip flop",
+        "slipper",
+        "consequence",
+        "threat",
+        "boundary enforcement",
+        "assertive",
+        "discipline",
+        "presenting",
+        "warning",
+        "funny threat"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "b7529cbb31ab553aa32b",
+    "hash": "d0a47757384205a87e31974649c2df1475724daf8c0f377c042738593f50a846",
+    "file": "Cats/sticker30.jpg",
+    "name": "sticker30",
+    "src": "assets/meme-slides/indexed/d0a47757384205a87e31974649c2df1475724daf8c0f377c042738593f50a846.png",
+    "width": 490,
+    "height": 511,
+    "labels": {
+      "description": "A white or very light cream-coloured cat photographed on a white background, sitting upright and raising both front paws toward the viewer. The image has been digitally edited so both paws appear to be displaying extended middle fingers (rude gesture). The cat's expression is calm, slightly downward-gazing, almost unbothered. No visible text. Cut-out sticker style.",
+      "emotion": "Unbothered, dismissive, coolly defiant",
+      "meaning": "Used to humorously express 'I don't care' or rejection of an unwanted demand, boundary-crossing, or annoying situation. In a DBT context this could accompany slides about setting limits, resisting pressure, or the feeling of wanting to tell the world off—with the absurdity of the cat doing it softening the edge into comedy rather than genuine hostility.",
+      "tags": [
+        "middle finger",
+        "rude gesture",
+        "unbothered",
+        "dismissive",
+        "boundaries",
+        "defiance",
+        "not caring",
+        "white cat"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "c83992675a48818eb4db",
+    "hash": "1e81d17d07bddc8fcb6f7ecb6c04ccc04cda77e862fa3efbff882a3b437775e7",
+    "file": "Cats/sticker31.jpg",
+    "name": "sticker31",
+    "src": "assets/meme-slides/indexed/1e81d17d07bddc8fcb6f7ecb6c04ccc04cda77e862fa3efbff882a3b437775e7.png",
+    "width": 960,
+    "height": 1088,
+    "labels": {
+      "description": "A tabby-and-white cat wearing a plush grey shark costume hoodie; the shark's open mouth frames the cat's face, showing rows of white teeth and two cartoon eyes on top. The cat's own face is visible inside, with a distinctly grumpy, furrowed-brow scowl. White sticker border around the whole image. No visible text.",
+      "emotion": "Grumpy, stoic, unamused despite ridiculous costume",
+      "meaning": "Combines cuteness with grumpiness and a mild 'danger' theme (shark). Works as a reaction image for feeling absurdly out of place, being forced into situations you didn't sign up for, or maintaining a sour mood even when things should be fun. Suitable for carousel slides about masking emotions, feeling like a danger to yourself in a silly self-aware way, or tolerating distressing situations with dark humour.",
+      "tags": [
+        "grumpy",
+        "shark costume",
+        "unamused",
+        "forced fun",
+        "stoic",
+        "costume",
+        "absurd",
+        "tabby cat",
+        "disguise",
+        "shark"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "d25d1d7feada0e96653f",
+    "hash": "9029c9771aafeb7d18764a81b666ff567e257330f1995001597a9d8ac8f281f1",
+    "file": "Cats/sticker4.jpg",
+    "name": "sticker4",
+    "src": "assets/meme-slides/indexed/9029c9771aafeb7d18764a81b666ff567e257330f1995001597a9d8ac8f281f1.png",
+    "width": 581,
+    "height": 535,
+    "labels": {
+      "description": "A cream-and-orange coloured cat sits upright with both front legs raised high above its head, paws outstretched. Large animated tears stream down both cheeks and its mouth is wide open in an expression of wailing or desperate pleading. Two yellow cartoon/emoji-style hands with fingers spread (jazz-hands or beseeching gesture) are superimposed at the top of each of the cat's raised arms. White background.",
+      "emotion": "desperate, pleading, dramatically distressed, wailing",
+      "meaning": "Embodies over-the-top emotional desperation or theatrical begging. Functions as a relatable exaggeration of moments when emotions feel overwhelming or when you really, really want something. Suitable for slides about emotional intensity, drama, or the urge to plead with the universe. The jazz-hands emoji arms add absurdist humour to genuine distress.",
+      "tags": [
+        "crying",
+        "pleading",
+        "begging",
+        "desperation",
+        "wailing",
+        "emotional intensity",
+        "drama",
+        "jazz hands",
+        "emoji hands",
+        "overwhelmed",
+        "distress"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "b6d7e84f5b5c6aef42ba",
+    "hash": "4660438b2794a3fac59de066c926dac3ed15b27404fff575f1dfd8939053695e",
+    "file": "Cats/sticker5.jpg",
+    "name": "sticker5",
+    "src": "assets/meme-slides/indexed/4660438b2794a3fac59de066c926dac3ed15b27404fff575f1dfd8939053695e.png",
+    "width": 690,
+    "height": 696,
+    "labels": {
+      "description": "Close-up of a golden/orange tabby cat with one paw raised and pressed against the side of its head, as if rubbing its temple or doing a facepalm. Eyes are wide open and slightly worried-looking. White background, no visible text.",
+      "emotion": "exasperated, stressed, overwhelmed, facepalm",
+      "meaning": "Functions as a 'why is this happening / I can't even / facepalm' reaction. Classic visual shorthand for secondhand embarrassment, exhaustion with a situation, or mild existential despair. Suitable for moments when something is too much to process.",
+      "tags": [
+        "facepalm",
+        "overwhelmed",
+        "stressed",
+        "exhausted",
+        "why me",
+        "disbelief",
+        "orange tabby",
+        "paw on head",
+        "reaction"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "163c82855d9c2924f30a",
+    "hash": "5814545af985ba53a34b974e8110afdc8742b24b11c3ef9f88c771882b69dda8",
+    "file": "Cats/sticker6.jpg",
+    "name": "sticker6",
+    "src": "assets/meme-slides/indexed/5814545af985ba53a34b974e8110afdc8742b24b11c3ef9f88c771882b69dda8.png",
+    "width": 521,
+    "height": 457,
+    "labels": {
+      "description": "White/cream fluffy cat with eyes gently closed, wearing an oversized digitally-added pair of red glossy human lips puckered for a kiss. A yellow cartoon hand emoji and a pink heart emoji are overlaid on the left cheek area. No visible text.",
+      "emotion": "affectionate, blissful, playful, loving",
+      "meaning": "Functions as an over-the-top affectionate or 'sending love/kisses' reaction. The absurdly large lips make it comedic rather than sincere, so it works for playful declarations of love, self-care affirmations ('I love myself'), or sarcastically sweet moments. Ambiguously could also read as a 'mwah, deal with it' energy.",
+      "tags": [
+        "kiss",
+        "love",
+        "affection",
+        "heart",
+        "lips",
+        "hand emoji",
+        "self-care",
+        "playful",
+        "white cat",
+        "wholesome"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "6d42355387f85584bf08",
+    "hash": "e5353504138a934eeca8a34617058eb7e6d33f673126f97e974760a7fb5070af",
+    "file": "Cats/sticker7.jpg",
+    "name": "sticker7",
+    "src": "assets/meme-slides/indexed/e5353504138a934eeca8a34617058eb7e6d33f673126f97e974760a7fb5070af.png",
+    "width": 471,
+    "height": 465,
+    "labels": {
+      "description": "Orange tabby cat with wide glossy eyes and a broad smile, with four small pink cartoon arrow stickers pointing inward toward its face from the cheeks and lower jaw area, plus two beige cartoon finger-pointing emoji hands pointing upward toward the cat's chin/face. No visible text.",
+      "emotion": "proud, self-satisfied, presenting itself, gleeful",
+      "meaning": "Functions as a 'presenting myself / look at this / this guy right here' reaction. Commonly used for self-promotion, humble-bragging, or cheerfully owning something about yourself. The pointing arrows and hands emphasize 'look at me!' energy. Can also work as supportive pointing at someone else's achievement.",
+      "tags": [
+        "proud",
+        "look at me",
+        "self-promotion",
+        "pointing",
+        "smile",
+        "orange tabby",
+        "presenting",
+        "cheerful",
+        "arrows"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "4c4c2fdec843354d6e14",
+    "hash": "7c73961721e64a40ba03e6362deb0c2df6897dbdd4f4858cc068c80ba0d91557",
+    "file": "Cats/sticker8.jpg",
+    "name": "sticker8",
+    "src": "assets/meme-slides/indexed/7c73961721e64a40ba03e6362deb0c2df6897dbdd4f4858cc068c80ba0d91557.png",
+    "width": 252,
+    "height": 397,
+    "labels": {
+      "description": "White and orange tabby cat sitting upright with eyes gently closed and one paw raised to its mouth/chin in a thoughtful, smug, or suppressed-laughter pose — similar to a 'stifling a laugh' or 'hmm, very interesting' gesture. Relaxed, slightly self-satisfied posture. No visible text.",
+      "emotion": "smug, amused, contemplative, suppressing a laugh",
+      "meaning": "Functions as a 'trying not to laugh / I said what I said / quietly judging' reaction. The closed eyes and paw-to-mouth pose read as either restrained amusement or serene smugness. Suitable for moments of quiet satisfaction, holding back laughter at someone's situation, or 'not my problem' detachment.",
+      "tags": [
+        "smug",
+        "suppressed laughter",
+        "contemplative",
+        "amused",
+        "calm",
+        "judgment",
+        "white cat",
+        "paw to mouth",
+        "serene",
+        "not my problem"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "d5448e07a8a0842d7473",
+    "hash": "986a1f66ce041ff0d8df08d6281c976067a0b04cb02dffb9963789e17e749155",
+    "file": "Cats/sticker9.jpg",
+    "name": "sticker9",
+    "src": "assets/meme-slides/indexed/986a1f66ce041ff0d8df08d6281c976067a0b04cb02dffb9963789e17e749155.png",
+    "width": 697,
+    "height": 881,
+    "labels": {
+      "description": "A slim brown-and-white cat with oversized pink anime-blush marks on both cheeks, looking slightly upward with a soft shy expression. Two yellow pointing-finger emoji hands are overlaid on the body, both index fingers pointing toward each other at chest level. No visible text.",
+      "emotion": "Shy, bashful, self-conscious, gently pleading",
+      "meaning": "Classic 'nervous asking for a favour' or 'uwu it was me, sorry' meme pose. The inward-pointing fingers signal timid self-reference — 'this person right here' said with embarrassment. Works as a reaction to admitting something awkward, asking for reassurance, or owning up to a small mistake in a cute, disarming way.",
+      "tags": [
+        "shy",
+        "blush",
+        "pointing fingers",
+        "asking",
+        "pleading",
+        "self-conscious",
+        "nervous",
+        "cute",
+        "anime blush",
+        "uwu",
+        "apology",
+        "request"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "9e5eb73cd987cac4ad59",
+    "hash": "d74b39df2ed0492dd979510f91286e5ebee0ca8b79e6af4ed750b7fec120adaf",
+    "file": "Cats/straight-face-removebg-preview.png",
+    "name": "straight face removebg preview",
+    "src": "assets/meme-slides/indexed/d74b39df2ed0492dd979510f91286e5ebee0ca8b79e6af4ed750b7fec120adaf.png",
+    "width": 1023,
+    "height": 1028,
+    "labels": {
+      "description": "A white-and-grey tabby cat with wide, round surprised eyes and mouth dropped open, caught mid-exclamation. Background removed, leaving a rough-cut transparent silhouette. No visible text.",
+      "emotion": "Shocked, startled, caught off-guard — despite the filename suggesting 'straight face', the actual expression is clearly open-mouthed surprise",
+      "meaning": "Ironic reaction image for moments of genuine disbelief or mock-outrage — 'did that really just happen?' The gap between the filename label ('straight face') and the obviously shocked expression can itself be used as a joke about denial or underreaction. Suits sudden plot twists, unexpected news, or reacting to something wild someone just said.",
+      "tags": [
+        "shocked",
+        "surprised",
+        "open mouth",
+        "wide eyes",
+        "disbelief",
+        "reaction",
+        "startled",
+        "plot twist",
+        "irony"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "b4404bd0287d8c5fdee5",
+    "hash": "fa985904e033312f3b24049cc3ae185a071ea7ff08d3d09587199a85a6ba0816",
+    "file": "Cats/super_wet_looking_cat_annoyed.png",
+    "name": "super wet looking cat annoyed",
+    "src": "assets/meme-slides/indexed/fa985904e033312f3b24049cc3ae185a071ea7ff08d3d09587199a85a6ba0816.png",
+    "width": 469,
+    "height": 299,
+    "labels": {
+      "description": "Close-up of a drenched orange tabby cat with flat, wet fur clinging to its face. Eyes are heavily dilated and half-lidded, giving a deadpan, deeply unimpressed stare directly at the camera. No visible text.",
+      "emotion": "Annoyed, done with everything, dead inside, seething quietly",
+      "meaning": "Iconic 'wet cat' meme used to express maximum suffering and zero enthusiasm. Works as a reaction to being inconvenienced, hit with unexpected bad news, forced into something unpleasant, or simply existing on a hard day. Highly relatable for DBT contexts around tolerating distress — 'I am enduring this.'",
+      "tags": [
+        "wet cat",
+        "annoyed",
+        "done",
+        "suffering",
+        "dead inside",
+        "unimpressed",
+        "distress tolerance",
+        "bad day",
+        "enduring",
+        "seething",
+        "orange cat"
+      ],
+      "role": "character"
+    }
+  },
+  {
+    "id": "d150d0e96365f5c46e7d",
+    "hash": "e6a7728366dc77180020054670a04bc530f04335c56c4ed3168192e71ff6548d",
+    "file": "Cats/thumbs-up-cat.png",
+    "name": "thumbs up cat",
+    "src": "assets/meme-slides/indexed/e6a7728366dc77180020054670a04bc530f04335c56c4ed3168192e71ff6548d.png",
+    "width": 155,
+    "height": 185,
+    "labels": {
+      "description": "A round-faced white-and-grey tabby cat with soft brown eyes and a small, closed, subtly upturned mouth suggesting a gentle smile. The face is slightly squished and oversized relative to the neck, giving a plush toy quality. No visible text and no literal thumbs-up visible — the thumbs-up framing is likely the cultural read of its pleased expression.",
+      "emotion": "Quietly pleased, content, gently approving, wholesome",
+      "meaning": "A soft, affirming reaction — 'okay, that's fine by me' or 'good job.' The understated smile reads as sincere encouragement without being over the top. Useful in carousel slides for validating effort, celebrating small wins, or ending on a warm note. The plush-like appearance adds comfort and safety.",
+      "tags": [
+        "approval",
+        "smile",
+        "content",
+        "wholesome",
+        "encouragement",
+        "small win",
+        "validation",
+        "calm",
+        "positive",
+        "round face",
+        "cute"
+      ],
+      "role": "character"
+    }
+  }
+]

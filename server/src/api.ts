@@ -1,12 +1,20 @@
 import { Database } from "bun:sqlite";
 import path from "path";
-import { readFileSync, existsSync, writeFileSync, mkdirSync, unlinkSync, readdirSync } from "fs";
+import { readFileSync, existsSync, writeFileSync, mkdirSync, unlinkSync, readdirSync, statSync } from "fs";
 import { searchHooksHybrid, loadEmbeddings } from "./semantic_search";
 import { OPENAI_IMAGE_MODEL, generateImage, generateCarouselImages, flattenImagePrompt, generateImageWithReferences } from "./image_generator";
 import type { ReferenceImage } from "./image_generator";
 import { generateSypSlides } from "./projects/syp/syp_service";
-import { buildWeirdHackV2NanoBananaPrompt, generateDbtSlides, generateWeirdHackV2ImagePrompts } from "./projects/dbt/dbt_service";
+import { buildPermissionV1NanoBananaPrompt, buildWeirdHackV2NanoBananaPrompt, generateConvertedSkepticHooks, generateDbtCarouselText, generateDbtSlides, generateLoveStoryV2Hooks, generateStoryTellingHooks, generateWeirdHackV2ImagePrompts } from "./projects/dbt/dbt_service";
 import { createDbtJob, getDbtJob, getDbtTopics, initDbtJobTables, runDbtJob } from "./projects/dbt/dbt_job_service";
+import { generateLhFormatSlides, LH_FORMATS } from "./projects/dbt/lh_formats";
+import type { LhFormatId } from "./projects/dbt/lh_formats";
+import { generateSsSlideshow, generateSsTopicSeeds } from "./projects/dbt/ss_slideshow";
+import { generateMemeSlideshow } from "./projects/dbt/meme_slideshow";
+import { getMemeAssets, startMemeAnalysis, editMemeLabels, selectMemeAssets } from "./projects/dbt/meme_assets";
+import { generateSsBatch, SS_FORMATS } from "./projects/dbt/ss_batch";
+import type { SsFormatId } from "./projects/dbt/ss_batch";
+import { generateTheScriptSlideshow } from "./projects/dbt/the_script";
 import { getAnchorImage, buildUGCSlide1Prompt } from "./common/prompt_utils";
 import { ART_STYLES } from "./projects/dbt/art_styles";
 
@@ -33,27 +41,23 @@ const DBT_CHARACTER_REFERENCE_PATHS: Record<string, { slide2: string[]; slide3: 
             path.join(DBT_REFERENCE_IMAGE_DIR, "hannahbpd", "slide5_ref_1.png"),
             path.join(DBT_REFERENCE_IMAGE_DIR, "hannahbpd", "slide5_ref_2.png")
         ]
-    },
-    brendabpd: {
-        slide2: [
-            path.join(DBT_REFERENCE_IMAGE_DIR, "brendabpd", "slide2.png")
-        ],
-        slide3: [
-            path.join(DBT_REFERENCE_IMAGE_DIR, "brendabpd", "slide3.jpg")
-        ],
-        slide5: [
-            path.join(DBT_REFERENCE_IMAGE_DIR, "brendabpd", "slide5.jpg")
-        ]
     }
 };
 
+function getDbtReferenceCharacterId(characterId?: string): string {
+    if (!characterId || characterId === "kendra") {
+        return "hannahbpd";
+    }
+    return characterId;
+}
+
 function getDbtReferenceDir(characterId?: string, flow = "weird_hack"): string {
     const normalizedFlow = flow === "weird_hack_v2" ? "weird_hack" : flow;
-    return path.join(DBT_REFERENCE_IMAGE_DIR, characterId || "hannahbpd", normalizedFlow);
+    return path.join(DBT_REFERENCE_IMAGE_DIR, getDbtReferenceCharacterId(characterId), normalizedFlow);
 }
 
 function getLegacyDbtReferenceDir(characterId?: string): string {
-    return path.join(DBT_REFERENCE_IMAGE_DIR, characterId || "hannahbpd");
+    return path.join(DBT_REFERENCE_IMAGE_DIR, getDbtReferenceCharacterId(characterId));
 }
 
 function getDbtStaticTemplateDir(characterId?: string, flow = "weird_hack"): string {
@@ -72,10 +76,6 @@ function getDbtStaticSlidePath(characterId?: string, slideNumber = 1, flow = "we
 
     if (slideNumber === 1 && normalizedCharacterId === "kendra") {
         return "assets/dbt-templates/weidhackv2/custom-image-1775651626440.png";
-    }
-
-    if (normalizedCharacterId === "brendabpd") {
-        return "assets/dbt-templates/brendabpd/slide1.png";
     }
 
     return "slide1.png";
@@ -260,7 +260,8 @@ function parseDbtDualVoiceSlideText(slideText: string): { outside: string; insid
 }
 
 function getDbtCharacterReferenceConfig(characterId?: string) {
-    return DBT_CHARACTER_REFERENCE_PATHS[characterId || ""] || DBT_CHARACTER_REFERENCE_PATHS.hannahbpd;
+    const normalizedCharacterId = getDbtReferenceCharacterId(characterId);
+    return DBT_CHARACTER_REFERENCE_PATHS[normalizedCharacterId] || DBT_CHARACTER_REFERENCE_PATHS.hannahbpd;
 }
 
 function getRandomItem<T>(items: T[]): T | null {
@@ -288,6 +289,40 @@ function getSlide5ReferenceCandidates(referenceDir: string): string[] {
         console.warn(`[DBT Slide 5] Failed to resolve random reference images in ${referenceDir}:`, error);
         return [];
     }
+}
+
+function getDbtPermissionV1SlideReferencePaths(characterId: string | undefined, slideNumber: number): string[] {
+    if (slideNumber < 2 || slideNumber > 7) {
+        return [];
+    }
+
+    const slideDir = path.join(
+        getDbtReferenceDir(characterId || "hannahbpd", "permission_v1"),
+        `slide${slideNumber}`
+    );
+
+    if (!existsSync(slideDir)) {
+        return [];
+    }
+
+    try {
+        return readdirSync(slideDir)
+            .filter((fileName) => /\.(png|jpe?g|webp)$/i.test(fileName))
+            .map((fileName) => path.join(slideDir, fileName));
+    } catch (error) {
+        console.warn(`[DBT Permission V1] Failed to resolve reference images in ${slideDir}:`, error);
+        return [];
+    }
+}
+
+function getDbtPermissionV1SlideReferences(characterId: string | undefined, slideNumber: number): ReferenceImage[] {
+    const normalizedCharacterId = characterId || "hannahbpd";
+    const refPaths = getDbtPermissionV1SlideReferencePaths(normalizedCharacterId, slideNumber);
+    const randomRefPath = getRandomItem(refPaths);
+    if (!randomRefPath) {
+        return [];
+    }
+    return loadFixedReferenceImages([randomRefPath], `DBT Permission V1 Slide ${slideNumber}:${normalizedCharacterId}`);
 }
 
 function getHannahSlide5ReferencePaths(flow = "weird_hack"): string[] {
@@ -432,9 +467,6 @@ function getDbtFixedSlide2Prompt(characterId?: string, flow = "weird_hack"): str
         return DBT_THREE_TIPS_SHARED_FIXED_PROMPT;
     }
     const basePrompt = "Create another version of the reference image with the same foggy vibe and same blurry image filter, but in a different dark setting. No face visible of person in the image, only shot from a side angle or from behind. Person should hold a cigarette, not a vape. Candid iPhone 12 shot. No text in image. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
-    if (characterId === "brendabpd") {
-        return "Create another version of the reference image with the same vibe but in a different dark setting, keep the sky shot the same tho. No face visible of person in the image, only shot from a side angle or from behind. Candid iPhone 12 shot. No text in image. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
-    }
     return basePrompt;
 }
 
@@ -446,9 +478,6 @@ function getDbtFixedSlide3Prompt(characterId?: string, flow = "weird_hack"): str
         return "Create another version of the reference image with the same vibe and same blurry/washed image filter, but in a slightly different setting. No face visible of person in the image. Woman specs: 170cm tall, brown long hair and 21 years old. No flashlight and no bright lights, no blurred background. Add some real asthetic to the image to make it look super nice for the viewers eyes.\n\nCRITICAL - the image must look like a degraded phone photo: heavily underexposed and crushed shadows, strong digital noise and grain throughout, lossy JPEG compression artifacts visible, slight motion blur from shaky hands, washed-out low-contrast look as if taken on an old iPhone in poor light. NOT a clean or professional photo. The image should look almost too dark and slightly out of focus - like someone accidentally took it at night.";
     }
     const basePrompt = "Create another version of the reference image with the same vibe but in different dark rainy setting. It should rain. Candid iPhone 12 shot. No text in image.";
-    if (characterId === "brendabpd") {
-        return `${basePrompt} Face of the person is not visible. Same medium quality, dark authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.`;
-    }
     return basePrompt;
 }
 
@@ -469,10 +498,7 @@ function getDbtFixedSlide5Prompt(characterId?: string, flow = "weird_hack"): str
     if (flow === "three_tips") {
         return "Create another version of the reference image with the same hopeful and uplifting, slightly brighter vibe and same blurry/washed image filter, but in a slightly different setting. No face visible of person in the image. Woman specs: 170cm tall, brown long hair and 21 years old. No flashlight and no bright lights, no blurred background.\n\nCRITICAL - keep the image aligned with the bright hopeful reference images. The scene should feel lighter, softer, and more open than Slides 1-4. The image must still look like a degraded phone photo: strong digital noise and grain throughout, lossy JPEG compression artifacts visible, slight motion blur from shaky hands, washed-out low-contrast look, imperfect focus, and candid old-iPhone quality. NOT a clean or professional photo. Keep it hopeful and slightly brighter, not dark night-heavy.";
     }
-    if (characterId === "brendabpd") {
-        return "Create another version of the reference image with the same vibe, keep the faceless person motive with the over the shoulder shot out of the drivers window while parked. Candid iPhone 12 shot. No text in image. Same medium quality, hopeful authentic Tiktok asthetic.";
-    }
-    if (!characterId || characterId === "hannahbpd") {
+    if (!characterId || characterId === "hannahbpd" || characterId === "kendra") {
         return "Create another version of the reference image with the same vibe and image filter. No face visible of person in the image, only shot from a side angle or from behind when person is included. Only include a person when the reference image has one in it. Candid iPhone 12 shot. No text in image. Same medium quality, authentic Tiktok asthetic with imperfect overall softness, cheap low-light phone camera blur, slight accidental motion blur, underexposed shadows, and noisy compressed image quality.";
     }
     return null;
@@ -504,9 +530,12 @@ const { file } = Bun;
 // Robust API Key loading
 let ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 let OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+let KIMI_API_KEY = process.env.KIMI_API_KEY;
 let API_KEYS_RAW = process.env.API_KEYS;
+let KIMI_API_BASE = process.env.KIMI_API_BASE || "https://api.kimi.com/coding/v1";
+let KIMI_DEFAULT_MODEL = process.env.KIMI_MODEL || "k3";
 
-if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !API_KEYS_RAW) {
+if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !KIMI_API_KEY || !API_KEYS_RAW) {
     console.log("Ã¢Å¡Â Ã¯Â¸Â Keys not found in process.env, attempting manual load...");
     async function loadEnv(pathStr: string) {
         try {
@@ -515,10 +544,16 @@ if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !API_KEYS_RAW) {
             console.log(`Ã°Å¸â€œÂ Loading keys from ${pathStr}`);
             const anthropicMatch = envText.match(/ANTHROPIC_API_KEY=(.*)/);
             const openaiMatch = envText.match(/OPENAI_API_KEY=(.*)/);
+            const kimiMatch = envText.match(/KIMI_API_KEY=(.*)/);
+            const kimiBaseMatch = envText.match(/KIMI_API_BASE=(.*)/);
+            const kimiModelMatch = envText.match(/KIMI_MODEL=(.*)/);
             const apiKeysMatch = envText.match(/API_KEYS=(.*)/);
 
             if (anthropicMatch && anthropicMatch[1]) ANTHROPIC_API_KEY = anthropicMatch[1].trim();
             if (openaiMatch && openaiMatch[1]) OPENAI_API_KEY = openaiMatch[1].trim();
+            if (kimiMatch && kimiMatch[1]) KIMI_API_KEY = kimiMatch[1].trim();
+            if (kimiBaseMatch && kimiBaseMatch[1]) KIMI_API_BASE = kimiBaseMatch[1].trim();
+            if (kimiModelMatch && kimiModelMatch[1]) KIMI_DEFAULT_MODEL = kimiModelMatch[1].trim();
             if (apiKeysMatch && apiKeysMatch[1]) API_KEYS_RAW = apiKeysMatch[1].trim();
         } catch (e) {
             console.error(`Ã¢ÂÅ’ Failed to load ${pathStr}`);
@@ -557,6 +592,59 @@ try {
     console.log(`Ã¢Å“â€¦ Database connected: ${JSON.stringify(test)}`);
 } catch (e) {
     console.error(`Ã¢ÂÅ’ Database connection failed:`, e);
+}
+
+// ---- Local photo library ------------------------------------------------
+// Folders of ready-made photos that live outside the repo (so 100s of MB of
+// images never enter git). Override with IMAGE_LIBRARY_ROOT in server/.env.
+const IMAGE_LIBRARY_ROOT = process.env.IMAGE_LIBRARY_ROOT
+    || "G:/Projects/DBT-Mind Tiktok";
+
+const LIBRARY_SKIP_DIRS = new Set([".git", "node_modules", ".venv", "__pycache__", "Videos"]);
+
+const LIBRARY_IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
+
+function isLibraryImage(name: string): boolean {
+    return LIBRARY_IMAGE_EXT.has(path.extname(name).toLowerCase());
+}
+
+// Any subfolder (up to 3 levels deep) that directly contains images becomes a set.
+function listImageLibrarySets(): Array<{ id: string; label: string; count: number }> {
+    const sets: Array<{ id: string; label: string; count: number }> = [];
+    if (!existsSync(IMAGE_LIBRARY_ROOT)) return sets;
+
+    const walk = (dir: string, rel: string, depth: number) => {
+        if (depth > 5 || sets.length >= 150) return;
+        let entries: string[] = [];
+        try { entries = readdirSync(dir); } catch { return; }
+
+        const images = entries.filter(isLibraryImage);
+        if (images.length > 0 && rel) {
+            sets.push({ id: rel, label: rel.replace(/[\\/]/g, " · "), count: images.length });
+        }
+        for (const entry of entries) {
+            if (entry.startsWith(".") || LIBRARY_SKIP_DIRS.has(entry)) continue;
+            const full = path.join(dir, entry);
+            let isDir = false;
+            try { isDir = statSync(full).isDirectory(); } catch { continue; }
+            if (isDir) walk(full, rel ? `${rel}/${entry}` : entry, depth + 1);
+        }
+    };
+
+    walk(IMAGE_LIBRARY_ROOT, "", 0);
+    return sets.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+// Resolve a set id to an absolute dir, refusing anything outside the library root.
+function resolveImageLibraryDir(setId: string): string | null {
+    const cleaned = String(setId || "").replace(/\\/g, "/").replace(/^\/+/, "");
+    if (!cleaned || cleaned.includes("..")) return null;
+    const full = path.resolve(IMAGE_LIBRARY_ROOT, cleaned);
+    const root = path.resolve(IMAGE_LIBRARY_ROOT);
+    if (!full.startsWith(root)) return null;
+    if (!existsSync(full)) return null;
+    try { if (!statSync(full).isDirectory()) return null; } catch { return null; }
+    return full;
 }
 
 // Load UGC Base Prompts for realistic Slide 1 generation
@@ -639,7 +727,10 @@ const server = Bun.serve({
             const bearer = authHeader.toLowerCase().startsWith("bearer ")
                 ? authHeader.slice(7).trim()
                 : "";
-            const provided = (xApiKey || bearer).trim();
+            // <img src> and other tag-based loads cannot set headers, so the key may
+            // also arrive as a query param (used by the photo-library thumbnails).
+            const queryKey = url.searchParams.get("key") || "";
+            const provided = (xApiKey || bearer || queryKey).trim();
             const isTrustedOrigin = isTrustedFrontendOrigin(originHeader);
             if (!API_KEYS.has(provided) && !isTrustedOrigin) {
                 return sendJSON({ error: "Unauthorized" }, 401);
@@ -736,10 +827,10 @@ const server = Bun.serve({
         else if ((cleanPath === "/improve-hook" || cleanPath === "/improve-hooks") && method === "POST") {
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
-                const { slides, slides_text, service, slideType } = await req.json() as any;
+                const { slides, slides_text, service, slideType, language } = await req.json() as any;
                 const isDbtStoryFlow =
                     service === 'dbt' &&
-                    (slideType === 'story_telling_bf' || slideType === 'story_telling_gf');
+                    (slideType === 'story_telling_bf' || slideType === 'story_telling_gf' || slideType === 'story_telling_gf_v2');
                 const slideList = Array.isArray(slides) ? slides.map((s: any) => String(s || "").trim()) : [];
                 const hookContextSlides = isDbtStoryFlow ? slideList.slice(1) : slideList;
                 const storyHookContextText = hookContextSlides
@@ -760,29 +851,29 @@ const server = Bun.serve({
                 let systemPrompt = "";
 
                 if (isDbtStoryFlow) {
-                    const storyPerspective = slideType === 'story_telling_gf' ? 'girlfriend' : 'boyfriend';
-                    hookRequirementsPrompt = `Create a BANGER and VIRAL hook for this story telling post.`;
+                    const hookResult = slideType === 'story_telling_gf_v2'
+                        ? await generateConvertedSkepticHooks({
+                            slides: hookContextSlides,
+                            slideType,
+                            ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!,
+                            language: language === 'de' ? 'de' : 'en'
+                        })
+                        : await generateStoryTellingHooks({
+                            slides: hookContextSlides,
+                            slideType,
+                            ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!,
+                            language: language === 'de' ? 'de' : 'en'
+                        });
 
-                    systemPrompt = `You are a viral TikTok hook writer for raw 9-slide TikTok story posts in the BPD/DBT niche.
-CRITICAL RULES:
-1. Return ONLY a JSON array of 3 strings: ["hook 1", "hook 2", "hook 3"].
-2. Use ONLY slides 2+ provided in the user message as context for the replacement Slide 1 hook.
-3. lowercase only. no emojis. no hashtags.
-4. max 20 words total per hook.
-5. Each hook must work as Slide 1 for the story flow and should be a banger.
-6. Write from the ${storyPerspective}'s perspective.
-7. Perspective lock:
-${slideType === 'story_telling_gf'
-? '- gf means girlfriend perspective\n- the narrator is the girlfriend\n- use i / me / my / my boyfriend / he / him\n- never write the hook as if a boyfriend is narrating\n- do not start the hook with "she"\n- the hook should use "i" and/or "my boyfriend"'
-: '- bf means boyfriend perspective\n- the narrator is the boyfriend\n- use i / me / my / my girlfriend / she / her\n- never write the hook as if a girlfriend is narrating\n- do not use "my boyfriend" as the narrator phrase\n- do not start the hook with "she"\n- the hook should use "i" and/or "my girlfriend"'}
-8. Match this hook style: raw, intimate, specific, emotionally honest. short punchy lines.
-9. The hook should fit one of these patterns without copying them:
-${slideType === 'story_telling_gf'
-? '- "my boyfriend watched me fall apart. and didn\'t look away."\n- "my boyfriend did something for me that no therapist ever could. and he\'s not even a therapist."\n- "i didn\'t know my boyfriend was building it. i just knew i was running out of time."'
-: '- "i did something kind of insane for my girlfriend. and i\'d do it again in a heartbeat."\n- "nobody was coming to help her. so i had to figure it out myself."\n- "my girlfriend was diagnosed, waitlisted, and basically told good luck. i couldn\'t just sit there."'}
-10. Never use weird-hack framing. Never write "weird dbt hacks" or similar.
-11. No polished copywriting. Imperfect, intimate, emotionally specific beats clean.
-12. Do not include "Slide 1:" in the returned hooks.`;
+                    if (!hookResult.hooks.length) {
+                        return sendJSON({ error: "Failed to generate hooks" }, 500);
+                    }
+
+                    return sendJSON({
+                        hooks: hookResult.hooks,
+                        hook_style_examples: hookResult.styleExamples,
+                        hook_style_influences: hookResult.styleInfluences
+                    });
                 } else if (isDbt) {
                     hookRequirementsPrompt = `For this slide post, create an ABSOLUTE VIRAL BANGER HOOK, which will replace the current cheap slide 1 hook. Give me three options. The post will be in the BPD niche on Tiktok. The hook must create ABSOLUTE curiosity within the first 3 seconds and must be like a cliffhanger is a good series. Use the best fitting option from this framework:
 
@@ -1257,6 +1348,15 @@ Based on the context above, generate three options for the integrated app mentio
                         });
                     }
 
+                    if (effectiveFlow === "permission_v1") {
+                        normalizedSlides.forEach((_, index) => {
+                            const slideNumber = index + 1;
+                            if (slideNumber >= 2 && slideNumber <= 7) {
+                                parsed[`image${slideNumber}`] = buildPermissionV1NanoBananaPrompt('');
+                            }
+                        });
+                    }
+
                     const prompts = normalizedSlides.map((_, index) => parsed[`image${index + 1}`] || null);
 
                     return sendJSON({
@@ -1459,7 +1559,7 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
         else if (cleanPath === "/generate-native-slides" && method === "POST") {
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
-                const { format, topic, profile, service, includeBranding, brandingMode, slideType } = await req.json() as any;
+                const { format, topic, profile, service, includeBranding, brandingMode, slideType, language, model } = await req.json() as any;
 
                 let result;
                 if (service === 'syp' || profile) {
@@ -1478,8 +1578,37 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
                         topic: topic || 'favorite_person',
                         slideType: slideType || 'weird_hack',
                         ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!,
-                        includeBranding: includeBranding !== false
+                        includeBranding: includeBranding !== false,
+                        language: language === 'de' ? 'de' : 'en',
+                        model: model || 'claude-sonnet-4-6',
+                        KIMI_API_KEY: KIMI_API_KEY,
+                        KIMI_API_BASE: KIMI_API_BASE,
+                        KIMI_MODEL: KIMI_DEFAULT_MODEL
                     });
+
+                    const isStoryTellingFlow = slideType === 'story_telling_bf' || slideType === 'story_telling_gf' || slideType === 'story_telling_gf_v2';
+                    if (isStoryTellingFlow && result.slides && Array.isArray(result.slides)) {
+                        const hookResult = slideType === 'story_telling_gf_v2'
+                            ? await generateConvertedSkepticHooks({
+                                slides: result.slides.slice(1, 6),
+                                slideType,
+                                ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!,
+                                language: language === 'de' ? 'de' : 'en'
+                            })
+                            : await generateStoryTellingHooks({
+                                slides: result.slides.slice(1),
+                                slideType,
+                                ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!,
+                                language: language === 'de' ? 'de' : 'en'
+                            });
+
+                        if (hookResult.hooks.length > 0) {
+                            result.slides[0] = hookResult.hooks[0];
+                            (result as any).hook_options = hookResult.hooks;
+                            (result as any).hook_style_examples = hookResult.styleExamples;
+                            (result as any).hook_style_influences = hookResult.styleInfluences;
+                        }
+                    }
                 }
 
                 // Format response with Slide numbers for the front-end textarea
@@ -1494,11 +1623,153 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
             }
         }
 
+        // POST /generate-stickman-topics - Generate one complete BPD slideshow concept
+        else if (cleanPath === "/generate-stickman-topics" && method === "POST") {
+            try {
+                const body = await req.json() as any;
+                const previousTopics = String(body.previousTopics || '').trim();
+                const angleSeed = String(body.angleSeed || 'a clearly different BPD or DBT experience').trim();
+                const noveltySeed = String(body.noveltySeed || '').trim();
+                const requestedModel = String(body.model || 'claude-sonnet-4-6').trim();
+
+                if (requestedModel === 'k3' || requestedModel.startsWith('kimi')) {
+                    if (!KIMI_API_KEY) throw new Error("Kimi API key missing");
+                    const kimiPrompt = `Generate one complete BPD and DBT educational carousel. Create one hook plus five numbered slides. The hook starts with 5, is maximum 10 words, and is not a question. Each slide has a specific personal headline in you language, maximum 12 words, and one supporting line, maximum 10 words. The post must be shareable, compassionate, BPD or DBT specific, and naturally addressable with DBT skills. Never use dashes. Do not repeat prior topics, hook structures, emotional angles, or the phrase 5 ways BPD makes you shrink yourself for others. Required creative direction: ${angleSeed}. Novelty seed: ${noveltySeed}. Previous topics to avoid: ${previousTopics || '(none)'}. Assess whether the topic is strong for Gen Z and not overdone. Return JSON only with this shape: {"hook":"...","slides":[{"number":1,"headline":"...","supportingLine":"..."},{"number":2,"headline":"...","supportingLine":"..."},{"number":3,"headline":"...","supportingLine":"..."},{"number":4,"headline":"...","supportingLine":"..."},{"number":5,"headline":"...","supportingLine":"..."}],"shareTrigger":"...","angle":"...","assessment":{"viralForGenZ":true,"overdoneScore":1,"note":"..."}}`;
+                    const kimiResponse = await fetch(`${KIMI_API_BASE.replace(/\/$/, '')}/chat/completions`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${KIMI_API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: requestedModel || KIMI_DEFAULT_MODEL,
+                            max_tokens: 1400,
+                            messages: [{ role: 'user', content: kimiPrompt }]
+                        })
+                    });
+                    if (!kimiResponse.ok) throw new Error(`Kimi HTTP ${kimiResponse.status}: ${(await kimiResponse.text()).slice(0, 300)}`);
+                    const kimiPayload = await kimiResponse.json() as any;
+                    const kimiRaw = kimiPayload?.choices?.[0]?.message?.content || '';
+                    const kimiParsed = JSON.parse(kimiRaw.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim());
+                    const kimiSlides = Array.isArray(kimiParsed.slides) ? kimiParsed.slides.slice(0, 5).map((item: any, index: number) => ({
+                        number: index + 1,
+                        headline: String(item.headline || '').trim(),
+                        supportingLine: String(item.supportingLine || '').trim()
+                    })).filter((item: any) => item.headline && item.supportingLine) : [];
+                    if (!kimiParsed.hook || kimiSlides.length !== 5 || !kimiParsed.shareTrigger) throw new Error('Kimi returned an invalid slideshow');
+                    return sendJSON({ success: true, carousel: {
+                        hook: String(kimiParsed.hook).trim(),
+                        slides: kimiSlides,
+                        shareTrigger: String(kimiParsed.shareTrigger).trim(),
+                        angle: String(kimiParsed.angle || '').trim(),
+                        assessment: kimiParsed.assessment || {}
+                    }});
+                }
+                if (!ANTHROPIC_API_KEY) throw new Error("Anthropic API key missing");
+                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'x-api-key': ANTHROPIC_API_KEY!,
+                        'anthropic-version': '2023-06-01',
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-sonnet-4-6',
+                        max_tokens: 900,
+                        messages: [{
+                            role: 'user',
+                            content: `Generate 1 TikTok list-post concept for a BPD (Borderline Personality Disorder) / DBT educational channel. The concept is a complete text-based carousel in the style of “5 signs you lost yourself”: one hook slide followed by 5 numbered slides.
+
+This generation must be meaningfully different from previous generations. Novelty seed: ${noveltySeed || '(none)'}. Required creative direction: ${angleSeed}.
+
+Hook slide rules:
+- Starts with “5”.
+- Maximum 10 words.
+- Clearly tied to BPD or DBT.
+- Curiosity-driving title, not a question.
+- Sounds searchable, screenshot-worthy, and natural when spoken aloud.
+
+Slides 1 to 5:
+- Each has one numbered headline, maximum 12 words, plus one short supporting line, maximum 10 words.
+- Headlines are specific and personal, written in “you” language, not clinical language.
+- Supporting lines should add the emotional “oh, that’s me” detail.
+- Each slide must be readable in about 2 seconds on a phone.
+
+Choose exactly one angle for this generation. Rotate between mildly controversial or myth-busting, deeply relatable and emotionally specific, or educational but surprising DBT/BPD reframes. The post must be BPD or DBT specific, shareable, compassionate, non-stigmatizing, and naturally addressable with emotional regulation, distress tolerance, interpersonal effectiveness, or mindfulness skills in DBT-Mind.
+
+Do not reuse the same hook structure, central experience, emotional angle, or wording from the previous topics. Do not use the pattern “5 ways BPD makes you...” or the topic about shrinking yourself for others unless it is explicitly present as a previous topic and you transform it into a genuinely different concept. Prefer a different sentence structure and emotional situation.
+
+Hard rules:
+- Never use dashes anywhere. No em dashes, en dashes, or double hyphens. Use periods, commas, or line breaks.
+- Do not use generic mental health content.
+- Do not diagnose or imply every person with BPD has the same experience.
+- Avoid duplicate angles and hooks from this existing list:
+${previousTopics || '(none provided)'}
+
+Before finalizing, assess whether this is a strong Gen-Z TikTok topic and whether it is overdone. If it is weak or overdone, discard it and generate a replacement.
+
+Return JSON only in this exact shape:
+{"hook":"...","slides":[{"number":1,"headline":"...","supportingLine":"..."},{"number":2,"headline":"...","supportingLine":"..."},{"number":3,"headline":"...","supportingLine":"..."},{"number":4,"headline":"...","supportingLine":"..."},{"number":5,"headline":"...","supportingLine":"..."}],"shareTrigger":"...","angle":"relatable|myth-busting|educational","assessment":{"viralForGenZ":true,"overdoneScore":1,"note":"..."}}`
+                        }]
+                    })
+                });
+
+                if (!response.ok) throw new Error(`Anthropic HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`);
+                const payload = await response.json() as any;
+                const raw = payload?.content?.find((item: any) => item.type === 'text')?.text || '';
+                const parsed = JSON.parse(raw.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim());
+                const slides = Array.isArray(parsed.slides) ? parsed.slides.slice(0, 5).map((item: any, index: number) => ({
+                    number: index + 1,
+                    headline: String(item.headline || '').trim(),
+                    supportingLine: String(item.supportingLine || '').trim()
+                })).filter((item: any) => item.headline && item.supportingLine) : [];
+                const carousel = {
+                    hook: String(parsed.hook || '').trim(),
+                    slides,
+                    shareTrigger: String(parsed.shareTrigger || '').trim(),
+                    angle: String(parsed.angle || '').trim(),
+                    assessment: parsed.assessment || {}
+                };
+                if (!carousel.hook || slides.length !== 5 || !carousel.shareTrigger) throw new Error('Carousel generator returned an invalid slideshow');
+                return sendJSON({ success: true, carousel });
+            } catch (e) {
+                console.error("[Stickman Topics] Error:", e);
+                return sendJSON({ error: "Stickman topic generation failed", details: String(e) }, 500);
+            }
+        }
+
+        // POST /generate-dbt-carousel-text - Generate generic psychoeducation carousel text for DBT image prompts
+        else if (cleanPath === "/generate-dbt-carousel-text" && method === "POST") {
+            try {
+                if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
+                const body = await req.json() as any;
+                const result = await generateDbtCarouselText({
+                    topic: body.topic,
+                    angle: body.angle,
+                    targetAudience: body.targetAudience,
+                    tone: body.tone,
+                    slideCount: body.slideCount,
+                    allowEmojis: body.allowEmojis,
+                    ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!
+                });
+                const { preview, ...carousel } = result;
+
+                return sendJSON({
+                    success: true,
+                    carousel,
+                    preview
+                });
+            } catch (e) {
+                console.error("[DBT Carousel Text] Error:", e);
+                return sendJSON({ error: "DBT carousel text generation failed", details: String(e) }, 500);
+            }
+        }
+
         // POST /generate-metadata - Generate TikTok Title & Description
         else if (cleanPath === "/generate-metadata" && method === "POST") {
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("API Key missing");
-                const { slides_text, service, includeBranding, brandingMode, slideType } = await req.json() as any;
+                const { slides_text, service, includeBranding, brandingMode, slideType, topic, slide1Hook, language } = await req.json() as any;
 
                 if (!slides_text || !slides_text.trim()) {
                     return sendJSON({ error: "Slides text is required" }, 400);
@@ -1506,8 +1777,10 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
 
                 const isDbt = service === 'dbt';
                 const isSyp = service === 'syp';
+                const isLittleHabits = service === 'lh' || slideType === 'little_habits';
                 const isWeirdHackV2 = isDbt && slideType === 'weird_hack_v2';
                 const isPermissionV1 = isDbt && slideType === 'permission_v1';
+                const isVentNowStyle = isDbt && slideType === 'vent_now_style';
 
                 // DBT-Mind: caption framework is enforced via dedicated prompt rules
                 const needsDbtBrandingInDescription = isDbt;
@@ -1519,7 +1792,27 @@ REMINDER: image1 is already done. Just fill in image2-image${slides.length} with
 
                 // Build branding instruction
                 let brandingInstruction = '';
-                if (isWeirdHackV2) {
+                if (isLittleHabits) {
+                    brandingInstruction = `
+## LITTLE HABITS TIKTOK METADATA
+
+This is a playful Little Habits parody/interface carousel. Keep the metadata in the same
+dry, specific, self-aware voice as the slides. The title is what the creator types as the
+TikTok post title, not a description of the format.
+
+TITLE RULES:
+- Maximum 8 words. This is a hard limit.
+- Lowercase, casual, and specific to this carousel.
+- No hashtags, quotation marks, emojis, or generic labels like "mental health tips".
+- Do not copy slide 1 word for word.
+
+DESCRIPTION RULES:
+- Write a short, natural caption that complements the carousel.
+- Put 5 relevant lowercase hashtags on the final line, separate from the title.
+- Always include #bpd, #dbt, and #bpdrecovery; add two topic-specific tags.
+- Never use #fyp or #foryou.
+`;
+                } else if (isWeirdHackV2) {
                     brandingInstruction = `
 ## CRITICAL: WEIRD_HACK_V2 CAPTION FRAMEWORK (GEN-Z DEADPAN VOICE)
 
@@ -1702,6 +1995,90 @@ WHAT TO AVOID:
 ❌ Two or more emojis in the caption
 ❌ Any emoji at all on heavy topics (empty, broken, crazy, exhausting, etc.)
 `;
+                } else if (isVentNowStyle) {
+                    brandingInstruction = `
+## CRITICAL: VENT_NOW_STYLE METADATA FRAMEWORK
+
+You are generating the TikTok post title field and description for a DBT-Mind slideshow post.
+
+The title is separate from:
+1. the slide 1 hook text shown inside the slideshow image
+2. the TikTok caption/description with hashtags
+
+REFERENCE STYLE:
+Use @sydneysynced-style TikTok title mechanics.
+
+The title should feel like a short soft-curiosity wrapper, emotional label, or casual personal note.
+
+Observed title examples from @sydneysynced:
+- part 2!
+- my best advice
+- these change everything
+- these changed everything!!
+- advice straight from my therapist
+- save these immediately
+- you owe optimism to yourself
+- she changed my life
+- i love life so much (and you should too)
+- you're not bound to lifelong social anxiety btw
+- people miss these way too often
+- i can't emphasize these enough
+
+TITLE RULES:
+- Generate exactly 5 title options.
+- 3-10 words each if possible.
+- lowercase unless emphasis is intentional.
+- Do not use hashtags in titles.
+- Do not duplicate the slide 1 hook exactly.
+- Do not make it sound like SEO.
+- Do not over-explain the topic.
+- Do not mention DBT-Mind unless the post is explicitly app-forward.
+- Make it feel native to TikTok: casual, soft, emotionally specific, slightly curiosity-based.
+- It can sound like a private note, advice label, series label, or emotional reminder.
+
+GOOD TITLE PATTERNS:
+- save this for later
+- advice i needed sooner
+- this changed how i text back
+- you're allowed to pause first
+- part 2!
+- quiet reminders for tonight
+- for when your brain gets loud
+- read this before texting back
+- this one is for tonight
+- things i'm still learning
+
+BAD TITLE PATTERNS:
+- DBT skills for emotional regulation
+- How to manage BPD symptoms using DBT
+- Mental health advice for people with borderline personality disorder
+- #bpd #dbt #mentalhealth
+- exact copy of slide 1
+
+DESCRIPTION RULES:
+- The description should only include hashtags.
+- The AI should choose 5 hashtags that fit the slide content.
+- Return exactly 5 hashtags total.
+- All hashtags must be lowercase.
+- Never use #fyp or #foryou.
+- Do not use hashtags in the title.
+
+OUTPUT FORMAT:
+Return JSON only.
+
+Schema:
+{
+  "titles": [
+    {
+      "title": "...",
+      "style": "soft curiosity / advice label / series label / emotional reminder / personal truth",
+      "why": "..."
+    }
+  ],
+  "best_title": "...",
+  "description": "..."
+}
+`;
                 } else if (isDbt) {
                     brandingInstruction = `
 ## CRITICAL: DBT-MIND CAPTION FRAMEWORK (4 PARTS, IN THIS ORDER)
@@ -1778,14 +2155,24 @@ Du MUSST saveyourpet.de in der Description erwÃƒÂ¤hnen - und zwar **AM ANFAN
                 }
 
                 // Language-specific instructions
-                const languageInstructions = isDbt ? `
+                const dbtIsGerman = (isDbt || isLittleHabits) && language === 'de';
+                const dbtGermanLanguageBlock = `
+## LANGUAGE: GERMAN (überschreibt jede "LANGUAGE: ENGLISH"-Anweisung oben)
+- Write everything in German, in the voice of the German BPD TikTok community.
+- Lowercase, du-perspective, short raw sentences, natural anglicisms (cringe, literally, safe, btw, random, fp, splitting, waitlist).
+- Not therapy-speak, no coaching voice, no stiff translated German.
+- The app opener becomes "die dbt-mind app" instead of "the dbt-mind app" (still lowercase, still first).
+- Hashtags stay lowercase; German tags like #mentalegesundheit are fine alongside #bpd #dbt #bpdtok.
+
+Example output: {"title":"mein kopf hat die trennung in 3 sekunden geschrieben","description":"die dbt-mind app ist der ort, an dem die 90-minuten-regel jetzt wohnt.\nder scan passiert trotzdem. ich verliere nur seltener gegen ihn 🫠\nanyway.\n#bpd #dbt #bpdtok #bpdrecovery #mentalegesundheit"}`;
+                const languageInstructions = (isDbt || isLittleHabits) ? (dbtIsGerman ? dbtGermanLanguageBlock : `
 ## LANGUAGE: ENGLISH
 - Write everything in English
 - Tone target: young person with BPD, raw and fragmentary, not reflective and polished.
 - Keep it conversational, imperfect, emotionally immediate.
 - Avoid self-help-book voice and poetic writing.
 
-Example output: {"title":"my brain wrote the breakup in 3 seconds","description":"one dry text and my brain already wrote the breakup, the funeral, and the part where i was wrong about everything.\ntook me too long to realize the feeling is real but the story i build from it usually isn't.\nmy therapist taught me stop and i actually use it now bc DBT-Mind walks me through it when i'm too in it to think.\n#bpd #dbtskills #bpdrecovery #anxietyspiral #drytext"}` : `
+Example output: {"title":"my brain wrote the breakup in 3 seconds","description":"one dry text and my brain already wrote the breakup, the funeral, and the part where i was wrong about everything.\ntook me too long to realize the feeling is real but the story i build from it usually isn't.\nmy therapist taught me stop and i actually use it now bc DBT-Mind walks me through it when i'm too in it to think.\n#bpd #dbtskills #bpdrecovery #anxietyspiral #drytext"}`) : `
 ## LANGUAGE: GERMAN
 - Write everything in German
 - Natural, authentic, conversational tone
@@ -1805,10 +2192,14 @@ Example output: {"title":"my brain wrote the breakup in 3 seconds","description"
 Example output: {"title": "wenn dein hund besser schlÃƒÂ¤ft als du", "description": "Er schnarcht. Ich google. So lÃƒÂ¤uft das hier. Ã°Å¸Ââ€¢Ã°Å¸Ëœâ€¦ #hundemama #haustier #schlaflos"}`;
 
                 // Reminder for description branding
-                const brandingReminder = isWeirdHackV2
+                const brandingReminder = isLittleHabits
+                    ? ' Follow the Little Habits metadata rules exactly: the title is 8 words or fewer with no hashtags, and the description ends with exactly 5 lowercase hashtags.'
+                    : isWeirdHackV2
                     ? ' CRITICAL: description must start with "the dbt-mind app" as the first 3 words. Follow the weird_hack_v2 caption framework and emoji rules exactly.'
                     : isPermissionV1
                         ? ' CRITICAL: description must start with "the dbt-mind app" as the first 3 words. Follow the permission_v1 caption framework - warmer than v2, quieter on emojis, echo the shame-word in quotes.'
+                    : isVentNowStyle
+                        ? ' Follow the Vent Now title framework exactly: generate 5 title options, choose best_title, and end the description with exactly 5 lowercase hashtags.'
                     : needsDbtBrandingInDescription
                         ? ' Follow the 4-part DBT caption framework exactly.'
                         : needsSypBrandingInDescription
@@ -1819,21 +2210,43 @@ Example output: {"title": "wenn dein hund besser schlÃƒÂ¤ft als du", "descri
                     ? `\n\nFor weird_hack_v2 captions: description opens with "the dbt-mind app", uses the deadpan confession voice, 0-2 emojis from the allowed list only, 5-7 hashtags max on the final line. Never title-case. Never use banned emojis.`
                     : isPermissionV1
                         ? `\n\nFor permission_v1 captions: description opens with "the dbt-mind app", uses the warm-but-direct permission voice, echoes the shame-word from slide 1 in quotes, trends toward ZERO emojis (one max, never for heavy topics like 'empty'/'broken'/'exhausting'), 5-7 hashtags max on the final line. Never title-case. Never use banned emojis.`
+                    : isLittleHabits
+                        ? `\n\nFor Little Habits metadata: the title is maximum 8 words with no hashtags. The description ends with exactly 5 lowercase hashtags, including #bpd, #dbt, and #bpdrecovery.`
+                    : isVentNowStyle
+                        ? `\n\nFor vent_now_style metadata: output exactly 5 title options and best_title. Description must end with exactly 5 lowercase hashtags selected for the slide content.`
                     : isDbt
                         ? `\n\nFor DBT captions: output 4 parts with line breaks and hashtags on the final line only.`
                         : `\n\nFor non-DBT captions: keep it to 1-2 sentences max, 1-2 emojis used wisely, 3-5 relevant hashtags.`;
 
-                const systemPrompt = `You are a TikTok Content Strategist. Your job is to write a catchy title (1-line) and a relatable description (caption) for a photo carousel.
+                const systemPrompt = isVentNowStyle ? `You are a TikTok Content Strategist. Your job is to write TikTok metadata for a DBT-Mind Vent Now Style photo carousel.
+${languageInstructions}
+${brandingInstruction}
+## YOUR TASK:
+Based on the provided topic, slide 1 hook, and slide texts:
+1. Generate exactly 5 TikTok title options using the title framework.
+2. Choose the best title as "best_title".
+3. Generate a matching description containing only exactly 5 lowercase hashtags.${brandingReminder}${formatTailInstruction}
+
+OUTPUT: Return ONLY a JSON object with "titles", "best_title", and "description" fields. No markdown, no explanation.` : `You are a TikTok Content Strategist. Your job is to write a catchy title (1-line) and a relatable description (caption) for a photo carousel.
 ${languageInstructions}
 ${brandingInstruction}
 ## YOUR TASK:
 Based on the provided slide texts, generate:
-1. A catchy Title for the post (one line, lowercase is fine).
+1. A catchy Title for the post (one line, lowercase is fine).${isLittleHabits ? ' For Little Habits, it must be 8 words or fewer and contain no hashtags.' : ''}
 2. A Description/Caption for the post.${brandingReminder}${formatTailInstruction}
 
 OUTPUT: Return ONLY a JSON object with "title" and "description" fields. No markdown, no explanation.`;
 
-                const userPrompt = `Generate a Title and Description for these slides:
+                const inferredSlide1Hook = String(slide1Hook || "")
+                    || String(slides_text || "").split('\n').find((line: string) => line.trim())?.replace(/^Slide\s*\d+\s*[:\-]\s*/i, '').trim()
+                    || "";
+                const userPrompt = isVentNowStyle
+                    ? `INPUTS:
+Topic: ${String(topic || "autonomous Vent Now topic").trim()}
+Slide 1 hook: ${inferredSlide1Hook}
+Slide texts:
+${slides_text}`
+                    : `Generate a Title and Description for these slides:
 \n${slides_text}`;
 
                 const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1949,12 +2362,66 @@ OUTPUT: Return ONLY a JSON object with "title" and "description" fields. No mark
                     return uniqueHashtags.length > 0 ? `${body}\n${uniqueHashtags.join(' ')}`.trim() : body;
                 };
 
-                const normalizedTitle = String(parsed.title || '').trim();
-                const normalizedDescription = formatMetadataDescription(String(parsed.description || ''), isDbt);
+                const formatVentNowDescription = (rawDescription: string): string => {
+                    const text = String(rawDescription || "")
+                        .replace(/\r\n/g, '\n')
+                        .replace(/[ \t]+\n/g, '\n')
+                        .trim();
+                    if (!text) return "";
+
+                    const fallbackTags = ['#bpd', '#dbt', '#bpdrecovery', '#anxiousattachment', '#selfworth'];
+                    const hashtagMatches = text.match(/#[a-z0-9_]+/ig) || [];
+                    const hashtags = [...new Set(
+                        hashtagMatches
+                            .map((tag: string) => tag.toLowerCase())
+                            .filter((tag: string) => tag !== '#fyp' && tag !== '#foryou')
+                    )];
+
+                    for (const tag of fallbackTags) {
+                        if (hashtags.length >= 5) break;
+                        if (!hashtags.includes(tag)) hashtags.push(tag);
+                    }
+
+                    return hashtags.slice(0, 5).join(' ');
+                };
+
+                const normalizedTitle = String(
+                    isVentNowStyle
+                        ? (parsed.best_title || parsed.title || parsed.titles?.[0]?.title || '')
+                        : (parsed.title || '')
+                ).trim();
+                const normalizedDescription = isVentNowStyle
+                    ? formatVentNowDescription(String(parsed.description || ''))
+                    : formatMetadataDescription(String(parsed.description || ''), isDbt);
+
+                const normalizedTitleForResponse = isLittleHabits
+                    ? normalizedTitle
+                        .replace(/#[a-z0-9_]+/ig, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .slice(0, 8)
+                        .join(' ')
+                    : normalizedTitle;
+
+                const metadataHashtagFallbacks = ['#bpd', '#dbt', '#bpdrecovery', '#dbtskills', '#mentalhealth'];
+                const responseHashtags = [...new Set(
+                    (normalizedDescription.match(/#[a-z0-9_]+/ig) || [])
+                        .map((tag: string) => tag.toLowerCase())
+                        .filter((tag: string) => tag !== '#fyp' && tag !== '#foryou')
+                )];
+                if (isLittleHabits) {
+                    for (const fallback of metadataHashtagFallbacks) {
+                        if (responseHashtags.length >= 5) break;
+                        if (!responseHashtags.includes(fallback)) responseHashtags.push(fallback);
+                    }
+                }
 
                 return sendJSON({
-                    title: normalizedTitle,
-                    description: normalizedDescription
+                    title: normalizedTitleForResponse,
+                    description: normalizedDescription,
+                    ...(isLittleHabits ? { hashtags: responseHashtags.slice(0, 5) } : {})
                 });
             } catch (e) {
                 console.error("Metadata Generation Error:", e);
@@ -2396,13 +2863,285 @@ Output ONLY the JSON object.No markdown, no explanation.`
             }
         }
         // POST /generate-ai-images - Generate all carousel images
+        // ---- Local photo library (folders of images that live outside the repo) ----
+        // GET /image-library                      -> list sets (folders containing images)
+        // GET /image-library/images?set=<rel>     -> filenames in that set
+        // GET /image-library/file?set=<rel>&name= -> the image bytes
+        else if (cleanPath === "/image-library" && method === "GET") {
+            try {
+                const sets = listImageLibrarySets();
+                return sendJSON({ root: IMAGE_LIBRARY_ROOT, sets });
+            } catch (e) {
+                return sendJSON({ error: "Could not read image library", details: String(e) }, 500);
+            }
+        }
+        else if (cleanPath === "/image-library/images" && method === "GET") {
+            try {
+                const dir = resolveImageLibraryDir(url.searchParams.get("set") || "");
+                if (!dir) return sendJSON({ error: "Unknown set" }, 400);
+                const images = readdirSync(dir).filter(isLibraryImage).sort();
+                return sendJSON({ images, count: images.length });
+            } catch (e) {
+                return sendJSON({ error: "Could not read set", details: String(e) }, 500);
+            }
+        }
+        else if (cleanPath === "/image-library/file" && method === "GET") {
+            try {
+                const dir = resolveImageLibraryDir(url.searchParams.get("set") || "");
+                const name = path.basename(url.searchParams.get("name") || "");
+                if (!dir || !name || !isLibraryImage(name)) {
+                    return sendJSON({ error: "Bad request" }, 400);
+                }
+                const filePath = path.join(dir, name);
+                if (!existsSync(filePath)) return sendJSON({ error: "Not found" }, 404);
+                const ext = path.extname(name).toLowerCase();
+                const mime = ext === ".png" ? "image/png"
+                    : ext === ".webp" ? "image/webp"
+                    : ext === ".gif" ? "image/gif" : "image/jpeg";
+                const headers = new Headers(corsHeaders);
+                headers.set("Content-Type", mime);
+                headers.set("Cache-Control", "public, max-age=3600");
+                return new Response(readFileSync(filePath), { headers });
+            } catch (e) {
+                return sendJSON({ error: "Could not read image", details: String(e) }, 500);
+            }
+        }
+        // GET /lh/formats - list the institutional-parody carousel formats
+        else if (cleanPath === "/lh/formats" && method === "GET") {
+            return sendJSON({
+                formats: Object.entries(LH_FORMATS).map(([id, f]) => ({ id, label: f.label, premise: f.premise }))
+            });
+        }
+        // POST /generate-lh-format - write copy for one parody carousel (returns render specs)
+        else if (cleanPath === "/generate-lh-format" && method === "POST") {
+            try {
+                if (!ANTHROPIC_API_KEY) throw new Error("Anthropic API Key missing");
+                const body = await req.json() as any;
+                const format = String(body?.format || '') as LhFormatId;
+                if (!LH_FORMATS[format]) {
+                    return sendJSON({ error: `Unknown format. Valid: ${Object.keys(LH_FORMATS).join(', ')}` }, 400);
+                }
+                const result = await generateLhFormatSlides({
+                    format,
+                    theme: typeof body?.theme === 'string' ? body.theme : undefined,
+                    ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!
+                });
+                return sendJSON(result);
+            } catch (e) {
+                console.error("[LH Format] Error:", e);
+                return sendJSON({ error: "LH format generation failed", details: String(e) }, 500);
+            }
+        }
+        else if (cleanPath === '/meme-assets' && method === 'GET') {
+            try { return sendJSON(await getMemeAssets()); }
+            catch { return sendJSON({ error: 'Could not scan the meme asset folder.' }, 500); }
+        }
+        else if (cleanPath === '/meme-assets/analyze' && method === 'POST') {
+            if (!ANTHROPIC_API_KEY) return sendJSON({ error: 'Anthropic API key is not configured.' }, 503);
+            try { return sendJSON(await startMemeAnalysis(ANTHROPIC_API_KEY)); }
+            catch { return sendJSON({ error: 'Could not start asset analysis.' }, 500); }
+        }
+        else if (cleanPath === '/meme-assets/labels' && method === 'POST') {
+            try {
+                const body: any = await req.json();
+                if (typeof body?.id !== 'string' || typeof body?.override !== 'string' || body.override.length > 1500) return sendJSON({ error: 'Provide an asset ID and up to 1500 characters of label corrections.' }, 400);
+                return sendJSON(await editMemeLabels(body.id, body.override));
+            } catch { return sendJSON({ error: 'Could not save label corrections.' }, 500); }
+        }
+        else if (cleanPath === '/meme-assets/select' && method === 'POST') {
+            if (!ANTHROPIC_API_KEY) return sendJSON({ error: 'Anthropic API key is not configured.' }, 503);
+            try {
+                const body: any = await req.json();
+                if (!Array.isArray(body?.slides) || body.slides.length < 1 || body.slides.length > 6 ||
+                    body.slides.some((s: any) => !s || !['hook', 'point'].includes(s.role) || ['headline', 'body', 'leftLabel', 'rightLabel'].some((k) => typeof s[k] !== 'string' || s[k].length > 3000))) return sendJSON({ error: 'Provide one to six cover/point slides.' }, 400);
+                if (body.alternative && (typeof body.alternative.id !== 'string' || !['left', 'right', 'accentLeft', 'accentRight'].includes(body.alternative.side))) return sendJSON({ error: 'Invalid alternative request.' }, 400);
+                const alreadyUsed = Array.isArray(body.alreadyUsed) ? body.alreadyUsed : [];
+                if (alreadyUsed.length > 400 || alreadyUsed.some((id: any) => typeof id !== 'string' || id.length > 64)) return sendJSON({ error: 'Invalid used-image list.' }, 400);
+                return sendJSON(await selectMemeAssets(ANTHROPIC_API_KEY, body.slides, body.alternative, alreadyUsed));
+            } catch (error) { console.error('[Meme assets]', error); return sendJSON({ error: 'Image selection failed. Check the asset analysis status and retry.' }, 500); }
+        }
+        else if (cleanPath === "/generate-meme-slideshow" && method === "POST") {
+            try {
+                const body = await req.json() as any;
+                if (!body || (body.topic !== undefined && (typeof body.topic !== 'string' || body.topic.length > 500))) {
+                    return sendJSON({ error: "Topic direction must be text of up to 500 characters." }, 400);
+                }
+                if (body.previousTopics !== undefined && (!Array.isArray(body.previousTopics) || body.previousTopics.length > 50 ||
+                    body.previousTopics.some((topic: unknown) => typeof topic !== 'string' || topic.length > 500))) {
+                    return sendJSON({ error: "Recent topics must be a list of up to 50 short titles." }, 400);
+                }
+                if ((body.theme !== undefined && (typeof body.theme !== 'string' || body.theme.length > 120)) ||
+                    (body.notes !== undefined && (typeof body.notes !== 'string' || body.notes.length > 2000))) {
+                    return sendJSON({ error: "Theme or notes exceed the allowed length." }, 400);
+                }
+                if (!ANTHROPIC_API_KEY) return sendJSON({ error: "Anthropic API key is not configured on the server." }, 503);
+                return sendJSON(await generateMemeSlideshow({
+                    topic: body.topic?.trim(), theme: body.theme, notes: body.notes, previousTopics: body.previousTopics,
+                    language: body.language, model: body.model, ANTHROPIC_API_KEY,
+                }));
+            } catch (error) {
+                console.error("[Meme Slideshow] Generation failed:", error);
+                return sendJSON({ error: "Meme slideshow generation failed. Please retry." }, 500);
+            }
+        }
+        // POST /generate-ss-topic-seeds - generate the topic list used by the legacy flow
+        else if (cleanPath === "/generate-ss-topic-seeds" && method === "POST") {
+            try {
+                if (!ANTHROPIC_API_KEY) throw new Error("Anthropic API Key missing");
+                const body = await req.json() as any;
+                const requestedModel = String(body?.model || 'claude-fable-5').trim();
+                const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(requestedModel)
+                    ? requestedModel
+                    : 'claude-fable-5';
+                const result = await generateSsTopicSeeds({
+                    model,
+                    usedSeeds: Array.isArray(body?.usedSeeds) ? body.usedSeeds : [],
+                    ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!
+                });
+                return sendJSON(result);
+            } catch (e) {
+                console.error("[SS Topic Seeds] Error:", e);
+                return sendJSON({ error: "Topic seed generation failed", details: String(e) }, 500);
+            }
+        }
+        // POST /generate-ss-slideshow - write copy for one aesthetic photo slideshow (copy only)
+        else if (cleanPath === "/generate-ss-slideshow" && method === "POST") {
+            try {
+                if (!ANTHROPIC_API_KEY) throw new Error("Anthropic API Key missing");
+                const body = await req.json() as any;
+                const requestedModel = String(body?.model || 'claude-fable-5').trim();
+                const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(requestedModel)
+                    ? requestedModel
+                    : 'claude-fable-5';
+                const result = await generateSsSlideshow({
+                    theme: typeof body?.theme === 'string' ? body.theme : undefined,
+                    language: body?.language === 'de' ? 'de' : 'en',
+                    format: ['legacy', 'simple', 'dbt', 'hacks', 'meme'].includes(String(body?.format)) ? String(body.format) : 'current',
+                    topicSeed: typeof body?.topicSeed === 'string' ? body.topicSeed : undefined,
+                    archetype: typeof body?.archetype === 'string' ? body.archetype : undefined,
+                    territory: typeof body?.territory === 'string' ? body.territory : undefined,
+                    hook: typeof body?.hook === 'string' ? body.hook : undefined,
+                    previousTexts: Array.isArray(body?.previousTexts) ? body.previousTexts : undefined,
+                    model,
+                    ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!
+                });
+                return sendJSON(result);
+            } catch (e) {
+                console.error("[SS Slideshow] Error:", e);
+                return sendJSON({ error: "Slideshow generation failed", details: String(e) }, 500);
+            }
+        }
+        // POST /generate-the-script - write copy for one "The Script" 9-slide text slideshow
+        else if (cleanPath === "/generate-the-script" && method === "POST") {
+            try {
+                if (!ANTHROPIC_API_KEY) throw new Error("Anthropic API Key missing");
+                const body = await req.json() as any;
+                const result = await generateTheScriptSlideshow({
+                    scenario: typeof body?.scenario === 'string' ? body.scenario : undefined,
+                    pov: typeof body?.pov === 'string' ? body.pov : undefined,
+                    tone: typeof body?.tone === 'string' ? body.tone : undefined,
+                    theme: typeof body?.theme === 'string' ? body.theme : undefined,
+                    language: typeof body?.language === 'string' ? body.language : undefined,
+                    ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!
+                });
+                return sendJSON(result);
+            } catch (e) {
+                console.error("[The Script] Error:", e);
+                return sendJSON({ error: "The Script generation failed", details: String(e) }, 500);
+            }
+        }
+        // GET /ss/formats - list batch slideshow formats
+        else if (cleanPath === "/ss/formats" && method === "GET") {
+            return sendJSON({
+                formats: Object.entries(SS_FORMATS).map(([id, f]) => ({ id, label: f.label, premise: f.premise }))
+            });
+        }
+        // POST /generate-ss-batch - generate N complete post bundles (images + texts + funnel)
+        else if (cleanPath === "/generate-ss-batch" && method === "POST") {
+            try {
+                if (!ANTHROPIC_API_KEY) throw new Error("Anthropic API Key missing");
+                const body = await req.json() as any;
+                const result = await generateSsBatch({
+                    count: typeof body?.count === 'number' ? body.count : 5,
+                    theme: typeof body?.theme === 'string' ? body.theme : undefined,
+                    formats: Array.isArray(body?.formats) ? body.formats as SsFormatId[] : undefined,
+                    accountId: typeof body?.account === 'string' ? body.account : undefined,
+                    ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!
+                });
+                return sendJSON(result);
+            } catch (e) {
+                console.error("[SS Batch] Error:", e);
+                return sendJSON({ error: "Batch generation failed", details: String(e) }, 500);
+            }
+        }
+        else if (cleanPath === "/generate-stickers" && method === "POST") {
+            if (!OPENAI_API_KEY) {
+                return sendJSON({ error: "OpenAI API Key not configured" }, 500);
+            }
+            try {
+                const body = await req.json() as any;
+                const rawStickers = Array.isArray(body?.stickers) ? body.stickers : [];
+
+                const stickerJobs = rawStickers
+                    .map((st: any, orderIndex: number) => ({
+                        prompt: String(st?.prompt || st?.description || "").trim(),
+                        slot: String(st?.slot || "center").trim().toLowerCase(),
+                        slideIndex: Number.isInteger(st?.slideIndex) ? st.slideIndex : null,
+                        orderIndex
+                    }))
+                    .filter((st: { prompt: string }) => st.prompt.length > 0)
+                    .slice(0, 24);
+
+                if (stickerJobs.length === 0) {
+                    return sendJSON({ error: "stickers array with at least one prompt is required" }, 400);
+                }
+
+                const STICKER_STYLE_SUFFIX = "Cute kawaii sticker illustration in a soft 3D clay render style, pastel colors, rounded friendly shapes, smooth gradients, gentle shading, cozy gen-z aesthetic. Isolated die-cut sticker, single subject, clean crisp edges, no text, no letters, no logos, no background, no ground shadow, centered composition with margin around the subject.";
+
+                console.log(`[Stickers] Generating ${stickerJobs.length} transparent sticker(s)...`);
+
+                const results: Array<{ orderIndex: number; slot: string; slideIndex: number | null; success: boolean; image?: any; error?: string }> = [];
+                let nextIndex = 0;
+                const workerCount = Math.min(IMAGE_GEN_CONCURRENCY, stickerJobs.length);
+                const workers = Array.from({ length: workerCount }, async () => {
+                    while (true) {
+                        const current = nextIndex++;
+                        if (current >= stickerJobs.length) break;
+                        const job = stickerJobs[current];
+                        if (!job) continue;
+
+                        const result = await generateImage(
+                            `${job.prompt}. ${STICKER_STYLE_SUFFIX}`,
+                            OPENAI_API_KEY!,
+                            { aspectRatio: "1:1", imageSize: "1K", background: "transparent", model: "gpt-image-1" }
+                        );
+
+                        results.push({
+                            orderIndex: job.orderIndex,
+                            slot: job.slot,
+                            slideIndex: job.slideIndex,
+                            success: result.success,
+                            image: result.success ? result.images?.[0] : undefined,
+                            error: result.success ? undefined : (result.error || "Sticker generation failed")
+                        });
+                    }
+                });
+                await Promise.all(workers);
+
+                results.sort((a, b) => a.orderIndex - b.orderIndex);
+                return sendJSON({ results });
+            } catch (e) {
+                console.error("[Stickers] Error:", e);
+                return sendJSON({ error: "Sticker generation failed", details: String(e) }, 500);
+            }
+        }
         else if (cleanPath === "/generate-ai-images" && method === "POST") {
             if (!OPENAI_API_KEY) {
                 return sendJSON({ error: "OpenAI API Key not configured" }, 500);
             } else {
                 try {
                     const body = await req.json() as any;
-                    const { imagePrompts, character_id, service, brandingMode, referenceImages = [], flow } = body;
+                    const { imagePrompts, character_id, service, brandingMode, referenceImages = [], flow, storyAiFlow } = body;
                     const effectiveFlow = service === 'dbt' ? (flow || 'weird_hack') : flow;
 
                     if (!imagePrompts) {
@@ -2471,11 +3210,15 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                 let finalReferences = [...baseReferences];
                                 const usesLegacyDbtFixedReferences =
                                     service === 'dbt' &&
+                                    !storyAiFlow &&
                                     effectiveFlow !== 'i_say_they_say' &&
-                                    effectiveFlow !== 'weird_hack_v2';
+                                    effectiveFlow !== 'weird_hack_v2' &&
+                                    effectiveFlow !== 'permission_v1';
 
                                 if (service === 'dbt' && effectiveFlow === 'weird_hack_v2') {
                                     finalPrompt = buildWeirdHackV2NanoBananaPrompt(finalPrompt);
+                                } else if (service === 'dbt' && effectiveFlow === 'permission_v1' && item.index >= 1 && item.index <= 6) {
+                                    finalPrompt = buildPermissionV1NanoBananaPrompt(finalPrompt);
                                 }
 
                                 if (service === 'dbt' && effectiveFlow === 'i_say_they_say') {
@@ -2486,6 +3229,28 @@ Output ONLY the JSON object.No markdown, no explanation.`
                                     if (iFeelReference.length > 0) {
                                         finalReferences.push(...iFeelReference);
                                     }
+                                }
+
+                                if (service === 'dbt' && effectiveFlow === 'permission_v1') {
+                                    const slideNumber = item.index + 1;
+                                    const permissionV1References = getDbtPermissionV1SlideReferences(character_id, slideNumber);
+                                    if (permissionV1References.length > 0) {
+                                        finalReferences.push(...permissionV1References);
+                                        console.log(`[Carousel Images] Added ${permissionV1References.length} permission_v1 reference(s) for DBT slide ${slideNumber}`);
+                                    }
+                                }
+
+                                if (service === 'dbt' && storyAiFlow) {
+                                    finalPrompt += `\n\nSTORY AI COUPLE FLOW:
+- Use the provided Slide 1 reference image as the identity anchor for the couple.
+- Generate a new candid photo of the same couple in the requested setting, not a remake of Slide 1.
+- Keep the couple believable and consistent: same apparent ages, faces when visible, hair, skin tone, body types, and style.
+- Do not preserve the exact outfits by default. Use natural casual outfit changes that fit the new setting, weather, and time of day.
+- Reuse the same outfits only when the new image plausibly belongs to the same outing or location as Slide 1, such as another beach/date/trip photo.
+- If the prompt asks for a selfie, make it an actual casual couple selfie taken by one partner at arm length, with natural phone-camera distortion and imperfect framing.
+- It is acceptable for the couple to be seen from behind, as silhouettes, partially hidden, or from far away.
+- Keep it spontaneous, imperfect, vertical 9:16 iPhone relationship-photo aesthetic.
+- Do not add readable text, logos, extra people, studio lighting, fantasy scenes, or influencer-style posing.`;
                                 }
 
                                 if (usesLegacyDbtFixedReferences && item.index === 0) {
@@ -2678,7 +3443,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
             } else {
                 try {
                     const body = await req.json() as any;
-                    const { prompt, referenceImages = [], slideIndex = 0, service, slideText = '', brandingMode, character_id, flow } = body;
+                    const { prompt, referenceImages = [], slideIndex = 0, service, slideText = '', brandingMode, character_id, flow, storyAiFlow } = body;
 
                     if (!prompt) {
                         return sendJSON({ error: "Prompt is required" }, 400);
@@ -2704,17 +3469,43 @@ Output ONLY the JSON object.No markdown, no explanation.`
                         const effectiveFlow = service === 'dbt' ? (flow || "weird_hack") : flow;
                         if (service === 'dbt' && effectiveFlow === 'weird_hack_v2') {
                             flatPrompt = buildWeirdHackV2NanoBananaPrompt(flatPrompt);
+                        } else if (service === 'dbt' && effectiveFlow === 'permission_v1' && slideIndex >= 1 && slideIndex <= 6) {
+                            flatPrompt = buildPermissionV1NanoBananaPrompt(flatPrompt);
                         }
                         const usesLegacyDbtFixedReferences =
                             service === 'dbt' &&
+                            !storyAiFlow &&
                             effectiveFlow !== 'i_say_they_say' &&
-                            effectiveFlow !== 'weird_hack_v2';
+                            effectiveFlow !== 'weird_hack_v2' &&
+                            effectiveFlow !== 'permission_v1';
 
                         if (service === 'dbt' && effectiveFlow === 'i_say_they_say') {
                             const iFeelReference = getDbtSlide1References(character_id, effectiveFlow);
                             if (iFeelReference.length > 0) {
                                 finalReferences.push(...iFeelReference);
                             }
+                        }
+
+                        if (service === 'dbt' && effectiveFlow === 'permission_v1') {
+                            const slideNumber = slideIndex + 1;
+                            const permissionV1References = getDbtPermissionV1SlideReferences(character_id, slideNumber);
+                            if (permissionV1References.length > 0) {
+                                finalReferences.push(...permissionV1References);
+                                console.log(`[Image Gen] Added ${permissionV1References.length} permission_v1 reference(s) for DBT slide ${slideNumber}`);
+                            }
+                        }
+
+                        if (service === 'dbt' && storyAiFlow) {
+                            flatPrompt += `\n\nSTORY AI COUPLE FLOW:
+- Use the provided Slide 1 reference image as the identity anchor for the couple.
+- Generate a new candid photo of the same couple in the requested setting, not a remake of Slide 1.
+- Keep the couple believable and consistent: same apparent ages, faces when visible, hair, skin tone, body types, and style.
+- Do not preserve the exact outfits by default. Use natural casual outfit changes that fit the new setting, weather, and time of day.
+- Reuse the same outfits only when the new image plausibly belongs to the same outing or location as Slide 1, such as another beach/date/trip photo.
+- If the prompt asks for a selfie, make it an actual casual couple selfie taken by one partner at arm length, with natural phone-camera distortion and imperfect framing.
+- It is acceptable for the couple to be seen from behind, as silhouettes, partially hidden, or from far away.
+- Keep it spontaneous, imperfect, vertical 9:16 iPhone relationship-photo aesthetic.
+- Do not add readable text, logos, extra people, studio lighting, fantasy scenes, or influencer-style posing.`;
                         }
 
                         if (usesLegacyDbtFixedReferences && slideIndex === 0) {

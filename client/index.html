@@ -5,10 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TikTok Slide Creator</title>
-    <link rel="stylesheet" href="styles.css?v=20260421a">
+    <link rel="stylesheet" href="styles.css?v=20260827d">
 </head>
 
-<body>
+<body data-service="dbt">
     <div class="app-container">
         <header class="header">
             <div class="logo">
@@ -19,10 +19,109 @@
             <div class="service-switcher">
                 <button class="service-btn active" data-service="dbt">DBT-Mind</button>
                 <button class="service-btn" data-service="syp">SaveYourPet</button>
+                <button class="service-btn service-btn-lh" data-service="lh">Little Habits</button>
+                <button class="service-btn service-btn-ss" data-service="ss">Slideshows</button>
+                <button class="service-btn" data-service="meme">Meme Slides</button>
+                <button class="service-btn service-btn-ts" data-service="the_script">The Script</button>
+                <button class="service-btn service-btn-stickman" data-service="stickman">Stickman</button>
             </div>
         </header>
 
         <main class="main-content">
+            <div id="panel-meme" class="service-panel">
+                <section class="panel-section meme-workspace">
+                    <h2>Meme Slides</h2>
+                    <p class="section-hint">Generate the copy, then arrange your cats on white slides. Cover + five comparisons + the app slide, exported at 1080 × 1350.</p>
+                    <div class="meme-settings">
+                        <label>Character theme<input id="meme-theme" class="text-input" maxlength="120" value="bpd cat" placeholder="e.g. bpd cat"></label>
+                        <label>Language<select id="meme-language" class="select-input"><option value="en">English</option><option value="de">German</option></select></label>
+                        <label>Text model<select id="meme-model" class="select-input"><option value="claude-sonnet-4-6">Claude Sonnet 4.6</option><option value="claude-fable-5">Claude Fable 5</option><option value="claude-opus-5">Claude Opus 5</option><option value="claude-opus-4-8">Claude Opus 4.8</option></select></label>
+                        <label class="meme-wide">Creative direction (optional)<textarea id="meme-notes" class="prompt-textarea" rows="2" maxlength="2000" placeholder="Leave blank for a fresh AI topic, or describe a direction to explore"></textarea></label>
+                    </div>
+                    <div class="meme-actions">
+                        <button id="meme-generate" type="button" class="btn btn-primary">Generate slide text</button>
+                        <button id="meme-example" type="button" class="btn btn-secondary">Load approved example</button>
+                        <button id="meme-copy" type="button" class="btn btn-secondary" disabled>Copy all text</button>
+                        <button id="meme-export" type="button" class="btn btn-secondary" disabled>Export JSON</button>
+                        <label class="meme-auto-choice"><input id="meme-auto-art" type="checkbox" checked>Auto-place images after generation</label>
+                    </div>
+                    <p id="meme-status" role="status" aria-live="polite"></p>
+                    <div id="meme-meta-group" hidden style="margin-top: 12px;">
+                        <h3 style="margin: 0 0 8px;">TikTok metadata</h3>
+                        <div class="input-group">
+                            <label class="ss-label" for="meme-title">Title (max 8 words, paste as the post text)</label>
+                            <input id="meme-title" type="text" class="text-input" placeholder="lowercase, in the account's voice">
+                        </div>
+                        <div class="input-group" style="margin-top: 10px;">
+                            <label class="ss-label" for="meme-description">Description (goes in front of the hashtags)</label>
+                            <textarea id="meme-description" class="text-input" rows="2"
+                                placeholder="Two sentences, no emojis."></textarea>
+                        </div>
+                        <div class="input-group" style="margin-top: 10px;">
+                            <label class="ss-label" for="meme-hashtags">Hashtags</label>
+                            <input id="meme-hashtags" type="text" class="text-input" placeholder="#bpd #dbt ...">
+                        </div>
+                        <div class="meme-actions" style="margin-top: 10px;">
+                            <button id="meme-copy-meta" type="button" class="btn btn-secondary">Copy description + hashtags</button>
+                        </div>
+                    </div>
+                    <div class="input-group" id="meme-description-group" hidden style="margin-top: 12px;">
+                        <label class="ss-label" for="meme-description">Description (goes in front of the hashtags)</label>
+                        <textarea id="meme-description" class="text-input" rows="2"
+                            placeholder="Two sentences, no emojis."></textarea>
+                    </div>
+                    <section id="meme-artwork" hidden aria-label="Meme slide image editor">
+                        <h3>Slide images</h3>
+                        <div class="meme-actions">
+                            <button id="meme-art-analyze" type="button" class="btn btn-secondary">Analyze new assets</button>
+                            <button id="meme-art-arrange" type="button" class="btn btn-primary">AI arrange carousel</button>
+                        </div>
+                        <div id="meme-art-nav" class="meme-actions" aria-label="Choose a slide"></div>
+                        <div class="meme-art-layout">
+                            <div>
+                                <canvas id="meme-art-canvas" width="1080" height="1350" tabindex="0" aria-label="Slide canvas. Drag objects to move them. Select an object to resize or rotate it using the controls."></canvas>
+                                <p class="section-hint">Drag to move. Drag the round handle to rotate images; the square handle resizes them. Arrow keys nudge the selected object.</p>
+                                <div class="meme-actions">
+                                    <button id="meme-art-png" type="button" class="btn btn-primary">Download this PNG</button>
+                                    <button id="meme-art-zip" type="button" class="btn btn-secondary">Download all slides (.zip)</button>
+                                </div>
+                            </div>
+                            <aside class="meme-art-tools">
+                                <label>Selected object<select id="meme-art-selection"></select></label>
+                                <div class="meme-settings">
+                                    <label>X position<input id="meme-art-x" type="number" step="1"></label>
+                                    <label>Y position<input id="meme-art-y" type="number" step="1"></label>
+                                    <label>Image width<input id="meme-art-size" type="range" min="60" max="1400" step="1"></label>
+                                    <label>Rotation <span id="meme-art-angle-value">0°</span><input id="meme-art-angle" type="range" min="-180" max="180" step="1"></label>
+                                </div>
+                                <div class="meme-actions">
+                                    <button id="meme-art-arrange-slide" type="button" class="btn btn-primary">AI images for this slide</button>
+                                    <button id="meme-art-reset-one" type="button" class="btn btn-secondary">Reset selected position</button>
+                                    <button id="meme-art-reset-text" type="button" class="btn btn-secondary">Reset all text</button>
+                                    <button id="meme-art-front" type="button" class="btn btn-secondary">Bring image forward</button>
+                                    <button id="meme-art-back" type="button" class="btn btn-secondary">Send image backward</button>
+                                    <button id="meme-art-remove" type="button" class="btn btn-secondary">Remove image</button>
+                                    <button id="meme-art-gauges" type="button" class="btn btn-secondary">Restore BPD gauges</button>
+                                    <button id="meme-art-swap" type="button" class="btn btn-secondary">Swap high / low</button>
+                                    <button id="meme-art-alternatives" type="button" class="btn btn-secondary" disabled>Suggest alternatives</button>
+                                </div>
+                                <div id="meme-art-suggestions" class="meme-alternatives"></div>
+                                <details id="meme-art-label-panel">
+                                    <summary>Selected image labels</summary>
+                                    <p id="meme-art-label-description"></p>
+                                    <label>Correct or add context<textarea id="meme-art-label-edit" rows="3" maxlength="1500" placeholder="Describe the joke, mood, or situations this image fits"></textarea></label>
+                                    <button id="meme-art-label-save" type="button" class="btn btn-secondary">Save label corrections</button>
+                                </details>
+                                <h4>Cat library</h4>
+                                <label>Find a cat<input id="meme-art-search" type="search" placeholder="Search expressions or names"></label>
+                                <div id="meme-art-library" class="meme-cat-library"></div>
+                                <p id="meme-art-status" role="status" aria-live="polite"></p>
+                            </aside>
+                        </div>
+                    </section>
+                    <div id="meme-slides"><p class="section-hint">Generate a fresh AI topic and seven slides, or load the approved example to start editing.</p></div>
+                </section>
+            </div>
             <!-- Left Panel: Controls -->
             <div id="panel-dbt" class="service-panel active">
                 <aside class="control-panel">
@@ -39,13 +138,34 @@
                                     type</label>
                                 <select id="dbt-slide-type-select" class="select-input"
                                     style="width: 100%; border-radius: 6px; padding: 8px;">
-                                    <option value="weird_hack">Weird Hack</option>
-                                    <option value="weird_hack_v2">Weird Hack V2</option>
+                                    <option value="weird_hack_v2" selected>Weird Hack V2</option>
+                                    <option value="vent_now_style">Vent Now Style</option>
                                     <option value="permission_v1">Permission V1</option>
-                                    <option value="three_tips">3 Tips</option>
                                     <option value="story_telling_bf">Story Telling BF</option>
                                     <option value="story_telling_gf">Story Telling GF</option>
-                                    <option value="i_say_they_say">I Say/They Say</option>
+                                    <option value="story_telling_gf_v2">Story Telling GF v2 (Love Story)</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group" style="margin-bottom: 12px;">
+                                <label for="dbt-model-select"
+                                    style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Text
+                                    model</label>
+                                <select id="dbt-model-select" class="select-input"
+                                    style="width: 100%; border-radius: 6px; padding: 8px;">
+                                    <option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6</option>
+                                    <option value="k3">Kimi Code K3</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group" style="margin-bottom: 12px;">
+                                <label for="dbt-language-select"
+                                    style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; display: block;">Slide
+                                    language <span style="opacity: 0.6;">(Weird Hack V2 &amp; Story Telling)</span></label>
+                                <select id="dbt-language-select" class="select-input"
+                                    style="width: 100%; border-radius: 6px; padding: 8px;">
+                                    <option value="en" selected>🇺🇸 English</option>
+                                    <option value="de">🇩🇪 Deutsch</option>
                                 </select>
                             </div>
 
@@ -56,7 +176,7 @@
                                 <select id="dbt-text-style-select" class="select-input"
                                     style="width: 100%; border-radius: 6px; padding: 8px;">
                                     <option value="boxed">Current text styling</option>
-                                    <option value="tiktok_caption">TikTok font outline</option>
+                                    <option value="tiktok_caption">TikTok font</option>
                                 </select>
                             </div>
 
@@ -90,7 +210,6 @@
                                 <select id="character-preset-step1" class="select-input"
                                     style="width: 100%; border-radius: 6px; padding: 8px;">
                                     <option value="hannahbpd">hannahbpd</option>
-                                    <option value="brendabpd">brendabpd (iPhone)</option>
                                     <option value="kendra">Kendra</option>
                                 </select>
                             </div>
@@ -106,6 +225,21 @@
                                     <option value="hook_image_person_cat">Person + Cat</option>
                                     <option value="hook_image_waist_straps">Waist Straps</option>
                                 </select>
+                            </div>
+
+                            <label for="dbt-story-ai-flow" class="testing-toggle" id="dbt-story-ai-flow-toggle"
+                                style="display: none;">
+                                <input type="checkbox" id="dbt-story-ai-flow">
+                                <span>Use AI flow</span>
+                            </label>
+
+                            <div id="dbt-story-ai-flow-panel" class="story-ai-flow-panel" style="display: none;">
+                                <div class="story-ai-flow-preview" id="dbt-story-ai-slide1-preview">
+                                    <span>No Slide 1 couple image set</span>
+                                </div>
+                                <button class="btn btn-secondary full-width" id="dbt-story-ai-slide1-upload-btn"
+                                    type="button">Set Slide 1 Couple Image</button>
+                                <input type="file" id="dbt-story-ai-slide1-file-input" accept="image/*" hidden>
                             </div>
 
                             <label for="dbt-text-only-mode" class="testing-toggle">
@@ -197,7 +331,6 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                 <label for="character-preset">Character</label>
                                 <select id="character-preset" class="select-input" style="width: 100%;">
                                     <option value="hannahbpd">hannahbpd</option>
-                                    <option value="brendabpd">brendabpd (iPhone)</option>
                                     <option value="kendra">Kendra</option>
                                 </select>
                                 <p class="character-template-hint">Nur Slide 1 und Slide 6 wechseln je Character. Text und Struktur bleiben gleich.</p>
@@ -211,16 +344,14 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                     <option value="hook_image_person_cat">Person + Cat</option>
                                     <option value="hook_image_waist_straps">Waist Straps</option>
                                 </select>
-                                <p class="character-template-hint">Works for hannahbpd and brendabpd. Kendra keeps the existing Slide 1 setup.</p>
+                                <p class="character-template-hint">Works for hannahbpd. Kendra keeps the existing Slide 1 setup.</p>
                             </div>
                             <div class="input-group" style="margin-bottom: 12px;">
                                 <label for="flow-select">Flow</label>
                                 <select id="flow-select" class="select-input" style="width: 100%;">
-                                    <option value="weird_hack">Weird Hack Flow</option>
-                                    <option value="weird_hack_v2">Weird Hack V2 Flow</option>
+                                    <option value="weird_hack_v2" selected>Weird Hack V2 Flow</option>
+                                    <option value="vent_now_style">Vent Now Style Flow</option>
                                     <option value="permission_v1">Permission V1 Flow</option>
-                                    <option value="three_tips">3 Tips Flow</option>
-                                    <option value="i_say_they_say">I Say/They Say Flow</option>
                                 </select>
                             </div>
                             <div class="character-action-row" style="display: flex; gap: 8px; margin-bottom: 12px;">
@@ -244,6 +375,131 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
 
                         <div id="image-prompts-section" style="display: none; margin-top: 16px;">
                             <div id="image-prompts-container" class="image-prompts-container"></div>
+                        </div>
+                    </section>
+
+                    <!-- DBT-MIND IMAGE PROMPT GENERATOR -->
+                    <section class="panel-section step-container dbt-carousel-prompt-section" id="dbt-carousel-prompt-generator">
+                        <div class="step-badge">PROMPTS</div>
+                        <h2>DBT Carousel Image Prompts</h2>
+                        <p class="section-hint">Generate reusable 3:4 image prompts only. No images are generated here.</p>
+
+                        <div class="dbt-carousel-controls">
+                            <div class="input-group">
+                                <label for="dbt-carousel-topic-input">Carousel topic</label>
+                                <input id="dbt-carousel-topic-input" class="text-input" type="text" placeholder="BPD vs ADHD">
+                            </div>
+
+                            <div class="dbt-carousel-text-generator">
+                                <div class="input-row">
+                                    <div class="input-group">
+                                        <label for="dbt-carousel-angle-input">Angle</label>
+                                        <input id="dbt-carousel-angle-input" class="text-input" type="text" placeholder="comparison">
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="dbt-carousel-slide-count-input">Slides</label>
+                                        <input id="dbt-carousel-slide-count-input" class="text-input" type="number" min="1" max="8" value="8">
+                                    </div>
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="dbt-carousel-audience-input">Target audience</label>
+                                    <textarea id="dbt-carousel-audience-input" class="text-input dbt-carousel-mini-textarea">People who struggle with intense emotions, BPD traits, emotional dysregulation, or are learning DBT.</textarea>
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="dbt-carousel-tone-input">Tone</label>
+                                    <input id="dbt-carousel-tone-input" class="text-input" type="text" value="Soft, direct, validating, simple, TikTok-native.">
+                                </div>
+
+                                <label for="dbt-carousel-allow-emojis" class="testing-toggle dbt-carousel-toggle">
+                                    <input type="checkbox" id="dbt-carousel-allow-emojis">
+                                    <span>Allow emojis in generated slide text</span>
+                                </label>
+
+                                <button class="btn btn-primary full-width" id="generate-dbt-carousel-text-btn" type="button">
+                                    <span>Generate Carousel Text</span>
+                                </button>
+                            </div>
+
+                            <div id="dbt-carousel-text-output" class="dbt-carousel-text-output" style="display: none;">
+                                <div class="prompt-header">
+                                    <span class="prompt-number">Generated Slide Text</span>
+                                    <div class="prompt-actions" style="display: flex; gap: 4px;">
+                                        <button class="btn btn-sm btn-secondary" id="copy-dbt-carousel-json-btn" type="button">Copy JSON</button>
+                                        <button class="btn btn-sm btn-secondary" id="copy-dbt-carousel-preview-btn" type="button">Copy Preview</button>
+                                        <button class="btn btn-sm btn-primary" id="use-dbt-carousel-text-btn" type="button">Use Below</button>
+                                    </div>
+                                </div>
+                                <pre id="dbt-carousel-json-output" class="dbt-carousel-json-output"></pre>
+                                <textarea id="dbt-carousel-preview-output" class="prompt-textarea dbt-carousel-preview-output" readonly></textarea>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="dbt-carousel-slides-input">Slide list / slide content</label>
+                                <textarea id="dbt-carousel-slides-input" class="text-input dbt-carousel-slides-input" placeholder="Slide 1: BPD vs ADHD - same outside. different inside.
+Slide 2: why they get confused - from the outside, both can look like emotional chaos.
+Slide 3: BPD is often about attachment threat
+Slide 4: ADHD is often about attention regulation
+Slide 5: same behavior, different reason
+Slide 6: what helps"></textarea>
+                            </div>
+
+                            <div class="input-row">
+                                <div class="input-group">
+                                    <label for="dbt-carousel-handle-input">Brand handle</label>
+                                    <input id="dbt-carousel-handle-input" class="text-input" type="text" value="@dbt_mind">
+                                </div>
+                                <div class="input-group">
+                                    <label for="dbt-carousel-copy-mode">Output</label>
+                                    <select id="dbt-carousel-copy-mode" class="select-input">
+                                        <option value="full" selected>Full prompts</option>
+                                        <option value="compact">Compact prompts</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <details class="dbt-carousel-advanced">
+                                <summary>Optional style overrides</summary>
+                                <div class="input-group">
+                                    <label for="dbt-carousel-palette-input">Color palette</label>
+                                    <textarea id="dbt-carousel-palette-input" class="text-input dbt-carousel-small-textarea">Brand accent / character hair / tiny decorative accents: #FF9E69
+BPD color: #D85A5A
+ADHD color: #0E6473
+Main text: #1F1F1F
+Background: warm ivory / soft off-white</textarea>
+                                </div>
+                                <div class="input-group">
+                                    <label for="dbt-carousel-character-input">Character style</label>
+                                    <textarea id="dbt-carousel-character-input" class="text-input dbt-carousel-small-textarea">A small iconic doodle character with:
+- small rounded white marshmallow-like body
+- oversized rounded head shape
+- fluffy wavy hair in #FF9E69, shaped like soft cloud petals
+- tiny black dot eyes
+- small worried or thoughtful mouth
+- soft pink cheeks
+- minimal rounded hands and feet
+- gentle vulnerable expression
+- clean polished hand-drawn vector illustration
+- smooth outlines
+- cute but not childish
+- no animal features
+- no fantasy pet feeling
+- no horns, ears, tail, wings, costume, or mascot-like gimmick</textarea>
+                                </div>
+                            </details>
+
+                            <button class="btn btn-accent full-width" id="generate-dbt-carousel-prompts-btn" type="button">
+                                <span>Create DBT Image Prompts</span>
+                            </button>
+                        </div>
+
+                        <div id="dbt-carousel-warnings" class="dbt-carousel-warnings" style="display: none;"></div>
+                        <div id="dbt-carousel-prompts-section" style="display: none; margin-top: 16px;">
+                            <div class="dbt-carousel-output-actions">
+                                <button class="btn btn-secondary btn-sm" id="copy-all-dbt-carousel-prompts-btn" type="button">Copy All Prompts</button>
+                            </div>
+                            <div id="dbt-carousel-prompts-container" class="image-prompts-container"></div>
                         </div>
                     </section>
 
@@ -383,8 +639,8 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                 <div class="style-grid">
                                     <div class="input-group">
                                         <label>Size <span id="font-size-value"
-                                                style="color: var(--accent-cyan); font-weight: 600;">28px</span></label>
-                                        <input type="range" id="font-size" min="12" max="72" value="28">
+                                                style="color: var(--accent-cyan); font-weight: 600;">26px</span></label>
+                                        <input type="range" id="font-size" min="12" max="72" value="26">
                                     </div>
                                     <div class="input-group">
                                         <label>Width <span id="text-width-value"
@@ -396,12 +652,27 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                                 style="color: var(--accent-cyan); font-weight: 600;">0%</span></label>
                                         <input type="range" id="dark-overlay" min="0" max="80" value="0">
                                     </div>
+                                    <div class="input-group">
+                                        <label for="text-font-family">Font</label>
+                                        <select id="text-font-family" class="select-input" style="width: 100%;">
+                                            <option value="TikTok Sans" selected>TikTok Sans</option>
+                                            <option value="Arial">Arial</option>
+                                            <option value="Impact">Impact</option>
+                                            <option value="Georgia">Georgia</option>
+                                            <option value="Courier New">Courier New</option>
+                                            <option value="Trebuchet MS">Trebuchet MS</option>
+                                        </select>
+                                    </div>
                                     <div class="input-row">
                                         <div class="input-group"><label>Text</label><input type="color" id="text-color"
                                                 value="#000000"></div>
                                         <div class="input-group"><label>BG</label><input type="color" id="bg-color"
                                                 value="#ffffff"></div>
                                     </div>
+                                    <label class="testing-toggle" style="margin-bottom: 0;">
+                                        <input type="checkbox" id="text-outline-toggle" checked>
+                                        <span>Text outline / outer border</span>
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -766,12 +1037,27 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                                 style="color: var(--accent-cyan); font-weight: 600;">0%</span></label>
                                         <input type="range" id="dark-overlay_syp" min="0" max="80" value="0">
                                     </div>
+                                    <div class="input-group">
+                                        <label for="text-font-family_syp">Font</label>
+                                        <select id="text-font-family_syp" class="select-input" style="width: 100%;">
+                                            <option value="TikTok Sans" selected>TikTok Sans</option>
+                                            <option value="Arial">Arial</option>
+                                            <option value="Impact">Impact</option>
+                                            <option value="Georgia">Georgia</option>
+                                            <option value="Courier New">Courier New</option>
+                                            <option value="Trebuchet MS">Trebuchet MS</option>
+                                        </select>
+                                    </div>
                                     <div class="input-row">
                                         <div class="input-group"><label>Text</label><input type="color"
                                                 id="text-color_syp" value="#000000"></div>
                                         <div class="input-group"><label>BG</label><input type="color" id="bg-color_syp"
                                                 value="#ffffff"></div>
                                     </div>
+                                    <label class="testing-toggle" style="margin-bottom: 0;">
+                                        <input type="checkbox" id="text-outline-toggle_syp" checked>
+                                        <span>Text outline / outer border</span>
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -789,6 +1075,727 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                     </section>
                 </aside>
             </div>
+
+            <div id="panel-lh" class="service-panel">
+                <aside class="control-panel lh-panel">
+                    <!-- STEP 1: TOPIC & GENERATE -->
+                    <section class="panel-section step-container lh-step">
+                        <div class="step-badge lh-step-badge">STEP 1</div>
+                        <h2 class="lh-heading">Pick a format &amp; generate</h2>
+                        <p class="lh-hint">Every carousel uses a recognisable UGC format. For now, generation
+                            creates text-only slides; real-person images can be added later. 7 slides, one
+                            in-character DBT-Mind mention, no image costs.</p>
+
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <label for="lh-format-select" class="lh-label">Format</label>
+                            <select id="lh-format-select" class="select-input lh-select">
+                                <option value="random">🎲 Random format</option>
+                                <option value="yelp">⭐ Yelp reviews</option>
+                                <option value="wrapped" disabled>📊 Spotify Wrapped (paused)</option>
+                                <option value="ikea" disabled>🔧 IKEA instructions (paused)</option>
+                                <option value="naturedoc" disabled>🎥 David Attenborough documentary (paused)</option>
+                                <option value="screentime">📉 iPhone Screen Time</option>
+                                <option value="dating">💘 Hinge profile</option>
+                                <option value="delivery" disabled>🛵 DoorDash tracking (paused)</option>
+                                <option value="closefriends">🟢 Instagram Close Friends story</option>
+                                <option value="imessage">💬 iMessage / DMs</option>
+                                <option value="grwm">💄 GRWM</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group" style="margin-bottom: 14px;">
+                            <label for="lh-theme-input" class="lh-label">Angle <span
+                                    style="opacity:.6">(optional)</span></label>
+                            <input type="text" id="lh-theme-input" class="text-input lh-select"
+                                placeholder="e.g. FP spirals, 3am overthinking, post-argument shame">
+                        </div>
+
+                        <button class="btn lh-btn-primary full-width" id="lh-generate-btn">
+                            <span>✨ Generate Carousel</span>
+                        </button>
+
+                        <p class="lh-hint" style="margin-top: 10px;">Text generation only (Sonnet) — the slides are
+                            placed directly on clean text slides, so nothing here costs image credits.</p>
+                    </section>
+
+                    <!-- Legacy sticker generation retired while the UGC image layer is being built. -->
+                    <section class="panel-section step-container lh-step" style="display: none;">
+                        <div class="step-badge lh-step-badge">LEGACY</div>
+                        <h2 class="lh-heading">"Little things…" sticker carousel</h2>
+                        <p class="lh-hint">The original white-background format with AI sticker cutouts. Uses the old
+                            topic list and costs image credits when stickers are generated for real.</p>
+
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <label for="lh-topic-select" class="lh-label">Topic</label>
+                            <select id="lh-topic-select" class="select-input lh-select">
+                                <option value="random">🎲 Random (Viral Mix)</option>
+                                <option value="FP Dynamics">🤝 FP Dynamics</option>
+                                <option value="Splitting">🌓 Splitting</option>
+                                <option value="Abandonment Panic">🏃 Abandonment Panic</option>
+                                <option value="Relationship Cycles">🔄 Relationship Cycles</option>
+                                <option value="Quiet BPD">😷 Quiet BPD</option>
+                                <option value="Identity/Sense of Self">🪞 Identity/Sense of Self</option>
+                                <option value="Emotional Dysregulation">🌋 Emotional Dysregulation</option>
+                                <option value="Reframes/Truths">💡 Reframes/Truths</option>
+                                <option value="DBT Skills">🛠️ DBT Skills</option>
+                                <option value="Recovery Milestones">🏆 Recovery Milestones</option>
+                                <option value="Therapy Truths">🛋️ Therapy Truths</option>
+                                <option value="Rejection Sensitivity">👂 Rejection Sensitivity</option>
+                                <option value="Digital Self-Harm">📱 Digital Self-Harm</option>
+                            </select>
+                        </div>
+
+                        <button class="btn lh-btn-secondary full-width" id="lh-legacy-generate-btn">
+                            <span>🧸 Generate sticker carousel</span>
+                        </button>
+
+                        <label for="lh-mock-mode" class="testing-toggle" style="margin-top: 10px;">
+                            <input type="checkbox" id="lh-mock-mode" checked>
+                            <span>🧪 Mock stickers (free) — no OpenAI cost while tuning the layout</span>
+                        </label>
+
+                        <label for="lh-text-only-mode" class="testing-toggle" style="margin-top: 6px;">
+                            <input type="checkbox" id="lh-text-only-mode">
+                            <span>Text only (skip sticker generation)</span>
+                        </label>
+                    </section>
+
+                    <!-- STEP 2: TEXT REVIEW -->
+                    <section class="panel-section step-container lh-step">
+                        <div class="step-badge lh-step-badge">STEP 2</div>
+                        <h2 class="lh-heading">Review &amp; edit</h2>
+                        <p class="lh-hint" style="display:none;">Click a slide to review or edit its generated text. Real-person UGC
+                            images will be added in a later step.</p>
+
+                        <p class="lh-hint">Click a slide to review or edit its generated text. Real-person UGC images
+                            will be added in a later step.</p>
+
+                        <button class="btn lh-btn-secondary full-width" id="lh-mock-stickers-btn" style="display:none;"
+                            style="margin-bottom: 8px;">
+                            <span>🧪 Fill with mock stickers (free, legacy format only)</span>
+                        </button>
+                        <button class="btn lh-btn-secondary full-width" id="lh-regen-stickers-btn" style="display:none;"
+                            style="margin-bottom: 8px;">
+                            <span>🔄 Generate missing stickers</span>
+                        </button>
+                        <button class="btn lh-btn-secondary full-width" id="lh-regen-all-stickers-btn" style="display:none;">
+                            <span>♻️ Regenerate ALL stickers</span>
+                        </button>
+                    </section>
+
+                    <!-- STEP 3: CAPTION & EXPORT -->
+                    <section class="panel-section step-container lh-step">
+                        <div class="step-badge lh-step-badge">STEP 3</div>
+                        <h2 class="lh-heading">Caption &amp; export</h2>
+                        <p class="lh-hint">Generate the TikTok title and description, then download the finished
+                            carousel.</p>
+
+                        <div id="lh-funnel-output" class="metadata-output lh-metadata-output"
+                            style="display: none; margin-bottom: 12px;">
+                            <div class="metadata-item">
+                                <label class="lh-label">Caption (points at the hidden slide)</label>
+                                <div id="lh-caption-text" class="lh-metadata-desc"></div>
+                                <button class="btn lh-btn-secondary btn-sm full-width" id="lh-copy-caption-btn"
+                                    style="margin-top: 6px;">📋 Copy caption</button>
+                            </div>
+                            <div class="metadata-item" style="margin-top: 12px;">
+                                <label class="lh-label">Pinned comment — post this yourself, immediately</label>
+                                <div id="lh-pinned-text" class="lh-metadata-desc"></div>
+                                <button class="btn lh-btn-secondary btn-sm full-width" id="lh-copy-pinned-btn"
+                                    style="margin-top: 6px;">📋 Copy pinned comment</button>
+                            </div>
+                            <p class="lh-hint" style="margin-top: 10px;">Conversions come from the comments, not the
+                                slides: pin the comment right after posting and reply to every "what app?" in the
+                                first hour.</p>
+                        </div>
+
+                        <button class="btn lh-btn-secondary full-width" id="lh-generate-metadata-btn"
+                            style="margin-bottom: 10px;">
+                            <span>📱 Generate TikTok Title &amp; Desc</span>
+                        </button>
+
+                        <div id="lh-metadata-output" class="metadata-output lh-metadata-output" style="display: none;">
+                            <div class="metadata-item">
+                                <label class="lh-label">Title (max 8 words — paste this as the TikTok post title)</label>
+                                <div id="lh-metadata-title" class="lh-metadata-title"></div>
+                            </div>
+                            <div class="metadata-item" style="margin-top: 12px;">
+                                <label class="lh-label">Hashtags</label>
+                                <div id="lh-metadata-hashtags" class="lh-metadata-desc"></div>
+                            </div>
+                            <div class="metadata-item">
+                                <label class="lh-label">Description</label>
+                                <div id="lh-metadata-desc" class="lh-metadata-desc"></div>
+                            </div>
+                            <button class="btn lh-btn-secondary btn-sm full-width" id="lh-copy-metadata-btn"
+                                style="margin-top: 10px;">📋 Copy All Metadata</button>
+                        </div>
+
+                        <button class="btn lh-btn-primary full-width" id="lh-download-all-btn"
+                            style="margin-top: 12px;">
+                            <span>📥 Download All Slides (ZIP)</span>
+                        </button>
+                    </section>
+                </aside>
+            </div>
+
+            <div id="panel-ss" class="service-panel">
+                <aside class="control-panel ss-panel">
+                    <div class="ss-workflow-nav" aria-label="Slideshow workflow">
+                        <div class="ss-workflow-title">
+                            <span class="ss-eyebrow">SLIDESHOW WORKSPACE</span>
+                            <strong>Build your post</strong>
+                        </div>
+                        <div class="ss-workflow-tabs" role="tablist">
+                            <button class="ss-workflow-tab is-active" type="button" data-ss-section="ss-create-section" role="tab" aria-selected="true">1 <span>Create</span></button>
+                            <button class="ss-workflow-tab" type="button" data-ss-section="ss-slides-section" role="tab" aria-selected="false">2 <span>Slides</span></button>
+                            <button class="ss-workflow-tab" type="button" data-ss-section="ss-publish-section" role="tab" aria-selected="false">3 <span>Publish</span></button>
+                            <button class="ss-workflow-tab" type="button" data-ss-section="ss-batch-section" role="tab" aria-selected="false">4 <span>Batch</span></button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 1: THEME & GENERATE -->
+                    <section id="ss-create-section" class="panel-section step-container ss-step ss-workflow-section is-active">
+                        <div class="step-badge ss-step-badge">STEP 1</div>
+                        <h2 class="ss-heading">Aesthetic photo slideshow</h2>
+                        <p class="ss-hint">The "5 things" list-post format for the DBT/BPD niche: dark moody
+                            Pinterest photos + white centered overlay text. 6 slides — a hook plus 5 value
+                            slides, with the app woven into step 3 in first person, styled exactly like the
+                            others. Text only — you overlay it in TikTok.</p>
+
+                        <div class="input-group ss-format-picker" style="margin-bottom: 12px;">
+                            <label for="ss-format-select" class="ss-label">Slideshow format</label>
+                            <select id="ss-format-select" class="select-input ss-select">
+                                <option value="current" selected>Current · 6 slides / 5 things</option>
+                                <option value="meme">Everyday &middot; meme-slide topics, UGC voice</option>
+                                <option value="simple">Simple · "N things I didn't know were BPD symptoms"</option>
+                                <option value="dbt">DBT · "N things I learned in DBT"</option>
+                                <option value="hacks">Weird hacks · therapist hacks + app bridge</option>
+                                <option value="legacy">Legacy · 6 slides / face hook + atmospheric photos</option>
+                            </select>
+                            <p id="ss-format-hint" class="ss-hint" style="margin: 6px 0 0;">Current format: 1 hook plus 5 numbered value slides. Photos are selected in the Slides step.</p>
+                        </div>
+
+                        <div class="input-group ss-angle-picker" id="ss-archetype-group" style="margin-bottom: 12px;">
+                            <label for="ss-archetype-select" class="ss-label">Hook archetype</label>
+                            <select id="ss-archetype-select" class="select-input ss-select">
+                                <option value="random" selected>Random (rotates every post)</option>
+                                <option value="everyday">Everyday things - objects, places, small decisions</option>
+                                <option value="confession">Confession - what still goes wrong</option>
+                                <option value="myth_bust">Myth-bust - correcting what people get wrong</option>
+                                <option value="mistakes">Mistakes - past-tense self-indictment</option>
+                                <option value="signs">Signs - oddly specific recognition</option>
+                                <option value="reframe">Reframe - not a character flaw</option>
+                                <option value="script">Script - sentences you can actually say</option>
+                                <option value="unpopular_opinion">Unpopular opinion - a take people argue with</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group ss-angle-picker" id="ss-hook-group" style="margin-bottom: 12px; display: none;">
+                            <label for="ss-hook-select" class="ss-label">Hook shape</label>
+                            <select id="ss-hook-select" class="select-input ss-select">
+                                <option value="random" selected>Random (rotates every post)</option>
+                                <option value="Object reveal">Object reveal - "N things in my kitchen that are actually my BPD"</option>
+                                <option value="Diagnosis reveal">Diagnosis reveal - "...until I was diagnosed"</option>
+                                <option value="Just my personality">Just my personality - "...it was BPD"</option>
+                                <option value="There all along">There all along - "long before my diagnosis"</option>
+                                <option value="Everyday BPD">Everyday BPD - "things I do that are actually my BPD"</option>
+                                <option value="Quirks explained">Quirks explained - "quirks that turned out to be BPD"</option>
+                                <option value="Shame lift">Shame lift - "things I blamed myself for"</option>
+                                <option value="Coping in disguise">Coping in disguise - "habits I didn't know were coping"</option>
+                                <option value="Beyond the textbook">Beyond the textbook - "nobody told me"</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group ss-angle-picker" id="ss-territory-group" style="margin-bottom: 12px; display: none;">
+                            <label for="ss-territory-select" class="ss-label">Topic territory</label>
+                            <select id="ss-territory-select" class="select-input ss-select">
+                                <option value="random" selected>Random (rotates every post)</option>
+                                <option value="Everyday objects and places">Everyday objects and places</option>
+                                <option value="Symptom reveal">Symptom reveal</option>
+                                <option value="Looking back">Looking back</option>
+                                <option value="Favorite person &amp; love">Favorite person &amp; love</option>
+                                <option value="Everyday difficulty">Everyday difficulty</option>
+                                <option value="The inner world">The inner world</option>
+                                <option value="The good side">The good side</option>
+                                <option value="What changed">What changed</option>
+                                <option value="Identity &amp; phases">Identity &amp; phases</option>
+                                <option value="Body &amp; sleep">Body &amp; sleep</option>
+                                <option value="Friendships">Friendships</option>
+                            </select>
+                        </div>
+
+                        <div id="ss-topic-seed-tools" class="input-group" style="margin-bottom: 14px; display: none;">
+                            <label class="ss-label" for="ss-topic-seed-select">Step 1: choose a topic seed</label>
+                            <button class="btn ss-btn-secondary full-width" id="ss-generate-topic-seeds-btn" type="button">
+                                Generate 30 topic ideas
+                            </button>
+                            <select id="ss-topic-seed-select" class="select-input ss-select" style="display: none;" disabled>
+                                <option value="">Generate ideas, then choose one</option>
+                            </select>
+                            <div id="ss-topic-seed-list" class="ss-topic-seed-list" style="margin-top: 8px;">
+                                <div class="ss-topic-seed-empty">Generate ideas, then choose one.</div>
+                            </div>
+                            <p id="ss-topic-seed-status" class="ss-hint" style="margin: 6px 0 0;">The selected topic will guide the legacy slideshow prompt. Seeds tagged <b style="color:#34d399">EASY</b> are the simplest tier — everyday scenes in the "5 rules for when..." shape.</p>
+                        </div>
+
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <label for="ss-theme-input" class="ss-label">Angle <span
+                                    style="opacity:.6">(optional)</span></label>
+                            <input type="text" id="ss-theme-input" class="text-input ss-select"
+                                placeholder="e.g. FP spirals, 3am overthinking, post-argument shame">
+                        </div>
+
+                        <div class="input-group" style="margin-bottom: 14px;">
+                            <label for="ss-language-select" class="ss-label">Slide language</label>
+                            <select id="ss-language-select" class="select-input ss-select">
+                                <option value="en" selected>🇺🇸 English</option>
+                                <option value="de">🇩🇪 Deutsch</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group" style="margin-bottom: 14px;">
+                            <label for="ss-model-select" class="ss-label">AI model</label>
+                            <select id="ss-model-select" class="select-input ss-select">
+                                <option value="claude-fable-5" selected>Claude Fable 5</option>
+                                <option value="claude-opus-5">Claude Opus 5</option>
+                                <option value="claude-opus-4-8">Claude Opus 4.8</option>
+                                <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                            </select>
+                        </div>
+
+                        <button class="btn ss-btn-primary full-width" id="ss-generate-btn">
+                            <span>✨ Generate Slideshow Copy</span>
+                        </button>
+
+                        <button class="btn ss-btn-secondary full-width" id="ss-open-legacy-btn" type="button" style="display: none; margin-top: 8px;">
+                            Generate legacy 6-slide slideshow
+                        </button>
+
+                        <p id="ss-generation-hint" class="ss-hint" style="margin-top: 10px;">Hook archetype and topic domain rotate
+                            automatically, so consecutive posts never land on the same format.</p>
+                    </section>
+
+                    <!-- STEP 2: SLIDE COPY -->
+                    <section id="ss-slides-section" class="panel-section step-container ss-step ss-workflow-section">
+                        <div class="step-badge ss-step-badge">STEP 2</div>
+                        <h2 class="ss-heading">Slide copy &amp; image keywords</h2>
+                        <p class="ss-hint">Paste each text as a centered white text box over a photo found with the
+                            image keywords (search them on Pinterest). Every slide gets the same treatment —
+                            including the app step, so it never reads as an ad.</p>
+
+                        <div id="ss-slides-output" style="display: none;">
+                            <div id="ss-slides-list"></div>
+                            <button class="btn ss-btn-secondary full-width" id="ss-copy-all-btn"
+                                style="margin-top: 12px;">📋 Copy all slide texts</button>
+                        </div>
+
+                        <p id="ss-slides-empty" class="ss-hint" style="margin-top: 4px;">Generate a slideshow to see
+                            the copy here.</p>
+                    </section>
+
+                    <!-- STEP 3: CAPTION & PINNED COMMENT -->
+                    <section id="ss-publish-section" class="panel-section step-container ss-step ss-workflow-section">
+                        <div class="step-badge ss-step-badge">STEP 3</div>
+                        <h2 class="ss-heading">Caption &amp; pinned comment</h2>
+                        <p class="ss-hint">Conversions come from the comments, not the slides: pin the comment right
+                            after posting and reply to every "what app?" in the first hour.</p>
+
+                        <div id="ss-funnel-output" class="ss-funnel" style="display: none;">
+                            <div class="metadata-item">
+                                <label class="ss-label">Title (max 8 words — what you type on TikTok)</label>
+                                <div id="ss-title-text" class="ss-funnel-text"></div>
+                                <button class="btn ss-btn-secondary btn-sm full-width" id="ss-copy-title-btn"
+                                    style="margin-top: 6px;">📋 Copy title + hashtags</button>
+                            </div>
+                            <div class="metadata-item" style="margin-top: 12px;">
+                                <label class="ss-label">Description (goes in front of the hashtags)</label>
+                                <div id="ss-description-text" class="ss-funnel-text"></div>
+                            </div>
+                            <div class="metadata-item" style="margin-top: 12px;">
+                                <label class="ss-label">Hashtags</label>
+                                <div id="ss-hashtags-text" class="ss-funnel-text"></div>
+                            </div>
+                            <div class="metadata-item" style="margin-top: 12px;">
+                                <label class="ss-label">Caption (points at the app step)</label>
+                                <div id="ss-caption-text" class="ss-funnel-text"></div>
+                                <button class="btn ss-btn-secondary btn-sm full-width" id="ss-copy-caption-btn"
+                                    style="margin-top: 6px;">📋 Copy caption</button>
+                            </div>
+                            <div class="metadata-item" style="margin-top: 12px;">
+                                <label class="ss-label">Pinned comment — post this yourself, immediately</label>
+                                <div id="ss-pinned-text" class="ss-funnel-text"></div>
+                                <button class="btn ss-btn-secondary btn-sm full-width" id="ss-copy-pinned-btn"
+                                    style="margin-top: 6px;">📋 Copy pinned comment</button>
+                            </div>
+                            <p class="ss-hint" style="margin-top: 10px;">Sound: pick a viral slowed/ambient sound
+                                that matches the dark aesthetic of the photos.</p>
+                        </div>
+
+                        <div class="input-group" style="margin-top: 12px; margin-bottom: 8px;">
+                            <label for="ss-export-res-select" class="ss-label">Export resolution</label>
+                            <select id="ss-export-res-select" class="select-input ss-select">
+                                <option value="1080x1920" selected>1080 × 1920 · TikTok native (sharpest text)</option>
+                                <option value="2160x3840">2160 × 3840 · 2x archive quality</option>
+                            </select>
+                            <p class="ss-hint" style="margin: 6px 0 0;">TikTok displays photo posts at 1080 × 1920 and rescales anything larger with its own compressor — that downscale is what makes text look washed. Native size uploads 1:1.</p>
+                        </div>
+
+                        <button class="btn btn-success full-width" id="ss-download-all-btn"
+                            style="margin-top: 4px; display: none;">
+                            💾 Download all slides + title (.zip)
+                        </button>
+
+                        <p id="ss-funnel-empty" class="ss-hint" style="margin-top: 4px;">The caption and pinned
+                            comment appear here after generating.</p>
+                    </section>
+
+                    <!-- PHOTO LIBRARY -->
+                    <section class="panel-section step-container ss-step ss-workflow-section ss-photo-section">
+                        <div class="step-badge ss-step-badge">PHOTOS</div>
+                        <h2 class="ss-heading">Photo library</h2>
+                        <p class="ss-hint">Choose folders, then fill every slide in one click. The selected slide is highlighted in the canvas so manual swaps stay quick.</p>
+
+                        <div class="input-group" style="margin-bottom: 10px;">
+                            <label for="ss-hook-library-select" class="ss-label">Hook photo (slide 1)</label>
+                            <select id="ss-hook-library-select" class="select-input ss-select">
+                                <option value="">Loading folders…</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group" style="margin-bottom: 10px;">
+                            <label for="ss-library-select" class="ss-label">Step photo theme (slides 2–X)</label>
+                            <select id="ss-library-select" class="select-input ss-select">
+                                <option value="">Loading folders…</option>
+                            </select>
+                        </div>
+
+                        <button class="btn ss-btn-secondary full-width" id="ss-fill-photos-btn"
+                            style="margin-bottom: 8px;">
+                            <span>🖼️ Fill slides with random photos</span>
+                        </button>
+                        <button class="btn ss-btn-secondary full-width" id="ss-clear-photos-btn"
+                            style="margin-bottom: 10px;">
+                            <span>✖️ Clear all photos</span>
+                        </button>
+
+                        <div class="ss-photo-picker-head">
+                            <span class="ss-label">Step photo picker</span>
+                            <span id="ss-photo-picker-status" class="ss-photo-picker-status">Pink or green is kept consistent within each post</span>
+                        </div>
+                        <div id="ss-library-grid" class="ss-library-grid"></div>
+                        <button class="btn ss-btn-quiet full-width" id="ss-library-more-btn" type="button" style="display:none;">Show more photos</button>
+                    </section>
+
+                    <!-- BATCH MODE -->
+                    <section id="ss-batch-section" class="panel-section step-container ss-step ss-workflow-section ss-batch-section">
+                        <div class="step-badge ss-step-badge">BATCH</div>
+                        <h2 class="ss-heading">Batch export · 7-slide plan format</h2>
+                        <p class="ss-hint">Optional batch exporter based on the 7-slide PLAN.md workflow: face hook + 6 dusk slides, numbered
+                            images, slide texts, caption and pinned comment — one folder per post in
+                            <b>New Slideshow Format\Queue</b>. Slide 2 is a standalone second hook, and the CTA position alternates final/penultimate for A/B.</p>
+
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <label for="ss-batch-account" class="ss-label">Account</label>
+                            <input type="text" id="ss-batch-account" class="text-input ss-select"
+                                placeholder="e.g. ember (folder name per account)" value="default">
+                        </div>
+
+                        <div class="input-group" style="margin-bottom: 14px;">
+                            <label for="ss-batch-count" class="ss-label">Posts</label>
+                            <select id="ss-batch-count" class="select-input ss-select">
+                                <option value="1">1 post</option>
+                                <option value="3">3 posts</option>
+                                <option value="5" selected>5 posts</option>
+                                <option value="7">7 posts</option>
+                                <option value="10">10 posts</option>
+                            </select>
+                        </div>
+
+                        <button class="btn ss-btn-primary full-width" id="ss-batch-generate-btn">
+                            <span>⚡ Generate Batch</span>
+                        </button>
+
+                        <p class="ss-hint" style="margin-top: 10px;">Formats rotate automatically across the 5
+                            registry formats. Runs 3 scripts in parallel — 5 posts take ~2-3 min.</p>
+
+                        <div id="ss-batch-results" style="display: none; margin-top: 14px;"></div>
+                    </section>
+                </aside>
+            </div>
+            <div id="panel-the_script" class="service-panel">
+                <aside class="control-panel ts-panel">
+                    <!-- STEP 1: SCENARIO & GENERATE -->
+                    <section class="panel-section step-container ts-step">
+                        <div class="step-badge ts-step-badge">STEP 1</div>
+                        <h2 class="ts-heading">The Script</h2>
+                        <p class="ts-hint">9 text slides giving word-for-word scripts for the moments BPD makes
+                            wordless — not advice, not validation, lines. Dark background, centered white text.
+                            Slide 9 carries the app from a curated bridge bank, so it never reads as an ad.</p>
+                        <p class="ts-hint ts-drag-hint">Drag any text block directly on the slide to reposition it. Double-click to reset.</p>
+
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <label for="ts-scenario-select" class="ts-label">Scenario</label>
+                            <select id="ts-scenario-select" class="select-input ts-select">
+                                <option value="random">🎲 Random from rotation</option>
+                                <option value="morning_after">🌅 The morning after the outburst</option>
+                                <option value="vulnerability_hangover">🥴 The vulnerability hangover</option>
+                                <option value="mid_split">⚡ Splitting mid-conversation</option>
+                                <option value="masking">🎭 Quiet BPD / masking</option>
+                                <option value="object_permanence">🫥 Object permanence (out of sight = gone)</option>
+                                <option value="identity_disturbance">🪞 Identity disturbance</option>
+                                <option value="canceling_plans">📵 Canceling plans you wanted</option>
+                                <option value="group_chat_silence">💬 Too much in the group chat</option>
+                                <option value="numb_good_news">😐 Numb at good news</option>
+                                <option value="social_recovery">🔋 The 3-hour social recovery</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <label for="ts-pov-select" class="ts-label">POV</label>
+                            <select id="ts-pov-select" class="select-input ts-select">
+                                <option value="random">🎲 Random</option>
+                                <option value="self">🙋 The one living it</option>
+                                <option value="other_side">💞 For the person who loves them</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <label for="ts-tone-select" class="ts-label">Tone</label>
+                            <select id="ts-tone-select" class="select-input ts-select">
+                                <option value="random">🎲 Random</option>
+                                <option value="dark_humor">💀 Dark humor</option>
+                                <option value="soft">🫂 Soft</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <label for="ts-language-select" class="ts-label">Slide language</label>
+                            <select id="ts-language-select" class="select-input ts-select">
+                                <option value="en" selected>🇺🇸 English</option>
+                                <option value="de">🇩🇪 Deutsch</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <label for="ts-paper-select" class="ts-label">Paper tint</label>
+                            <select id="ts-paper-select" class="select-input ts-select">
+                                <option value="random">🎲 Random per generation</option>
+                                <option value="cream">🤍 Cream</option>
+                                <option value="sage">🌿 Sage</option>
+                                <option value="blush">🌸 Blush</option>
+                                <option value="lavender">💜 Lavender grey</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <label for="ts-bg-mode-select" class="ts-label">Background</label>
+                            <select id="ts-bg-mode-select" class="select-input ts-select">
+                                <option value="paper">📝 Notes paper (default)</option>
+                                <option value="photo">🖼️ Single photo on all slides</option>
+                            </select>
+                        </div>
+
+                        <div id="ts-bg-photo-controls" style="display: none; margin-bottom: 12px;">
+                            <button class="btn ts-btn-secondary full-width" id="ts-bg-upload-btn"
+                                style="margin-bottom: 8px;">📷 Upload background photo</button>
+                            <div id="ts-bg-preview-wrap" style="display: none;">
+                                <img id="ts-bg-preview" alt="Background"
+                                    style="width: 100%; border-radius: 8px; margin-bottom: 8px;">
+                                <button class="btn ts-btn-secondary full-width btn-sm"
+                                    id="ts-bg-clear-btn">✖️ Remove photo (back to paper)</button>
+                            </div>
+                            <input type="file" id="ts-bg-file-input" accept="image/*" hidden>
+                            <p class="ts-hint" style="margin: 6px 0 0;">One casual photo on every slide — the
+                                photo stops the scroll, the scripts get the save. Pick a new one per post.</p>
+                        </div>
+
+                        <div class="input-group" style="margin-bottom: 14px;">
+                            <label for="ts-theme-input" class="ts-label">Specific angle <span
+                                    style="opacity:.6">(optional)</span></label>
+                            <input type="text" id="ts-theme-input" class="text-input ts-select"
+                                placeholder="e.g. the shower rehearsal, group chat re-entry after a week">
+                        </div>
+
+                        <button class="btn ts-btn-primary full-width" id="ts-generate-btn">
+                            <span>✨ Generate The Script</span>
+                        </button>
+
+                        <p class="ts-hint" style="margin-top: 10px;">Copy is validated server-side against the
+                            9-slide skeleton and word budgets — failed attempts are auto-retried. Left-on-read
+                            scenarios are banned by design.</p>
+                    </section>
+
+                    <!-- HOOKS: 20 alternatives for slide 1 -->
+                    <section class="panel-section step-container ts-step">
+                        <div class="step-badge ts-step-badge">HOOKS</div>
+                        <h2 class="ts-heading">Hook picker</h2>
+                        <p class="ts-hint">20 options for slide 1, generated with the slideshow. Click one to
+                            swap it in — the current hook is highlighted.</p>
+
+                        <div id="ts-hooks-output" style="display: none;">
+                            <div id="ts-hooks-list"></div>
+                        </div>
+
+                        <p id="ts-hooks-empty" class="ts-hint" style="margin-top: 4px;">Hook options appear here
+                            after generating.</p>
+                    </section>
+
+                    <!-- STEP 2: SLIDE COPY -->
+                    <section class="panel-section step-container ts-step">
+                        <div class="step-badge ts-step-badge">STEP 2</div>
+                        <h2 class="ts-heading">Slide copy</h2>
+                        <p class="ts-hint">The quoted lines are meant to be copied verbatim — that's the saveable
+                            payload. The [bracket note] is the screenshot bait.</p>
+
+                        <div id="ts-slides-output" style="display: none;">
+                            <div id="ts-slides-list"></div>
+                            <button class="btn ts-btn-secondary full-width" id="ts-copy-all-btn"
+                                style="margin-top: 12px;">📋 Copy all slide texts</button>
+                        </div>
+
+                        <p id="ts-slides-empty" class="ts-hint" style="margin-top: 4px;">Generate a slideshow to
+                            see the copy here.</p>
+                    </section>
+
+                    <!-- STEP 3: CAPTION & PINNED COMMENT -->
+                    <section class="panel-section step-container ts-step">
+                        <div class="step-badge ts-step-badge">STEP 3</div>
+                        <h2 class="ts-heading">Caption &amp; pinned comment</h2>
+                        <p class="ts-hint">Conversions come from the comments, not the slides: pin the comment
+                            right after posting and reply to every "what app?" in the first hour.</p>
+
+                        <div id="ts-funnel-output" class="ts-funnel" style="display: none;">
+                            <div class="metadata-item">
+                                <label class="ts-label">Title (max 8 words — what you type on TikTok)</label>
+                                <div id="ts-title-text" class="ts-funnel-text"></div>
+                                <button class="btn ts-btn-secondary btn-sm full-width" id="ts-copy-title-btn"
+                                    style="margin-top: 6px;">📋 Copy title + hashtags</button>
+                            </div>
+                            <div class="metadata-item" style="margin-top: 12px;">
+                                <label class="ts-label">Hashtags</label>
+                                <div id="ts-hashtags-text" class="ts-funnel-text"></div>
+                            </div>
+                            <div class="metadata-item" style="margin-top: 12px;">
+                                <label class="ts-label">Caption (points at the scripts)</label>
+                                <div id="ts-caption-text" class="ts-funnel-text"></div>
+                                <button class="btn ts-btn-secondary btn-sm full-width" id="ts-copy-caption-btn"
+                                    style="margin-top: 6px;">📋 Copy caption</button>
+                            </div>
+                            <div class="metadata-item" style="margin-top: 12px;">
+                                <label class="ts-label">Pinned comment — post this yourself, immediately</label>
+                                <div id="ts-pinned-text" class="ts-funnel-text"></div>
+                                <button class="btn ts-btn-secondary btn-sm full-width" id="ts-copy-pinned-btn"
+                                    style="margin-top: 6px;">📋 Copy pinned comment</button>
+                            </div>
+                            <p class="ts-hint" style="margin-top: 10px;">Sound: pick a viral slowed/ambient
+                                sound that matches the late-night register of the scripts.</p>
+                        </div>
+
+                        <button class="btn btn-success full-width" id="ts-download-all-btn"
+                            style="margin-top: 12px; display: none;">
+                            💾 Download all slides + title (.zip)
+                        </button>
+
+                        <p id="ts-funnel-empty" class="ts-hint" style="margin-top: 4px;">The caption and pinned
+                            comment appear here after generating.</p>
+                    </section>
+                </aside>
+            </div>
+
+
+            <!-- Stickman Prompt Studio -->
+            <div id="panel-stickman" class="service-panel stickman-panel">
+                <aside class="control-panel">
+                    <section class="panel-section step-container stickman-studio-card">
+                        <div class="step-badge stickman-step-badge">PROMPTS ONLY</div>
+                        <h2 class="stickman-heading">Stickman Prompt Studio</h2>
+                        <p class="section-hint stickman-hint">Create image prompts for a calm, expressive DBT-Mind stickman carousel. Images are created manually in your preferred image tool.</p>
+
+                        <div class="stickman-identity-card">
+                            <div class="stickman-identity-mark">✦</div>
+                            <div>
+                                <strong>DBT-Mind visual identity</strong>
+                                <span>Warm paper, soft therapeutic accents, playful fixed lettering, and one recurring neutral stickman.</span>
+                            </div>
+                        </div>
+
+                        <div class="stickman-topic-finder">
+                            <div class="stickman-topic-finder-header">
+                                <div>
+                                    <strong>Generate a full slideshow</strong>
+                                    <span>Create the hook and five slide texts, then turn them into image prompts.</span>
+                                </div>
+                                <span class="stickman-topic-badge">BPD</span>
+                            </div>
+                            <textarea id="stickman-previous-topics" class="text-input stickman-small-textarea" placeholder="Optional: paste previous topics here so new ideas avoid duplicate angles"></textarea>
+                            <div class="input-group stickman-model-group">
+                                <label for="stickman-model-select">Text generation model</label>
+                                <select id="stickman-model-select" class="select-input">
+                                    <option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6</option>
+                                    <option value="k3">Kimi Code K3</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-secondary full-width" id="generate-stickman-topics-btn" type="button">Generate full slideshow text</button>
+                            <div id="stickman-topic-results" class="stickman-topic-results" style="display: none;"></div>
+                        </div>
+
+                        <div class="input-group stickman-input-group">
+                            <label for="stickman-series-title">Series / cover title</label>
+                            <input id="stickman-series-title" class="text-input" type="text" value="5 SIGNS YOU LOST YOURSELF">
+                        </div>
+
+                        <div class="input-row stickman-input-row">
+                            <div class="input-group">
+                                <label for="stickman-part-label">Part label</label>
+                                <input id="stickman-part-label" class="text-input" type="text" value="" placeholder="Optional, leave blank for generated text only">
+                            </div>
+                            <div class="input-group">
+                                <label for="stickman-slide-count">Prompts</label>
+                                <select id="stickman-slide-count" class="select-input">
+                                    <option value="1">1 cover</option>
+                                    <option value="3">3 prompts</option>
+                                    <option value="5">5 prompts</option>
+                                    <option value="6" selected>6 prompts, cover plus 5 slides</option>
+                                    <option value="7">7 prompts</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="input-group stickman-input-group">
+                            <label for="stickman-slide-content">Slide ideas or text</label>
+                            <textarea id="stickman-slide-content" class="text-input stickman-textarea" placeholder="Cover: 5 signs you lost yourself\n1. You do not feel excited about anything anymore\n2. You keep yourself busy to avoid thinking\n3. You feel like you are watching your life instead of living it"></textarea>
+                            <span class="stickman-field-hint">You can write your own slides here or edit generated text. Use one numbered headline followed by its supporting line.</span>
+                        </div>
+
+                        <div class="input-group stickman-input-group">
+                            <label for="stickman-extra-direction">Optional creative direction</label>
+                            <textarea id="stickman-extra-direction" class="text-input stickman-small-textarea" placeholder="Example: use a tiny paper boat as the emotional symbol on slide 2"></textarea>
+                        </div>
+
+                        <details class="stickman-style-details">
+                            <summary>View locked style system</summary>
+                            <p>Pure white background, dark charcoal centered text, muted terracotta, golden brown, taupe, peach, and sage accents. Playful fixed handwritten display lettering inspired by Patrick Hand SC. Use the attached orange-haired Stickman character sheet as both the mascot reference and pose library, choosing a distinct gesture, prop, or emotional variation for each slide.</p>
+                        </details>
+
+                        <button class="btn stickman-generate-btn full-width" id="generate-stickman-prompts-btn" type="button">
+                            <span>Create Stickman Image Prompts</span>
+                        </button>
+                    </section>
+
+                    <section id="stickman-output-section" class="panel-section stickman-output-section" style="display: none;">
+                        <div class="stickman-output-header">
+                            <div>
+                                <h2 class="stickman-heading">Your prompts</h2>
+                                <p class="section-hint stickman-hint">Copy each prompt into your image-generation workflow.</p>
+                            </div>
+                            <button class="btn btn-secondary btn-sm" id="copy-all-stickman-prompts-btn" type="button">Copy all</button>
+                        </div>
+                        <div id="stickman-prompts-container" class="image-prompts-container stickman-prompts-container"></div>
+                    </section>
+                </aside>
+            </div>
+
 
 
             <!-- Right Panel: Slides Preview Grid -->
@@ -828,6 +1835,44 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
 OUTSIDE: ...
 INSIDE: ..."></textarea>
 
+                    <div class="selected-slide-editor-controls">
+                        <div class="input-group">
+                            <label for="selected-slide-font-size">Font Size (All Slides) <span id="selected-slide-font-size-value"
+                                    style="color: var(--accent-cyan); font-weight: 600;">26px</span></label>
+                            <input type="range" id="selected-slide-font-size" min="12" max="72" value="26" disabled>
+                        </div>
+                        <div class="input-group">
+                            <label for="preview-text-font-family">Font</label>
+                            <select id="preview-text-font-family" class="select-input" style="width: 100%;">
+                                <option value="TikTok Sans" selected>TikTok Sans</option>
+                                <option value="Arial">Arial</option>
+                                <option value="Impact">Impact</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Trebuchet MS">Trebuchet MS</option>
+                            </select>
+                        </div>
+                        <div class="preview-style-colors">
+                            <div class="input-group">
+                                <label for="preview-text-color">Text</label>
+                                <input type="color" id="preview-text-color" value="#000000">
+                            </div>
+                            <div class="input-group">
+                                <label for="preview-bg-color">Box</label>
+                                <input type="color" id="preview-bg-color" value="#ffffff">
+                            </div>
+                        </div>
+                        <label class="testing-toggle selected-slide-outline-toggle">
+                            <input type="checkbox" id="preview-text-outline-toggle" checked>
+                            <span>Outline / border</span>
+                        </label>
+                        <div class="preview-color-presets">
+                            <span class="preview-color-presets-label">Presets:</span>
+                            <button type="button" class="preview-color-preset" data-color="#eff0b2" style="background: #eff0b2;" title="Soft yellow"></button>
+                            <button type="button" class="preview-color-preset" data-color="#000000" style="background: #000000;" title="Pure dark"></button>
+                        </div>
+                    </div>
+
                     <div class="selected-slide-editor-actions">
                         <button class="btn btn-secondary" id="upload-slide-image-btn" type="button" disabled>Upload Image</button>
                         <button class="btn btn-warning" id="clear-slide-image-btn" type="button" disabled>Remove Image</button>
@@ -854,10 +1899,16 @@ INSIDE: ..."></textarea>
     <!-- Hidden canvas for rendering -->
     <canvas id="render-canvas" style="display: none;"></canvas>
 
+    <!-- Floating download-all button: visible whenever slides exist -->
+    <button id="floating-download-btn" class="floating-download-btn" type="button" style="display: none;">
+        💾 Download all slides (.zip)
+    </button>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="app.js?v=20260421a"></script>
+    <script src="app.js?v=20260827g"></script>
+    <script src="meme-canvas.js?v=20260907c"></script>
+    <script src="meme-slides.js?v=20260907c"></script>
 </body>
 
 </html>
-
