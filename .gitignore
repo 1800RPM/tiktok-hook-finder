@@ -35,3 +35,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # SQLite
 data/*.db
+
+# Meme slide artwork: ~110MB of PNGs (source library + the cropped copies the
+# scanner publishes). The labels live in server/data/meme_asset_catalog.json,
+# which IS tracked, so only the image files need restoring on a fresh clone.
+/assets/
+/client/assets/meme-slides/
