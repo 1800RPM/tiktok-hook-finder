@@ -71,6 +71,63 @@
     display: block;
 }
 
+/* Text-first meme carousel workspace. */
+.service-switcher { flex-wrap: wrap; max-width: 100%; }
+body[data-service="meme"] .main-content { display: block; }
+body[data-service="meme"] .main-content > :not(#panel-meme),
+body[data-service="meme"] #floating-download-btn { display: none !important; }
+.meme-workspace { max-width: 1060px; margin: 0 auto; }
+.meme-settings, .meme-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.meme-settings { margin: 24px 0; }
+.meme-wide { grid-column: 1 / -1; }
+.meme-workspace label { display: flex; flex-direction: column; gap: 8px; font-size: .9rem; color: var(--text-secondary); }
+.meme-workspace input, .meme-workspace select, .meme-workspace textarea { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font: inherit; }
+.meme-workspace textarea { resize: vertical; line-height: 1.5; }
+.meme-workspace small { color: var(--text-muted); }
+.meme-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+#meme-status { min-height: 24px; margin: 16px 0; color: var(--text-secondary); }
+.meme-card { padding: 24px; margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-card); }
+.meme-card h3 { margin-bottom: 18px; }
+@font-face {
+    font-family: 'Meme TikTok';
+    src: url('./assets/font/TikTok_Sans/static/TikTokSans-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    font-display: block;
+}
+@font-face {
+    font-family: 'Meme TikTok';
+    src: url('./assets/font/TikTok_Sans/static/TikTokSans-ExtraBold.ttf') format('truetype');
+    font-weight: 800;
+    font-display: block;
+}
+#meme-artwork { margin: 28px 0; padding: 24px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); }
+#meme-artwork[hidden] { display: none; }
+#meme-art-nav { margin: 16px 0; }
+#meme-art-nav [aria-pressed='true'] { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+.meme-art-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(260px, 1fr); gap: 24px; align-items: start; }
+#meme-art-canvas { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; background: #fff; touch-action: none; cursor: grab; box-shadow: 0 0 0 1px var(--border-color); }
+#meme-art-canvas:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+#meme-art-canvas:active { cursor: grabbing; }
+.meme-art-tools .meme-settings { gap: 10px; margin: 14px 0; }
+.meme-art-tools h4 { margin: 22px 0 10px; }
+.meme-art-tools .btn { font-size: 12px; padding: 8px 10px; }
+.meme-cat-library { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; max-height: 330px; overflow-y: auto; margin-top: 12px; padding: 4px; }
+.meme-cat-library button { min-width: 0; height: 90px; cursor: pointer; border-radius: 6px; border: 1px solid #cbd5e1; background: repeating-conic-gradient(#fff 0% 25%, #edf0f3 0% 50%) 50% / 16px 16px; }
+.meme-cat-library button:hover, .meme-cat-library button:focus-visible { outline: 2px solid #2563eb; }
+.meme-cat-library img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.meme-workspace .meme-auto-choice { flex-direction: row; align-items: center; }
+.meme-workspace .meme-auto-choice input { width: auto; }
+.meme-alternatives { display: grid; gap: 8px; margin: 12px 0; }
+.meme-alternatives button { display: flex; text-align: left; align-items: center; gap: 10px; padding: 8px; color: var(--text-primary); background: var(--bg-card); border: 1px solid var(--border-color); cursor: pointer; }
+.meme-alternatives img { width: 65px; height: 65px; object-fit: contain; background: white; }
+#meme-art-label-panel { margin: 16px 0; }
+#meme-art-label-description { font-size: .85rem; line-height: 1.5; margin: 10px 0; }
+@media (max-width: 850px) { .meme-art-layout { grid-template-columns: 1fr; } .meme-cat-library { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+    .meme-settings, .meme-fields { grid-template-columns: 1fr; }
+    .meme-card { padding: 16px; }
+}
+
 
 @font-face {
     font-family: 'TikTok Sans';
@@ -312,6 +369,73 @@ body {
     max-height: calc(100vh - 180px);
     overflow-y: auto;
     padding-right: var(--spacing-sm);
+    position: sticky;
+    top: var(--spacing-lg);
+    align-self: start;
+}
+
+/* Floating download-all button: always one click away, no scrolling to the panel. */
+.floating-download-btn {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 20px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #34d399, #10b981);
+    color: #04110b;
+    font-family: inherit;
+    font-size: .9rem;
+    font-weight: 800;
+    letter-spacing: .01em;
+    cursor: pointer;
+    box-shadow: 0 10px 28px rgba(16, 185, 129, .35), 0 2px 8px rgba(0, 0, 0, .45);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.floating-download-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 34px rgba(16, 185, 129, .45), 0 3px 10px rgba(0, 0, 0, .5);
+}
+
+.ss-topic-seed-easy { display: inline-block; margin-left: 7px; padding: 1px 7px; border-radius: 999px; background: rgba(52, 211, 153, .16); color: #34d399; font-size: .58rem; font-weight: 800; letter-spacing: .06em; vertical-align: middle; }
+.ss-topic-seed-item.is-easy { border-color: rgba(52, 211, 153, .35); }
+
+.floating-download-btn:active {
+    transform: translateY(0);
+}
+
+/* One-click text color presets (live under the outline toggle in Selected Slide). */
+.preview-color-presets {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.preview-color-presets-label {
+    color: var(--text-muted);
+    font-size: .72rem;
+    font-weight: 600;
+}
+
+.preview-color-preset {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform .12s ease, border-color .12s ease;
+}
+
+.preview-color-preset:hover {
+    transform: scale(1.12);
+    border-color: var(--accent-cyan);
 }
 
 .panel-section {
@@ -1872,6 +1996,102 @@ input[type="color"]::-webkit-color-swatch {
     }
 }
 
+/* ========================================
+   Slideshows workspace
+   ======================================== */
+
+.ss-panel {
+    gap: 12px;
+}
+
+.ss-workflow-nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 14px;
+    border: 1px solid rgba(0, 242, 234, .18);
+    border-radius: var(--radius-lg);
+    background: rgba(18, 18, 26, .94);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow-md);
+}
+
+.ss-workflow-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.ss-workflow-title strong { font-size: 1rem; }
+.ss-eyebrow { color: var(--accent-cyan); font-size: .62rem; font-weight: 800; letter-spacing: .14em; }
+
+.ss-workflow-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.ss-workflow-tab {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 5px;
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    cursor: pointer;
+    font: inherit;
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.ss-workflow-tab span { display: block; margin-top: 2px; font-size: .68rem; font-weight: 500; }
+.ss-workflow-tab:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.ss-workflow-tab.is-active { color: #071013; border-color: var(--accent-cyan); background: var(--accent-cyan); }
+
+.ss-workflow-section { display: none; margin-bottom: 0; }
+.ss-workflow-section.is-active { display: block; animation: ss-panel-in .18s ease-out; }
+.ss-photo-section { order: 4; }
+
+@keyframes ss-panel-in { from { opacity: .3; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+.ss-heading { padding-left: 0 !important; }
+.ss-hint { color: var(--text-muted); font-size: .78rem; line-height: 1.45; }
+.ss-label { color: var(--text-secondary); font-size: .72rem; font-weight: 700; letter-spacing: .02em; }
+.ss-btn-primary { background: linear-gradient(135deg, var(--accent-cyan), #73f7d6); color: #071013; border: 0; font-weight: 800; }
+.ss-btn-secondary { background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); }
+.ss-btn-quiet { background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); margin-top: 8px; }
+
+.ss-slides-list { display: grid; gap: 8px; max-height: 430px; overflow-y: auto; padding-right: 3px; }
+.ss-slide-card { padding: 10px; border: 1px solid var(--border-color); border-radius: 10px; background: rgba(255,255,255,.025); }
+.ss-slide-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ss-slide-badge { color: var(--accent-cyan); font-size: .67rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.ss-slide-text { margin-top: 6px; color: var(--text-primary); font-size: .86rem; line-height: 1.35; white-space: pre-wrap; }
+.ss-slide-query { margin-top: 6px; color: var(--text-muted); font-size: .68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ss-funnel { max-height: 470px; overflow-y: auto; padding-right: 3px; }
+
+.ss-library-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; max-height: 190px; overflow-y: auto; padding: 2px; }
+.ss-library-thumb-wrap { display: block; aspect-ratio: 1; overflow: hidden; padding: 0; border: 1px solid transparent; border-radius: 7px; background: var(--bg-tertiary); cursor: pointer; }
+.ss-library-thumb-wrap:hover { border-color: var(--accent-cyan); }
+.ss-library-thumb { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ss-photo-picker-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; margin-bottom: 7px; }
+.ss-photo-picker-status { color: var(--text-muted); font-size: .66rem; text-align: right; }
+
+.ss-slide-preview { overflow: hidden; background: #171a21; border-radius: inherit; isolation: isolate; }
+.ss-slide-preview > img { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; }
+.ss-photo-placeholder { position: absolute; inset: 0; z-index: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: radial-gradient(circle at 50% 35%, #313746, #11141b 70%); color: var(--text-muted); }
+.ss-photo-icon { font-size: 2rem; opacity: .55; }
+.ss-photo-query { max-width: 76%; text-align: center; font-size: .7rem; }
+.ss-overlay-text { position: absolute; z-index: 2; width: 84%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.9em; color: var(--ss-text-color, #fff); text-align: center; font-family: var(--ss-font-family, 'TikTok Sans', sans-serif); font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.08; text-shadow: 0 var(--ss-shadow-offset, 1px) var(--ss-shadow-blur, 2px) rgba(0,0,0,.3); cursor: move; user-select: none; transform-origin: center center; }
+.ss-overlay-text.selected { outline: 2px solid var(--accent-cyan); outline-offset: 4px; border-radius: 6px; }
+.ss-overlay-para { position: relative; max-width: 100%; white-space: pre-wrap; -webkit-text-stroke: var(--ss-outline-width, 2px) var(--ss-outline-color, rgba(0, 0, 0, 0.96)); paint-order: stroke fill; cursor: grab; }
+.ss-role-badge { position: absolute; z-index: 3; top: 8px; left: 8px; padding: 3px 6px; border-radius: 4px; background: rgba(0,0,0,.55); color: rgba(255,255,255,.8); font-size: .55rem; font-weight: 800; letter-spacing: .04em; }
+
+@media (max-width: 900px) {
+    .ss-workflow-nav { position: relative; }
+    .ss-library-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
 .slide-editor:hover .slide-actions {
     opacity: 1;
 }
@@ -2037,7 +2257,8 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 /* Resize handle for text overlay */
-.resize-handle {
+.resize-handle,
+.ss-resize-handle {
     position: absolute;
     bottom: -12px;
     right: -12px;
@@ -2052,7 +2273,8 @@ input[type="color"]::-webkit-color-swatch {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.resize-handle:hover {
+.resize-handle:hover,
+.ss-resize-handle:hover {
     transform: scale(1.2);
     box-shadow: 0 0 20px rgba(0, 242, 234, 0.8);
 }
@@ -2077,7 +2299,8 @@ input[type="color"]::-webkit-color-swatch {
     border-radius: 4px;
 }
 
-.resize-handle:active {
+.resize-handle:active,
+.ss-resize-handle:active {
     transform: scale(1.1);
     background: var(--accent-pink);
 }
@@ -2210,6 +2433,7 @@ input[type="color"]::-webkit-color-swatch {
     .control-panel {
         max-height: none;
         order: 2;
+        position: static;
     }
 
     .slides-panel {
@@ -2818,3 +3042,107 @@ select:hover {
     color: var(--text-primary);
     padding: 10px;
 }
+.ss-topic-seed-list {
+    display: grid;
+    gap: 5px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.ss-topic-seed-item {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    width: 100%;
+    padding: 8px 9px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 7px;
+    background: rgba(255,255,255,.035);
+    color: var(--text, #f5f7fa);
+    text-align: left;
+    font: inherit;
+    line-height: 1.25;
+    cursor: pointer;
+}
+
+.ss-topic-seed-item:hover,
+.ss-topic-seed-item.is-selected {
+    border-color: var(--accent-cyan, #26c6da);
+    background: rgba(38,198,218,.12);
+}
+
+.ss-topic-seed-number {
+    color: var(--accent-cyan, #26c6da);
+    font-size: .76rem;
+    font-weight: 700;
+}
+
+.ss-topic-seed-empty {
+    padding: 10px;
+    border: 1px dashed rgba(255,255,255,.16);
+    border-radius: 7px;
+    color: var(--text-muted, #9aa3b2);
+    font-size: .8rem;
+}
+
+
+/* TikTok sound picker in the slideshow metadata panel.
+   The panel is a ~260px sidebar column, so the whole row is the selection control:
+   a separate "select" button squeezed the title and metadata down to one word per line. */
+.ss-sound-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+
+.ss-sound-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .025);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease, transform .12s ease;
+}
+.ss-sound-card:hover { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .16); }
+.ss-sound-card:active { transform: scale(.99); }
+.ss-sound-card:focus-visible { outline: 2px solid #34d399; outline-offset: 2px; }
+.ss-sound-card[data-selected="true"] {
+    border-color: rgba(52, 211, 153, .55);
+    background: rgba(52, 211, 153, .07);
+}
+
+.ss-sound-play {
+    width: 30px; height: 30px; flex: none;
+    display: grid; place-items: center;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .05);
+    color: inherit;
+    font-size: 11px;
+    /* The glyph is optically left-heavy in a circle, so nudge it back to centre. */
+    padding-left: 1px;
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease;
+}
+.ss-sound-play:hover { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .3); }
+.ss-sound-play[data-playing="true"] { padding-left: 0; border-color: rgba(52, 211, 153, .6); color: #34d399; }
+
+.ss-sound-main { min-width: 0; }
+.ss-sound-title {
+    font-size: 12.5px; font-weight: 600; letter-spacing: -.01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ss-sound-meta {
+    margin-top: 2px;
+    font-size: 10.5px; opacity: .55;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ss-sound-sub { opacity: .42; }
+.ss-sound-via { color: #34d399; opacity: .9; }
+.ss-sound-check { flex: none; width: 16px; font-size: 12px; color: #34d399; text-align: center; }

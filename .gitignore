@@ -41,3 +41,9 @@ data/*.db
 # which IS tracked, so only the image files need restoring on a fresh clone.
 /assets/
 /client/assets/meme-slides/
+
+# Generated sound pool cache: rebuilt from the API every 12h, contains expiring CDN URLs.
+/server/data/ss_sound_pool.json
+
+# Skill symlinks/junctions into .agents/skills (the real files live there).
+/.claude/skills/

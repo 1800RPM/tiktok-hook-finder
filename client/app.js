@@ -453,6 +453,9 @@ const elements = {
     ssDownloadAllBtn: document.getElementById('ss-download-all-btn'),
     ssCaptionText: document.getElementById('ss-caption-text'),
     ssDescriptionText: document.getElementById('ss-description-text'),
+    ssSoundList: document.getElementById('ss-sound-list'),
+    ssSoundStatus: document.getElementById('ss-sound-status'),
+    ssSoundRefresh: document.getElementById('ss-sound-refresh'),
     ssPinnedText: document.getElementById('ss-pinned-text'),
     ssCopyCaptionBtn: document.getElementById('ss-copy-caption-btn'),
     ssLibrarySelect: document.getElementById('ss-library-select'),
@@ -4634,6 +4637,7 @@ function saveSsGeneration(data) {
             hashtags: data.hashtags,
             caption: data.caption,
             description: data.description,
+            sound: data.sound,
             pinned_comment: data.pinned_comment,
             language: data.language,
             savedAt: Date.now()
@@ -4654,6 +4658,7 @@ function restoreSsGeneration() {
 
     state.ssCaption = saved.caption || '';
     state.ssDescription = saved.description || '';
+    state.ssSound = saved.sound || null;
     state.ssPinnedComment = saved.pinned_comment || '';
     state.ssTitle = saved.title || '';
     state.ssHashtags = Array.isArray(saved.hashtags) ? saved.hashtags : [];
@@ -4664,6 +4669,8 @@ function restoreSsGeneration() {
         if (elements.ssHashtagsText) elements.ssHashtagsText.textContent = state.ssHashtags.join(' ');
         if (elements.ssCaptionText) elements.ssCaptionText.textContent = state.ssCaption;
         if (elements.ssDescriptionText) elements.ssDescriptionText.textContent = state.ssDescription;
+        renderSsSounds([]);
+        loadSsSounds().catch(() => {});
         if (elements.ssPinnedText) elements.ssPinnedText.textContent = state.ssPinnedComment;
     }
     if (elements.ssDownloadAllBtn) elements.ssDownloadAllBtn.style.display = 'block';
@@ -5166,6 +5173,7 @@ async function generateSsSlideshow(format = 'current') {
 
         state.ssCaption = data.caption || '';
         state.ssDescription = data.description || '';
+        state.ssSound = null;
         state.ssPinnedComment = data.pinned_comment || '';
         state.ssTitle = data.title || '';
         state.ssHashtags = Array.isArray(data.hashtags) ? data.hashtags : [];
@@ -5176,6 +5184,8 @@ async function generateSsSlideshow(format = 'current') {
             if (elements.ssHashtagsText) elements.ssHashtagsText.textContent = state.ssHashtags.join(' ');
             if (elements.ssCaptionText) elements.ssCaptionText.textContent = state.ssCaption;
         if (elements.ssDescriptionText) elements.ssDescriptionText.textContent = state.ssDescription;
+        renderSsSounds([]);
+        loadSsSounds().catch(() => {});
             if (elements.ssPinnedText) elements.ssPinnedText.textContent = state.ssPinnedComment;
         }
         if (elements.ssDownloadAllBtn) elements.ssDownloadAllBtn.style.display = 'block';
@@ -5189,6 +5199,160 @@ async function generateSsSlideshow(format = 'current') {
             btn.disabled = false;
             btn.innerHTML = originalLabel || `<span>${legacy ? 'Generate legacy 6-slide slideshow' : '✨ Generate Slideshow Copy'}</span>`;
         }
+    }
+}
+
+// --- TikTok sound picker (slideshow flow) -------------------------------------------------
+// Suggestions come from the accounts whose carousels define this format, so the sound is
+// already proven under this kind of post. Previewing matters more than any ranking: the user
+// decides by ear, so the card exists to make listening one click.
+let ssSoundAudio = null;
+let ssSoundShown = [];
+let ssSoundBusy = false;
+
+function ssSoundStopPlayback() {
+    if (ssSoundAudio) { ssSoundAudio.pause(); ssSoundAudio = null; }
+    document.querySelectorAll('.ss-sound-play').forEach((button) => {
+        button.textContent = '▶';
+        button.dataset.playing = 'false';
+    });
+}
+
+function ssSoundToggle(sound, button) {
+    const wasPlaying = ssSoundAudio && ssSoundAudio.dataset.soundId === sound.id && !ssSoundAudio.paused;
+    ssSoundStopPlayback();
+    if (wasPlaying) return;
+    // An <audio> element cannot set request headers, so the key rides in the query string
+    // the same way the photo-library thumbnails already do.
+    const apiKey = (localStorage.getItem('TIKTOK_API_KEY') || localStorage.getItem('TIKTOK_API_PASSWORD') || '').trim();
+    const src = `${API_BASE}/ss-sounds/audio?id=${encodeURIComponent(sound.id)}${apiKey ? `&key=${encodeURIComponent(apiKey)}` : ''}`;
+    const audio = new Audio(src);
+    audio.dataset.soundId = sound.id;
+    audio.addEventListener('ended', ssSoundStopPlayback);
+    audio.addEventListener('error', () => {
+        ssSoundStopPlayback();
+        if (elements.ssSoundStatus) elements.ssSoundStatus.textContent = 'Dieser Sound lässt sich nicht abspielen. Wähle einen anderen oder lade neue Vorschläge.';
+    });
+    ssSoundAudio = audio;
+    button.textContent = '❚❚';
+    button.dataset.playing = 'true';
+    audio.play().catch(() => {
+        ssSoundStopPlayback();
+        if (elements.ssSoundStatus) elements.ssSoundStatus.textContent = 'Wiedergabe blockiert. Klicke die Seite einmal an und versuche es erneut.';
+    });
+}
+
+function ssSoundSelect(sound) {
+    // Storing the whole object keeps the export self-contained: title, artist and the URL
+    // that gets pasted when the post goes up.
+    state.ssSound = { id: sound.id, title: sound.title, artist: sound.artist, link: sound.link };
+    renderSsSounds(ssSoundShown);
+    saveSsGeneration({
+        slides: state.slides, variety: state.ssVariety, save_trigger: state.ssSaveTrigger,
+        title: state.ssTitle, hashtags: state.ssHashtags, caption: state.ssCaption,
+        description: state.ssDescription, sound: state.ssSound, pinned_comment: state.ssPinnedComment,
+        language: state.ssLanguage,
+    });
+}
+
+// Views are shown compactly: "155k" reads at a glance where "154.898" wraps the row.
+function ssSoundCount(value) {
+    const n = Number(value) || 0;
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.0', '')}M`;
+    if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+    return String(n);
+}
+
+function renderSsSounds(sounds) {
+    const list = elements.ssSoundList;
+    if (!list) return;
+    ssSoundShown = sounds || [];
+    list.replaceChildren();
+    // A previously chosen sound stays visible even when it is not in the current draw,
+    // otherwise refreshing would silently look like the selection was lost.
+    const cards = [...ssSoundShown];
+    if (state.ssSound && !cards.some((s) => s.id === state.ssSound.id)) cards.unshift(state.ssSound);
+
+    for (const sound of cards) {
+        const selected = state.ssSound?.id === sound.id;
+        // The whole row selects. In a 260px column a separate button left the title and
+        // metadata about 40px of space, which wrapped them one word per line.
+        const card = document.createElement('div');
+        card.className = 'ss-sound-card';
+        card.dataset.selected = String(selected);
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-pressed', String(selected));
+        card.tabIndex = 0;
+        card.title = selected ? 'Ausgewählt' : 'Als Sound für diesen Post auswählen';
+
+        const play = document.createElement('button');
+        play.type = 'button';
+        play.className = 'ss-sound-play';
+        play.textContent = '▶';
+        play.setAttribute('aria-label', `${sound.title} anhören`);
+        play.addEventListener('click', (event) => { event.stopPropagation(); ssSoundToggle(sound, play); });
+
+        const main = document.createElement('div');
+        main.className = 'ss-sound-main';
+        const title = document.createElement('div');
+        title.className = 'ss-sound-title';
+        title.textContent = sound.title;
+        // Two short lines beat one truncated one: at this width "Artist - 60s - 831k Views -
+        // @handle" loses its tail to an ellipsis, and the handle is the trust signal.
+        const meta = document.createElement('div');
+        meta.className = 'ss-sound-meta';
+        meta.textContent = [sound.artist, sound.duration ? `${sound.duration}s` : ''].filter(Boolean).join(' · ');
+        const sub = document.createElement('div');
+        sub.className = 'ss-sound-meta ss-sound-sub';
+        sub.textContent = sound.plays ? `${ssSoundCount(sound.plays)} Views` : '';
+        if (sound.via) {
+            const via = document.createElement('span');
+            via.className = 'ss-sound-via';
+            via.textContent = sub.textContent ? ` · ${sound.via}` : sound.via;
+            sub.append(via);
+        }
+        main.append(title, meta);
+        if (sub.textContent) main.append(sub);
+
+        const check = document.createElement('span');
+        check.className = 'ss-sound-check';
+        check.textContent = selected ? '✓' : '';
+
+        card.append(play, main, check);
+        card.addEventListener('click', () => ssSoundSelect(sound));
+        card.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); ssSoundSelect(sound); }
+        });
+        list.append(card);
+    }
+}
+
+async function loadSsSounds(refresh = false) {
+    if (ssSoundBusy || !elements.ssSoundList) return;
+    ssSoundBusy = true;
+    ssSoundStopPlayback();
+    if (elements.ssSoundRefresh) elements.ssSoundRefresh.disabled = true;
+    if (elements.ssSoundStatus) elements.ssSoundStatus.textContent = refresh ? 'Suche neue Sounds…' : 'Sounds werden geladen…';
+    try {
+        // Excluding what is on screen is what makes "Andere Vorschläge" show something new.
+        const exclude = ssSoundShown.map((s) => s.id).join(',');
+        const query = new URLSearchParams({ count: '3' });
+        if (exclude) query.set('exclude', exclude);
+        if (refresh) query.set('refresh', '1');
+        const response = await fetch(`${API_BASE}/ss-sounds?${query}`, { headers: getApiAuthHeaders() });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || `Fehler ${response.status}`);
+        renderSsSounds(data.sounds || []);
+        if (elements.ssSoundStatus) {
+            elements.ssSoundStatus.textContent = (data.sounds || []).length
+                ? `${data.poolSize} Sounds im Pool · aus den Referenz-Accounts und eigenen Scrapes.`
+                : 'Keine Sounds gefunden. Versuche es mit "Andere Vorschläge" erneut.';
+        }
+    } catch (error) {
+        if (elements.ssSoundStatus) elements.ssSoundStatus.textContent = `Sounds konnten nicht geladen werden: ${error.message}`;
+    } finally {
+        ssSoundBusy = false;
+        if (elements.ssSoundRefresh) elements.ssSoundRefresh.disabled = false;
     }
 }
 
@@ -8222,12 +8386,8 @@ async function downloadAllSlides() {
         const hashtags = (state.ssHashtags || []).join(' ');
         const lines = [];
         if (state.ssTitle) lines.push(`TITLE (max 8 words — paste this as the post text):\n${state.ssTitle}`);
-        if (state.ssDescription) lines.push(`DESCRIPTION (paste in front of the hashtags):\n${state.ssDescription}`);
-        if (hashtags) lines.push(`HASHTAGS:\n${hashtags}`);
         if (state.ssDescription || hashtags) lines.push(`DESCRIPTION + HASHTAGS TOGETHER:\n${[state.ssDescription, hashtags].filter(Boolean).join(' ')}`);
-        if (state.ssTitle || hashtags) lines.push(`TITLE + HASHTAGS TOGETHER:\n${[state.ssTitle, hashtags].filter(Boolean).join(' ')}`);
-        if (state.ssPinnedComment) lines.push(`PINNED COMMENT (post this yourself, immediately):\n${state.ssPinnedComment}`);
-        if (state.ssCaption) lines.push(`ALTERNATIVE LONGER CAPTION:\n${state.ssCaption}`);
+        if (state.ssSound) lines.push(`SOUND:\n${[state.ssSound.title, state.ssSound.artist].filter(Boolean).join(' - ')}\n${state.ssSound.link}`);
         if (lines.length) zip.file('tiktok_info.txt', lines.join('\n\n'));
 
         const content = await zip.generateAsync({ type: 'blob' });
@@ -10232,6 +10392,9 @@ function initEventListeners() {
         tab.addEventListener('click', () => setSsWorkflowSection(tab.dataset.ssSection));
     });
 
+    if (elements.ssSoundRefresh) {
+        elements.ssSoundRefresh.addEventListener('click', () => loadSsSounds(false).catch(() => {}));
+    }
     if (elements.ssFormatSelect) {
         elements.ssFormatSelect.addEventListener('change', syncSsFormatChoice);
         syncSsFormatChoice();

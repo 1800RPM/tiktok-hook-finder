@@ -10,6 +10,7 @@ import { createDbtJob, getDbtJob, getDbtTopics, initDbtJobTables, runDbtJob } fr
 import { generateLhFormatSlides, LH_FORMATS } from "./projects/dbt/lh_formats";
 import type { LhFormatId } from "./projects/dbt/lh_formats";
 import { generateSsSlideshow, generateSsTopicSeeds } from "./projects/dbt/ss_slideshow";
+import { recommendSsSounds, resolveSoundAudio } from "./projects/dbt/ss_sounds";
 import { generateMemeSlideshow } from "./projects/dbt/meme_slideshow";
 import { getMemeAssets, startMemeAnalysis, editMemeLabels, selectMemeAssets } from "./projects/dbt/meme_assets";
 import { generateSsBatch, SS_FORMATS } from "./projects/dbt/ss_batch";
@@ -531,11 +532,12 @@ const { file } = Bun;
 let ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 let OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 let KIMI_API_KEY = process.env.KIMI_API_KEY;
+let SCRAPE_CREATORS_API_KEY = process.env.SCRAPE_CREATORS_API_KEY;
 let API_KEYS_RAW = process.env.API_KEYS;
 let KIMI_API_BASE = process.env.KIMI_API_BASE || "https://api.kimi.com/coding/v1";
 let KIMI_DEFAULT_MODEL = process.env.KIMI_MODEL || "k3";
 
-if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !KIMI_API_KEY || !API_KEYS_RAW) {
+if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !KIMI_API_KEY || !API_KEYS_RAW || !SCRAPE_CREATORS_API_KEY) {
     console.log("Ã¢Å¡Â Ã¯Â¸Â Keys not found in process.env, attempting manual load...");
     async function loadEnv(pathStr: string) {
         try {
@@ -548,6 +550,7 @@ if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !KIMI_API_KEY || !API_KEYS_RAW) {
             const kimiBaseMatch = envText.match(/KIMI_API_BASE=(.*)/);
             const kimiModelMatch = envText.match(/KIMI_MODEL=(.*)/);
             const apiKeysMatch = envText.match(/API_KEYS=(.*)/);
+            const scrapeMatch = envText.match(/SCRAPE_CREATORS_API_KEY=(.*)/);
 
             if (anthropicMatch && anthropicMatch[1]) ANTHROPIC_API_KEY = anthropicMatch[1].trim();
             if (openaiMatch && openaiMatch[1]) OPENAI_API_KEY = openaiMatch[1].trim();
@@ -555,6 +558,7 @@ if (!ANTHROPIC_API_KEY || !OPENAI_API_KEY || !KIMI_API_KEY || !API_KEYS_RAW) {
             if (kimiBaseMatch && kimiBaseMatch[1]) KIMI_API_BASE = kimiBaseMatch[1].trim();
             if (kimiModelMatch && kimiModelMatch[1]) KIMI_DEFAULT_MODEL = kimiModelMatch[1].trim();
             if (apiKeysMatch && apiKeysMatch[1]) API_KEYS_RAW = apiKeysMatch[1].trim();
+            if (scrapeMatch && scrapeMatch[1]) SCRAPE_CREATORS_API_KEY = scrapeMatch[1].trim();
         } catch (e) {
             console.error(`Ã¢ÂÅ’ Failed to load ${pathStr}`);
         }
@@ -2982,6 +2986,43 @@ Output ONLY the JSON object.No markdown, no explanation.`
             } catch (error) {
                 console.error("[Meme Slideshow] Generation failed:", error);
                 return sendJSON({ error: "Meme slideshow generation failed. Please retry." }, 500);
+            }
+        }
+        // GET /ss-sounds - three sound suggestions for the current slideshow post
+        else if (cleanPath === "/ss-sounds" && method === "GET") {
+            if (!SCRAPE_CREATORS_API_KEY) return sendJSON({ error: "ScrapeCreators API key is not configured." }, 503);
+            try {
+                const params = new URL(req.url).searchParams;
+                const exclude = (params.get("exclude") || "").split(",").map((id) => id.trim()).filter(Boolean).slice(0, 60);
+                const count = Math.min(Math.max(parseInt(params.get("count") || "3", 10) || 3, 1), 10);
+                return sendJSON(await recommendSsSounds(SCRAPE_CREATORS_API_KEY, count, exclude, params.get("refresh") === "1"));
+            } catch (error) {
+                console.error("[SS Sounds] Recommendation failed:", error);
+                return sendJSON({ error: "Sound suggestions could not be loaded. Please retry." }, 500);
+            }
+        }
+        // GET /ss-sounds/audio - proxy the CDN stream so the browser never sees the API key
+        // and an expired URL can be refetched transparently.
+        else if (cleanPath === "/ss-sounds/audio" && method === "GET") {
+            if (!SCRAPE_CREATORS_API_KEY) return new Response("Not configured", { status: 503 });
+            try {
+                const id = (new URL(req.url).searchParams.get("id") || "").trim();
+                if (!/^[0-9]{5,32}$/.test(id)) return new Response("Invalid id", { status: 400 });
+                const target = await resolveSoundAudio(SCRAPE_CREATORS_API_KEY, id);
+                if (!target) return new Response("Sound not found", { status: 404 });
+                const range = req.headers.get("range");
+                const upstream = await fetch(target, { headers: range ? { range } : {}, signal: AbortSignal.timeout(30000) });
+                if (!upstream.ok || !upstream.body) return new Response("Upstream error", { status: 502 });
+                const headers = new Headers(corsHeaders);
+                for (const key of ["content-type", "content-length", "content-range", "accept-ranges"]) {
+                    const value = upstream.headers.get(key);
+                    if (value) headers.set(key, value);
+                }
+                headers.set("cache-control", "public, max-age=3600");
+                return new Response(upstream.body, { status: upstream.status, headers });
+            } catch (error) {
+                console.error("[SS Sounds] Audio proxy failed:", error);
+                return new Response("Audio unavailable", { status: 502 });
             }
         }
         // POST /generate-ss-topic-seeds - generate the topic list used by the legacy flow
