@@ -4669,8 +4669,7 @@ function restoreSsGeneration() {
         if (elements.ssHashtagsText) elements.ssHashtagsText.textContent = state.ssHashtags.join(' ');
         if (elements.ssCaptionText) elements.ssCaptionText.textContent = state.ssCaption;
         if (elements.ssDescriptionText) elements.ssDescriptionText.textContent = state.ssDescription;
-        renderSsSounds([]);
-        loadSsSounds().catch(() => {});
+
         if (elements.ssPinnedText) elements.ssPinnedText.textContent = state.ssPinnedComment;
     }
     if (elements.ssDownloadAllBtn) elements.ssDownloadAllBtn.style.display = 'block';
@@ -5119,7 +5118,9 @@ async function generateSsSlideshow(format = 'current') {
     // Simple + dbt share the listicle skeleton and one slide-text history, so no slide
     // ever repeats word for word across either format. The hacks flow shares that history.
     const listicle = simple || dbt;
-    const remembersHistory = listicle || hacks;
+    // Every generated format keeps its slide history, so no flow repeats a topic. Legacy is
+    // excluded because it is driven by an explicit topic seed the user picks.
+    const remembersHistory = format !== 'legacy';
     const theme = elements.ssThemeInput?.value?.trim() || '';
     const language = elements.ssLanguageSelect?.value === 'de' ? 'de' : 'en';
     const model = elements.ssModelSelect?.value || 'claude-fable-5';
@@ -5184,8 +5185,7 @@ async function generateSsSlideshow(format = 'current') {
             if (elements.ssHashtagsText) elements.ssHashtagsText.textContent = state.ssHashtags.join(' ');
             if (elements.ssCaptionText) elements.ssCaptionText.textContent = state.ssCaption;
         if (elements.ssDescriptionText) elements.ssDescriptionText.textContent = state.ssDescription;
-        renderSsSounds([]);
-        loadSsSounds().catch(() => {});
+
             if (elements.ssPinnedText) elements.ssPinnedText.textContent = state.ssPinnedComment;
         }
         if (elements.ssDownloadAllBtn) elements.ssDownloadAllBtn.style.display = 'block';
@@ -10394,6 +10394,9 @@ function initEventListeners() {
 
     if (elements.ssSoundRefresh) {
         elements.ssSoundRefresh.addEventListener('click', () => loadSsSounds(false).catch(() => {}));
+        // Load once the tab exists, not once a post exists: picking a sound is part of
+        // planning a post, and the pool takes a moment to warm up on a cold start.
+        loadSsSounds().catch(() => {});
     }
     if (elements.ssFormatSelect) {
         elements.ssFormatSelect.addEventListener('change', syncSsFormatChoice);

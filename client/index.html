@@ -46,6 +46,16 @@
                         <label class="meme-auto-choice"><input id="meme-auto-art" type="checkbox" checked>Auto-place images after generation</label>
                     </div>
                     <p id="meme-status" role="status" aria-live="polite"></p>
+                    <div class="input-group" id="meme-sound-group" style="margin-top: 12px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                            <label class="ss-label" style="margin:0;">TikTok Sound</label>
+                            <button id="meme-sound-refresh" type="button" class="btn btn-secondary"
+                                style="padding:4px 10px; font-size:12px;">Andere Vorschl&auml;ge</button>
+                        </div>
+                        <div id="meme-sound-list" class="ss-sound-list"></div>
+                        <p id="meme-sound-status" class="section-hint" style="margin:6px 0 0;"></p>
+                    </div>
+
                     <div id="meme-meta-group" hidden style="margin-top: 12px;">
                         <h3 style="margin: 0 0 8px;">TikTok metadata</h3>
                         <div class="input-group">
@@ -1372,6 +1382,16 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                             Generate legacy 6-slide slideshow
                         </button>
 
+                        <div class="input-group" id="ss-sound-group" style="margin-top: 14px;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                                <label class="ss-label" style="margin:0;">TikTok Sound</label>
+                                <button id="ss-sound-refresh" type="button" class="btn ss-btn-secondary"
+                                    style="padding:4px 10px; font-size:12px;">Andere Vorschl&auml;ge</button>
+                            </div>
+                            <div id="ss-sound-list" class="ss-sound-list"></div>
+                            <p id="ss-sound-status" class="ss-hint" style="margin:6px 0 0;">Sounds werden geladen&hellip;</p>
+                        </div>
+
                         <p id="ss-generation-hint" class="ss-hint" style="margin-top: 10px;">Hook archetype and topic domain rotate
                             automatically, so consecutive posts never land on the same format.</p>
                     </section>
@@ -1411,15 +1431,6 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                             <div class="metadata-item" style="margin-top: 12px;">
                                 <label class="ss-label">Description (goes in front of the hashtags)</label>
                                 <div id="ss-description-text" class="ss-funnel-text"></div>
-                            </div>
-                            <div class="metadata-item" style="margin-top: 12px;">
-                                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                                    <label class="ss-label" style="margin:0;">TikTok Sound</label>
-                                    <button id="ss-sound-refresh" type="button" class="btn ss-btn-secondary"
-                                        style="padding:4px 10px; font-size:12px;">Andere Vorschl&auml;ge</button>
-                                </div>
-                                <div id="ss-sound-list" class="ss-sound-list"></div>
-                                <p id="ss-sound-status" class="ss-hint" style="margin:6px 0 0;">Sounds werden geladen&hellip;</p>
                             </div>
                             <div class="metadata-item" style="margin-top: 12px;">
                                 <label class="ss-label">Hashtags</label>

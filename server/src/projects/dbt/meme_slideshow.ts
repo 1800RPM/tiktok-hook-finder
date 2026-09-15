@@ -91,9 +91,18 @@ HASHTAGS: exactly 5, lowercase, no spaces inside a tag. Mix broad niche tags wit
 this specific topic. No banned or spammy tags, no branded app tag.
 
 DESCRIPTION (published in front of the hashtags, not shown on any slide):
-EXACTLY two sentences, plain and factual, in the same voice as the slides. Say what the post is
-about and who it is for. No emojis, no hashtags, no links, no call to action, no questions, no
-app mention, no mascot or character reference. Never a teaser or a cliffhanger.
+EXACTLY two sentences, lowercase, first person, in the same voice as the slides. This is the
+poster talking under her own post, not a description of it: a summary announces and targets,
+a caption just says one more true sentence to people who can already see the post.
+Banned openings: "this post is about", "here are", "it's for anyone who", "a look at".
+No emojis, no hashtags, no links, no questions, no call to action, no app mention, no mascot
+or character reference. Not a teaser or a cliffhanger.
+Good: "the laundry chair has been a permanent fixture since march. turns out deciding was the
+part that was breaking, not the folding."
+Bad: "This post is about ordinary chores that get stuck for bpd reasons. It's for anyone with
+a four minute task sitting on the list."
+The bad one explains the post to someone already looking at it, in a register no one here
+writes in.
 
 Return JSON {"slides":[{"role":"hook","headline":"...","body":"...","leftLabel":"","rightLabel":""}, ...],
 "title":"...", "hashtags":["...", 5 of them], "description":"..."} with no markdown.`;

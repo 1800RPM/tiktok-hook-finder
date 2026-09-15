@@ -2995,7 +2995,12 @@ Output ONLY the JSON object.No markdown, no explanation.`
                 const params = new URL(req.url).searchParams;
                 const exclude = (params.get("exclude") || "").split(",").map((id) => id.trim()).filter(Boolean).slice(0, 60);
                 const count = Math.min(Math.max(parseInt(params.get("count") || "3", 10) || 3, 1), 10);
-                return sendJSON(await recommendSsSounds(SCRAPE_CREATORS_API_KEY, count, exclude, params.get("refresh") === "1"));
+                // The two tabs need opposite sounds, so each draws from its own pool.
+                const flow = params.get("flow") === "meme" ? "meme" : "slideshow";
+                // The taste check needs the Anthropic key; without it the pool still works,
+                // it just falls back to the vetted core plus unjudged finds.
+                return sendJSON(await recommendSsSounds(SCRAPE_CREATORS_API_KEY, flow, count, exclude,
+                    params.get("refresh") === "1", ANTHROPIC_API_KEY || ""));
             } catch (error) {
                 console.error("[SS Sounds] Recommendation failed:", error);
                 return sendJSON({ error: "Sound suggestions could not be loaded. Please retry." }, 500);

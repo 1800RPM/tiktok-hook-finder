@@ -403,8 +403,14 @@ function buildMemeTopicBlock(axis: { label: string; spec: string }): string {
   easier, without studying therapy or identifying with a diagnosis.
 - The five items must be concrete things a viewer can picture: objects, places, actions, small
   decisions. Not five lessons, not five feelings, not five therapy concepts.
-- The hook headline must contain the standalone word BPD or DBT and promise five items rather
-  than five abstract lessons. Up to two short words may be capitalised for emphasis.
+- The hook headline must contain the standalone word BPD or DBT, and it has to carry weight in
+  the sentence rather than be appended to it. Use it as the subject ("5 errands BPD makes feel
+  impossible"), as a modifier ("5 BPD habits that cost nothing"), or inside a phrase ("5 things
+  that get easier with BPD"). Never bolt it on after a comma or at the end: "5 things i do when
+  someone cancels on me, BPD" is the failure to avoid. Read the headline aloud; if the niche
+  word could be deleted without breaking the sentence, rewrite it.
+- The hook promises five items rather than five abstract lessons. Up to two short words may be
+  capitalised for emphasis.
 - Rejected shapes, because they need interest in therapy before the viewer cares: "5 things DBT
   teaches that sound wrong at first", "5 ways BPD progress is easy to miss", "5 truths about
   radical acceptance".
@@ -474,9 +480,20 @@ Model: "step 3 is doing a lot of heavy lifting in my personal life 👀"
 Never describe the app, never say "ad" or "sponsored".
 
 DESCRIPTION (goes directly in front of the hashtags when the post is published):
-EXACTLY two sentences, plain and factual, in the account's voice. Say what the post is about
-and who it is for. No emojis, no hashtags, no links, no call to action, no questions, no
-"comment below", no app mention. Never a teaser or a cliffhanger, that is the caption's job.
+EXACTLY two sentences, lowercase, first person, in the same voice as the slides. This is the
+poster talking under her own post, not a description of it. That distinction is the whole
+thing: a summary announces and targets, a caption just says one more true sentence to people
+who can already see what they are looking at.
+Banned openings, because they are what a catalogue entry does: "this post is about", "here
+are", "it's for anyone who", "a look at", "these are the".
+No emojis, no hashtags, no links, no questions, no call to action, no app mention. Not a
+teaser or a cliffhanger either, that is the caption's job.
+Good: "the laundry chair has been a permanent fixture since march. turns out deciding was
+the part that was breaking, not the folding."
+Bad: "This post is about ordinary chores that get stuck for bpd reasons, and the dbt skills i
+actually use on them. It's for anyone with a four minute task sitting on the list."
+The bad one is grammatical and useless: it explains the post to someone who is already
+looking at it, in a register no one on this app writes in.
 
 PINNED_COMMENT (posted by the account under its own video immediately): the plain friendly
 answer to "what app?", naming DBT-Mind once, casual, 1-2 short sentences, no link.
@@ -714,9 +731,20 @@ explaining it. Model: "the bonus tip is doing a lot of heavy lifting in my life 
 Never describe the app, never say "ad" or "sponsored".
 
 DESCRIPTION (goes directly in front of the hashtags when the post is published):
-EXACTLY two sentences, plain and factual, in the account's voice. Say what the post is about
-and who it is for. No emojis, no hashtags, no links, no call to action, no questions, no
-"comment below", no app mention. Never a teaser or a cliffhanger, that is the caption's job.
+EXACTLY two sentences, lowercase, first person, in the same voice as the slides. This is the
+poster talking under her own post, not a description of it. That distinction is the whole
+thing: a summary announces and targets, a caption just says one more true sentence to people
+who can already see what they are looking at.
+Banned openings, because they are what a catalogue entry does: "this post is about", "here
+are", "it's for anyone who", "a look at", "these are the".
+No emojis, no hashtags, no links, no questions, no call to action, no app mention. Not a
+teaser or a cliffhanger either, that is the caption's job.
+Good: "the laundry chair has been a permanent fixture since march. turns out deciding was
+the part that was breaking, not the folding."
+Bad: "This post is about ordinary chores that get stuck for bpd reasons, and the dbt skills i
+actually use on them. It's for anyone with a four minute task sitting on the list."
+The bad one is grammatical and useless: it explains the post to someone who is already
+looking at it, in a register no one on this app writes in.
 
 PINNED_COMMENT (posted by the account under its own post immediately): the plain friendly
 answer to "what app?", naming DBT-Mind once, casual, 1-2 short sentences, no link.
@@ -913,9 +941,20 @@ explaining it. Model: "the bonus tip carries my whole toolbox honestly 👀"
 Never describe the app, never say "ad" or "sponsored".
 
 DESCRIPTION (goes directly in front of the hashtags when the post is published):
-EXACTLY two sentences, plain and factual, in the account's voice. Say what the post is about
-and who it is for. No emojis, no hashtags, no links, no call to action, no questions, no
-"comment below", no app mention. Never a teaser or a cliffhanger, that is the caption's job.
+EXACTLY two sentences, lowercase, first person, in the same voice as the slides. This is the
+poster talking under her own post, not a description of it. That distinction is the whole
+thing: a summary announces and targets, a caption just says one more true sentence to people
+who can already see what they are looking at.
+Banned openings, because they are what a catalogue entry does: "this post is about", "here
+are", "it's for anyone who", "a look at", "these are the".
+No emojis, no hashtags, no links, no questions, no call to action, no app mention. Not a
+teaser or a cliffhanger either, that is the caption's job.
+Good: "the laundry chair has been a permanent fixture since march. turns out deciding was
+the part that was breaking, not the folding."
+Bad: "This post is about ordinary chores that get stuck for bpd reasons, and the dbt skills i
+actually use on them. It's for anyone with a four minute task sitting on the list."
+The bad one is grammatical and useless: it explains the post to someone who is already
+looking at it, in a register no one on this app writes in.
 
 PINNED_COMMENT (posted by the account under its own post immediately): the plain friendly
 answer to "what app?", naming DBT-Mind once, casual, 1-2 short sentences, no link.
@@ -1158,9 +1197,20 @@ middle line mentions the app the way the "cta" slide did, in different words. Ne
 or sponsored.
 
 DESCRIPTION (goes directly in front of the hashtags when the post is published):
-EXACTLY two sentences, plain and factual, in the account's voice. Say what the post is about
-and who it is for. No emojis, no hashtags, no links, no call to action, no questions, no
-"comment below", no app mention. Never a teaser or a cliffhanger, that is the caption's job.
+EXACTLY two sentences, lowercase, first person, in the same voice as the slides. This is the
+poster talking under her own post, not a description of it. That distinction is the whole
+thing: a summary announces and targets, a caption just says one more true sentence to people
+who can already see what they are looking at.
+Banned openings, because they are what a catalogue entry does: "this post is about", "here
+are", "it's for anyone who", "a look at", "these are the".
+No emojis, no hashtags, no links, no questions, no call to action, no app mention. Not a
+teaser or a cliffhanger either, that is the caption's job.
+Good: "the laundry chair has been a permanent fixture since march. turns out deciding was
+the part that was breaking, not the folding."
+Bad: "This post is about ordinary chores that get stuck for bpd reasons, and the dbt skills i
+actually use on them. It's for anyone with a four minute task sitting on the list."
+The bad one is grammatical and useless: it explains the post to someone who is already
+looking at it, in a register no one on this app writes in.
 
 PINNED_COMMENT: the plain friendly answer to "what app?", naming DBT-Mind once, casual,
 1 to 2 short sentences, no link.
@@ -1447,8 +1497,19 @@ COVER: [title line]
 [body — includes CTA if placement 1–3]
 
 [CTA slide if placement 4]
+
+DESCRIPTION: [see below]
 \`\`\`
 (Adjust count/density per your menu choice. Number as "01" or "01." — pick one and stay consistent within the post.)
+
+DESCRIPTION (the last line of the output, published in front of the hashtags and shown on no
+slide): EXACTLY two sentences, lowercase, first person, in the same voice as the slides. This is
+the poster talking under her own post, not a description of it: a summary announces and targets,
+a caption just says one more true sentence to people who can already see the post.
+Banned openings: "this post is about", "here are", "it's for anyone who", "a look at".
+No emojis, no hashtags, no links, no questions, no call to action, no app mention.
+Good: "the laundry chair has been a permanent fixture since march. turns out deciding was the
+part that was breaking, not the folding."
 
 ---
 
@@ -1480,6 +1541,19 @@ const s = (v: any, fallback = ''): string => (typeof v === 'string' && v.trim() 
 // The 8-word cap is a hard requirement, so enforce it here rather than trusting the model to
 // count. Hashtags are stripped out — they ship as their own field.
 const TITLE_MAX_WORDS = 8;
+// Function words that hold a phrase open. Two roles here: such a word cannot end a title, and
+// a word sitting directly after one is the tail of a noun phrase the cut went through.
+// "what your bag is doing to your nervous" satisfied the eight-word cap and was still broken,
+// and "nervous" is not a function word -- the give-away is the "your" in front of it.
+// Verbs are deliberately absent: "what your bag is doing" is a perfectly good ending.
+const TITLE_DANGLING = new Set([
+    'a', 'an', 'the', 'and', 'or', 'but', 'of', 'for', 'to', 'in', 'on', 'at', 'with', 'without',
+    'your', 'my', 'our', 'their', 'his', 'her', 'its',
+    'that', 'this', 'than', 'as', 'by', 'from', 'into', 'about', 'every', 'each', 'some', 'no',
+    'der', 'die', 'das', 'den', 'dem', 'und', 'oder', 'aber', 'von', 'für', 'zu', 'zum', 'zur',
+    'im', 'am', 'an', 'auf', 'aus', 'mit', 'ohne', 'über', 'dein', 'deine', 'meine', 'mein',
+    'ihre', 'seine', 'dass', 'als', 'nach', 'vor', 'beim', 'einen', 'eine', 'einem',
+]);
 export function buildTitle(raw: any, slides: Array<{ text: string }>): string {
     let title = s(raw)
         .replace(/#[\w]+/g, ' ')
@@ -1491,7 +1565,25 @@ export function buildTitle(raw: any, slides: Array<{ text: string }>): string {
     if (!title) title = s(slides[0]?.text).split('\n\n')[0];
 
     const words = title.split(' ').filter(Boolean);
-    return words.length <= TITLE_MAX_WORDS ? title : words.slice(0, TITLE_MAX_WORDS).join(' ');
+    if (words.length <= TITLE_MAX_WORDS) return title;
+
+    // A clause boundary is a real ending, so prefer it over any arithmetic cut.
+    const clause = title.split(/[,:;–—]/)[0]!.trim();
+    const clauseWords = clause.split(' ').filter(Boolean);
+    if (clauseWords.length >= 3 && clauseWords.length <= TITLE_MAX_WORDS) return clause;
+
+    // Otherwise cut to the cap, then walk back to a word that can actually end a phrase.
+    const bare = (word: string) => word.toLowerCase().replace(/[^\p{L}]/gu, '');
+    const cut = words.slice(0, TITLE_MAX_WORDS);
+    while (cut.length > 3) {
+        const last = bare(cut[cut.length - 1]!);
+        const before = cut.length > 1 ? bare(cut[cut.length - 2]!) : '';
+        // Either the last word holds the phrase open, or it is the tail of a noun phrase
+        // that the cut ran through, which the function word in front of it reveals.
+        if (!TITLE_DANGLING.has(last) && !TITLE_DANGLING.has(before)) break;
+        cut.pop();
+    }
+    return cut.join(' ');
 }
 
 const HASHTAG_FALLBACKS = ['#bpd', '#dbt', '#bpdtok', '#dbtskills', '#mentalhealth'];
@@ -1634,7 +1726,9 @@ export async function generateSsSlideshow(params: {
     // Slide texts from earlier listicle generations. The same topic may come back,
     // but no slide text may ever repeat word for word — the list goes into the prompt and
     // the result is checked against it below. The hacks format shares this history.
-    const previousTexts = (listicle || hacks) && Array.isArray(params.previousTexts)
+    // Not gated by format any more: the current and everyday flows need this just as much,
+    // and gating it here was the second half of why they repeated topics.
+    const previousTexts = Array.isArray(params.previousTexts)
         ? params.previousTexts.filter((t) => typeof t === 'string' && t.trim()).slice(-250)
         : [];
 
@@ -1735,6 +1829,9 @@ export async function generateSsSlideshow(params: {
                 : [
                     'Write the slideshow now.',
                     theme && theme.trim() ? `Angle it around: ${theme.trim()}.` : 'Pick the specific angle yourself within your assigned domain — go specific, not general (e.g. FP spirals, 3am overthinking, post-argument shame).',
+                    // Without this the current and everyday flows had no repeat protection at
+                    // all and would happily produce the same topic twice in a row.
+                    usedTextsBlock,
                     language === 'de' ? 'Write all copy in native German. Return no English slide copy.' : '',
                     'Return valid JSON only.'
                 ].filter(Boolean).join('\n');
@@ -1762,7 +1859,15 @@ export async function generateSsSlideshow(params: {
             });
         }
         if (!cover || points.length !== 5) return null;
-        return { slides: [cover, ...points], title: cover.headline, hashtags: [], caption: '', pinned_comment: '' };
+        // Legacy is the one format that answers in plain text, so its description has to be
+        // pulled back out of the body rather than read from a JSON field. Without this the
+        // flow returned hashtags with an empty description while every other flow had one.
+        const descriptionMatch = clean.match(/^DESCRIPTION:\s*([\s\S]*?)(?:\n\s*\n|$)/im);
+        const description = descriptionMatch ? descriptionMatch[1]!.replace(/\s+/g, ' ').trim() : '';
+        // The last point's body would otherwise swallow the description line.
+        const last = points[points.length - 1]!;
+        last.body = last.body.replace(/\n?\s*DESCRIPTION:[\s\S]*$/i, '').trim();
+        return { slides: [cover, ...points], title: cover.headline, hashtags: [], caption: '', description, pinned_comment: '' };
     }
 
     const messages: Array<{ role: string; content: string }> = [{ role: 'user', content: userPrompt }];

@@ -5,7 +5,10 @@
     let previousTopics = [];
     let slides = [];
     // TikTok metadata: never rendered on a slide, but part of the draft.
-    let meta = { title: '', description: '', hashtags: [] };
+    let meta = { title: '', description: '', hashtags: [], sound: null };
+    let soundShown = [];
+    let soundAudio = null;
+    let soundBusy = false;
     let busy = false;
     const status = (message) => { $('status').textContent = message; };
     const settings = () => Object.fromEntries(settingNames.map((name) => [name, $(name).value]));
@@ -17,9 +20,123 @@
     function rememberTopic(topic) {
         if (typeof topic === 'string' && topic.trim()) previousTopics = [...new Set([...previousTopics, topic.trim()])].slice(-50);
     }
+    // --- TikTok sound picker ---------------------------------------------------------------
+    // The meme pool is a different profile from the slideshow one: library music rather than
+    // moody indie. Choosing by ear is the point, so the card exists to make listening one click.
+    const soundCount = (value) => {
+        const n = Number(value) || 0;
+        if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.0', '')}M`;
+        return n >= 1_000 ? `${Math.round(n / 1_000)}k` : String(n);
+    };
+    function stopSound() {
+        if (soundAudio) { soundAudio.pause(); soundAudio = null; }
+        $('sound-list').querySelectorAll('.ss-sound-play').forEach((button) => {
+            button.textContent = '▶';
+            button.dataset.playing = 'false';
+        });
+    }
+    function toggleSound(sound, button) {
+        const wasPlaying = soundAudio && soundAudio.dataset.soundId === sound.id && !soundAudio.paused;
+        stopSound();
+        if (wasPlaying) return;
+        // An <audio> element cannot set request headers, so the key rides in the query string.
+        const apiKey = (localStorage.getItem('TIKTOK_API_KEY') || localStorage.getItem('TIKTOK_API_PASSWORD') || '').trim();
+        const audio = new Audio(`${API_BASE}/ss-sounds/audio?id=${encodeURIComponent(sound.id)}${apiKey ? `&key=${encodeURIComponent(apiKey)}` : ''}`);
+        audio.dataset.soundId = sound.id;
+        audio.addEventListener('ended', stopSound);
+        audio.addEventListener('error', () => { stopSound(); status('Dieser Sound lässt sich nicht abspielen. Wähle einen anderen.'); });
+        soundAudio = audio;
+        button.textContent = '❚❚';
+        button.dataset.playing = 'true';
+        audio.play().catch(() => { stopSound(); status('Wiedergabe blockiert. Klicke die Seite einmal an und versuche es erneut.'); });
+    }
+    function renderSounds(sounds) {
+        const list = $('sound-list');
+        if (!list) return;
+        soundShown = sounds || [];
+        list.replaceChildren();
+        // Keep a chosen sound on screen even when it is not in the current draw, otherwise
+        // refreshing looks like the selection was lost.
+        const cards = [...soundShown];
+        if (meta.sound && !cards.some((s) => s.id === meta.sound.id)) cards.unshift(meta.sound);
+        for (const sound of cards) {
+            const selected = meta.sound?.id === sound.id;
+            const card = document.createElement('div');
+            card.className = 'ss-sound-card';
+            card.dataset.selected = String(selected);
+            card.setAttribute('role', 'button');
+            card.setAttribute('aria-pressed', String(selected));
+            card.tabIndex = 0;
+
+            const play = document.createElement('button');
+            play.type = 'button';
+            play.className = 'ss-sound-play';
+            play.textContent = '▶';
+            play.setAttribute('aria-label', `${sound.title} anhören`);
+            play.addEventListener('click', (event) => { event.stopPropagation(); toggleSound(sound, play); });
+
+            const main = document.createElement('div');
+            main.className = 'ss-sound-main';
+            const title = document.createElement('div');
+            title.className = 'ss-sound-title';
+            title.textContent = sound.title;
+            const line = document.createElement('div');
+            line.className = 'ss-sound-meta';
+            line.textContent = [sound.artist, sound.duration ? `${sound.duration}s` : ''].filter(Boolean).join(' · ');
+            const sub = document.createElement('div');
+            sub.className = 'ss-sound-meta ss-sound-sub';
+            sub.textContent = sound.plays ? `${soundCount(sound.plays)} Videos` : '';
+            main.append(title, line);
+            if (sub.textContent) main.append(sub);
+
+            const check = document.createElement('span');
+            check.className = 'ss-sound-check';
+            check.textContent = selected ? '✓' : '';
+
+            const pick = () => {
+                meta.sound = { id: sound.id, title: sound.title, artist: sound.artist, link: sound.link };
+                renderSounds(soundShown);
+                save();
+            };
+            card.append(play, main, check);
+            card.addEventListener('click', pick);
+            card.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); pick(); }
+            });
+            list.append(card);
+        }
+    }
+    async function loadSounds(refresh = false) {
+        if (soundBusy || !$('sound-list')) return;
+        soundBusy = true;
+        stopSound();
+        $('sound-refresh').disabled = true;
+        $('sound-status').textContent = refresh ? 'Suche neue Sounds…' : 'Sounds werden geladen…';
+        try {
+            // Excluding what is on screen is what makes "Andere Vorschläge" show something new.
+            const query = new URLSearchParams({ count: '3', flow: 'meme' });
+            const exclude = soundShown.map((s) => s.id).join(',');
+            if (exclude) query.set('exclude', exclude);
+            if (refresh) query.set('refresh', '1');
+            const response = await fetch(`${API_BASE}/ss-sounds?${query}`, { headers: getApiAuthHeaders() });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || `Fehler ${response.status}`);
+            renderSounds(data.sounds || []);
+            $('sound-status').textContent = (data.sounds || []).length
+                ? `${data.poolSize} Sounds im Pool · instrumental, 40-70s, in Deutschland nutzbar.`
+                : 'Keine Sounds gefunden. Versuche es mit "Andere Vorschläge" erneut.';
+        } catch (error) {
+            $('sound-status').textContent = `Sounds konnten nicht geladen werden: ${error.message}`;
+        } finally {
+            soundBusy = false;
+            $('sound-refresh').disabled = false;
+        }
+    }
+
     // Metadata is post copy, never slide copy, so it lives outside the slide cards.
     function renderMeta() {
         $('meta-group').hidden = !slides.length;
+        renderSounds(soundShown);
         const fields = [['title', meta.title], ['description', meta.description], ['hashtags', meta.hashtags.join(' ')]];
         for (const [id, value] of fields) if ($(id).value !== value) $(id).value = value;
     }
@@ -79,6 +196,7 @@
                     title: typeof draft.meta?.title === 'string' ? draft.meta.title : '',
                     description: typeof draft.meta?.description === 'string' ? draft.meta.description : '',
                     hashtags: Array.isArray(draft.meta?.hashtags) ? draft.meta.hashtags.filter((tag) => typeof tag === 'string') : [],
+                    sound: draft.meta?.sound && typeof draft.meta.sound.id === 'string' ? draft.meta.sound : null,
                 };
                 artwork.restore(draft.artwork);
                 if (slides[0].body.trim() === '(explained by cats)') slides[0].body = '(explained by bpd cat)';
@@ -93,6 +211,9 @@
         meta.hashtags = $('hashtags').value.split(/\s+/).filter(Boolean);
         save();
     });
+    $('sound-refresh').addEventListener('click', () => loadSounds(false).catch(() => {}));
+    // Suggestions are available from the start: choosing a sound does not depend on a draft.
+    loadSounds().catch(() => {});
     $('copy-meta').addEventListener('click', async () => {
         const text = [meta.description, meta.hashtags.join(' ')].filter(Boolean).join('\n\n');
         try { await navigator.clipboard.writeText(text); status('Description and hashtags copied.'); }
@@ -122,7 +243,9 @@
                 title: typeof data.title === 'string' ? data.title : '',
                 description: typeof data.description === 'string' ? data.description : '',
                 hashtags: Array.isArray(data.hashtags) ? data.hashtags.filter((tag) => typeof tag === 'string') : [],
+                sound: null,
             };
+
             artwork.setSlides(slides, true);
             rememberTopic(slides[0].headline);
             render();
@@ -159,11 +282,15 @@
         rememberTopic(slides[0].headline); render(); status('Approved example loaded. All text is editable.'); save();
     });
     $('copy').addEventListener('click', async () => {
+        const soundLine = meta.sound
+            ? `SOUND\n\n${[meta.sound.title, meta.sound.artist].filter(Boolean).join(' - ')}\n${meta.sound.link}`
+            : '';
         const text = [slides.map((slide, index) => [`SLIDE ${index + 1}`, slide.headline, slide.body,
             ...(slide.role === 'point' ? [`Left: ${slide.leftLabel}`, `Right: ${slide.rightLabel}`] : [])].join('\n\n')).join('\n\n---\n\n'),
             ...(meta.title ? [`TITLE\n\n${meta.title}`] : []),
             ...(meta.description ? [`DESCRIPTION (paste in front of the hashtags)\n\n${meta.description}`] : []),
-            ...(meta.hashtags.length ? [`HASHTAGS\n\n${meta.hashtags.join(' ')}`] : [])].join('\n\n---\n\n');
+            ...(meta.hashtags.length ? [`HASHTAGS\n\n${meta.hashtags.join(' ')}`] : []),
+            ...(soundLine ? [soundLine] : [])].join('\n\n---\n\n');
         try { await navigator.clipboard.writeText(text); status('All seven slides and the TikTok metadata copied.'); }
         catch { status('Clipboard access is unavailable. Use Export JSON to save the text.'); }
     });

@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import { buildDescription, generateSsSlideshow, SS_ARCHETYPES, SS_EVERYDAY_AXES } from './ss_slideshow';
+import { buildDescription, buildTitle, generateSsSlideshow, SS_ARCHETYPES, SS_EVERYDAY_AXES } from './ss_slideshow';
 
 const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
@@ -131,4 +131,63 @@ test('the description is clamped to two plain sentences', () => {
         .toBe('what i keep in my bag and why it helps');
     expect(buildDescription('')).toBe('');
     expect(buildDescription(undefined)).toBe('');
+});
+
+test('every generated format gets repeat protection from previous slide texts', async () => {
+    const seen: string[] = [];
+    globalThis.fetch = (async (_url: any, init: any) => {
+        seen.push(JSON.parse(init.body).messages[0].content);
+        return Response.json({ content: [{ type: 'text', text: '{}' }] });
+    }) as typeof fetch;
+    // The current and everyday flows had no repeat protection at all, which let them
+    // produce the same topic twice in a row.
+    for (const format of ['current', 'meme', 'simple']) {
+        seen.length = 0;
+        await generateSsSlideshow({
+            format, previousTexts: ['5 chores that get stuck with BPD'], ANTHROPIC_API_KEY: 'test',
+        }).catch(() => {});
+        expect(seen[0]).toContain('ALREADY USED SLIDE TEXTS');
+        expect(seen[0]).toContain('5 chores that get stuck with BPD');
+    }
+});
+
+test('titles are cut at a real ending, never mid-phrase', () => {
+    const hook = [{ text: 'fallback headline' }];
+    // The cap alone produced "what your bag is doing to your nervous".
+    expect(buildTitle('what your bag is doing to your nervous system', hook))
+        .toBe('what your bag is doing');
+    expect(buildTitle('why your routine keeps falling apart, and what helped', hook))
+        .toBe('why your routine keeps falling apart');
+    // Titles already within the cap are never touched.
+    expect(buildTitle('errands that feel impossible with bpd', hook))
+        .toBe('errands that feel impossible with bpd');
+    // German titles get the same treatment.
+    expect(buildTitle('was dein rucksack mit deinen schlechten tagen zu tun', hook))
+        .toBe('was dein rucksack mit deinen schlechten tagen');
+    expect(buildTitle('', hook)).toBe('fallback headline');
+});
+
+test('every flow returns the same metadata shape, legacy included', async () => {
+    const fields = ['title', 'hashtags', 'description', 'caption', 'pinned_comment'];
+    const legacyText = [
+        'COVER: 5 things nobody tells you about DBT',
+        'a tag line',
+        '',
+        '01 the first one', 'body text here',
+        '02 the second one', 'body text here',
+        '03 the third one', 'body text here',
+        '04 the fourth one', 'body text here',
+        '05 the fifth one', 'body text here',
+        '',
+        'DESCRIPTION: the laundry chair has been a fixture since march. turns out deciding was the part that broke.',
+    ].join('\n');
+    globalThis.fetch = (async () => Response.json({ content: [{ type: 'text', text: legacyText }] })) as typeof fetch;
+    const result: any = await generateSsSlideshow({
+        format: 'legacy', topicSeed: 'chores', ANTHROPIC_API_KEY: 'test',
+    });
+    for (const field of fields) expect(result).toHaveProperty(field);
+    // Legacy answers in plain text, so its description has to be parsed back out.
+    expect(result.description).toBe('the laundry chair has been a fixture since march. turns out deciding was the part that broke.');
+    // ...and must not be left hanging on the final slide.
+    expect(result.slides[result.slides.length - 1].text).not.toContain('DESCRIPTION');
 });
