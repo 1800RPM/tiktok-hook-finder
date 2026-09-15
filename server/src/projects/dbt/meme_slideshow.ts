@@ -39,7 +39,7 @@ VALUE FIRST, HUMOR SECOND. This is a mass-appeal everyday-habits meme carousel f
 
 CREATIVE TOPIC DISCOVERY: Always invent the specific topic yourself before writing the slides. There is no fixed topic menu. Creative means a fresh selection of familiar everyday things, NOT a more obscure psychological insight. Internally brainstorm ten different combinations of an ordinary category/situation and a clear emotional benefit/cost. Choose the one with the broadest instant recognition and five distinct concrete items. Optional user direction guides this exploration. Recent topics are an exclusion list: avoid their underlying angle, not merely their exact wording, even across languages.
 
-FRAMING AXIS: pick the axis before the topic, and pick a different one than the recent posts used. A time or day frame (mornings, evenings, weekends, after work, weekdays, 3am) is ONE axis among many and is heavily overused - if any of the recent topics to avoid uses a time or day frame, this post must not. Other axes, all equally valid:
+FRAMING AXIS: one axis is assigned to this post in the user message. Build the topic inside it. A time or day frame (mornings, evenings, weekends, after work, weekdays, 3am) is never assigned, because it is the frame every writer defaults to and it produced a run of near-identical posts. The assigned axis will be one of these:
 - a physical object or place: your phone, the kitchen, the bathroom mirror, your bag, the front door, laundry, the fridge
 - a recurring social situation: making plans, group chats, being asked how you are, saying no, seeing someone unexpectedly
 - a small repeated decision: what to eat, whether to reply, whether to cancel, what to wear, which task first
@@ -47,6 +47,40 @@ FRAMING AXIS: pick the axis before the topic, and pick a different one than the 
 - an ordinary task: errands, chores, admin, appointments, packing, cleaning up
 - a category of thing: apps, drinks, sounds, purchases, chores, messages
 The axis sets the shape of the hook; the topic is what you invent inside it.
+
+PROMISE: one promise is assigned to this post in the user message, and it is not negotiable.
+The axis decides what the post is ABOUT; the promise decides what the viewer GETS. Rotating only
+the axis is what produced ten posts in a row that all ended in "makes your BPD day harder or
+easier" - the subject changed every time and the payoff never did, which reads as one post
+repeated. Six promises, all equally valid:
+- EASIER OR HARDER DAY: the everyday cost or relief of a habit. The default, so use it least.
+- NOT A CHARACTER FLAW: things read as laziness, drama or attention that are BPD. Lifts
+  self-blame instead of correcting behaviour, which is why people save it.
+- SOMETHING TO SEND: written so the viewer can hand it to a person who does not get it. The hook
+  has to make that obvious, because a post nobody realises is sendable does not get sent:
+  "5 things about BPD i wish i could explain once and never again", "5 BPD things that sound
+  like excuses and aren't". Address the viewer, never the other person.
+- A SCRIPT: actual sentences to say, to yourself or out loud, in a named situation. The five
+  headlines are still short labels for the situation, not the sentences themselves, and the
+  sentence belongs in the body. The two image captions stay a contrast pair exactly as in every
+  other post: what you would have said versus what you say now.
+- A NEW YARDSTICK: what counts as progress, a good day, or enough on a bad day. Lowers the bar
+  on purpose rather than asking for more effort.
+- FOR SOMEONE WHO LOVES THEM: written for a partner, friend or parent of a person with BPD.
+  The hook must name that reader, or the post reads as just another post for the same audience
+  as all the others: "5 things that actually help when your partner has BPD", "5 things people
+  with BPD wish you knew", "5 small things to say when someone you love is spiralling". A hook
+  that merely mentions BPD is not enough here.
+  This audience is large and badly served, and it is also where this niche goes wrong, so the
+  rules are strict: the person with BPD is never the problem to be managed. No "dealing with",
+  no "surviving", no warning signs, no walking on eggshells, no advice that amounts to
+  monitoring someone. Write concrete things that genuinely help, the way you would tell a
+  friend what works, and keep the person with BPD someone worth loving rather than a condition
+  to handle. If a point could be read as a complaint about them, cut it.
+
+Whatever the promise, the hook still has to carry the standalone word BPD or DBT as part of its
+grammar: "5 things that aren't laziness, they're BPD" works, "5 sentences that stop a spiral"
+does not, because the niche word is missing entirely.
 
 REFERENCE HOOK MECHANIC (from a different niche; do not write about testosterone):
 "5 things quietly BOOSTING your testosterone (explained by testo cat)"
@@ -58,7 +92,7 @@ These work because the objects and situations are familiar, the personal stake i
 HOOK SELECTION RULES:
 - Number + familiar things/habits/objects/situations + plain emotional stake. The viewer should care if they merely want their day to feel easier, without studying therapy or identifying with a diagnosis.
 - Begin with ordinary life, through the axis you chose above. These are illustrative, not a menu or rotation: what sits on someone's kitchen counter, what they do while scrolling, which messages they leave open, what they carry in their bag, how they answer "how are you". Invent other ordinary situations freely.
-- A useful promise is about mood, stress, overthinking, emotional energy, or having a harder/easier day. Avoid vague self-improvement slogans and promises to cure BPD.
+- Whatever it promises, the stake has to be plain and personal. Avoid vague self-improvement slogans and promises to cure BPD.
 - Rejected direction: "5 things DBT teaches that sound wrong at first", "5 ways BPD progress is easy to miss", "5 truths about radical acceptance". These require interest in therapy concepts before the viewer cares.
 - Illustrations of the desired simplicity, NOT options to repeatedly select: "5 everyday habits making BPD days harder", "5 things in your kitchen that make BPD days harder", "5 DBT habits that cost nothing". Invent the actual topic yourself and make the emotional stake clear where needed.
 - EVERY topic headline MUST contain the standalone word BPD or DBT, regardless of language. Weave it naturally into the simple everyday hook. A mention only in the subtitle, body, or app name does not count. Keep the subject concrete and broadly relatable; including the niche word must not turn the hook into an abstract therapy lesson.
@@ -69,7 +103,7 @@ Ground the value in realistic everyday choices and emotional wellbeing. Avoid de
 
 PUNCTUATION: never use an em dash or en dash in any field. No — and no – characters anywhere, not as an aside, not as a pause, not to join clauses. Write two sentences, or use a comma. Dashes in the middle of a sentence are the clearest sign a machine wrote the text.
 
-Voice: plain conversational English, useful and specific. No therapy lecture, motivational slogans, forced metaphors, or theatrical precision. Avoid clinical shorthand such as distorted thoughts, nervous system, dysregulation, cortisol, or emotional hijacking. Describe the observable experience instead. Avoid universal claims like always, every time, or proof that something works. The humor belongs mainly in the two brief image labels. The right-hand character can still be upset. Do not portray distress as moral failure or DBT as instant serenity. Never use jokes about blowing up, being dangerous, or causing relationship damage. Unless the user specifically requests interpersonal content, at most one point may center arguments or relationship repair. Do not invent a human narrator's diagnosis, therapy history, or app experience.
+Voice: plain conversational English, useful and specific. No therapy lecture, motivational slogans, forced metaphors, or theatrical precision. Avoid clinical shorthand such as distorted thoughts, nervous system, dysregulation, cortisol, or emotional hijacking. Describe the observable experience instead. Avoid universal claims like always, every time, or proof that something works. The humor belongs mainly in the two brief image labels. The right-hand character can still be upset. Do not portray distress as moral failure or DBT as instant serenity. Never use jokes about blowing up, being dangerous, or causing relationship damage. Unless the promise is FOR SOMEONE WHO LOVES THEM or the user asks for interpersonal content, at most one point may center arguments or relationship repair. Do not invent a human narrator's diagnosis, therapy history, or app experience. The FOR SOMEONE WHO LOVES THEM promise is the one case where the reader is not assumed to have BPD, so address them directly and never speak about the person with BPD as if they were absent from the room.
 
 Structure: exactly SEVEN slides, in order:
 1. role hook: headline beginning with 5, containing the standalone word BPD or DBT, preferably 6–11 words and at most 14. Follow the everyday hook rules above. Body is a short parenthetical subtitle using the chosen character theme. For the default character, use exactly (explained by bpd cat) in English, or (erklärt von bpd cat) in German. Keep the character name bpd cat lowercase. Both labels empty.
@@ -107,11 +141,44 @@ writes in.
 Return JSON {"slides":[{"role":"hook","headline":"...","body":"...","leftLabel":"","rightLabel":""}, ...],
 "title":"...", "hashtags":["...", 5 of them], "description":"..."} with no markdown.`;
 
-export async function generateMemeSlideshow(params: { topic?: string; theme?: string; notes?: string; previousTopics?: string[]; language?: string; model?: string; ANTHROPIC_API_KEY: string }) {
+// Assigned by the server rather than chosen by the model. Asking it to pick and then police
+// its own variety does not hold: across five runs it fell back to the default promise three
+// times and repeated a combination twice, because it can see previous headlines but not which
+// axis or promise produced them. A draw here makes the rotation real.
+export const MEME_AXES = [
+    'a physical object or place: the kitchen, the bathroom mirror, your bag, the front door, laundry, the fridge',
+    'a recurring social situation: making plans, group chats, being asked how you are, saying no, running into someone',
+    'a small repeated decision: what to eat, whether to reply, whether to cancel, what to wear, which task first',
+    'a body or energy state: tired, hungry, overstimulated, restless, running on four hours of sleep',
+    'an ordinary task: errands, chores, admin, appointments, packing, tidying up',
+    'a category of thing: apps, drinks, sounds, purchases, messages, small habits that cost nothing',
+];
+export const MEME_PROMISES = [
+    'EASIER OR HARDER DAY', 'NOT A CHARACTER FLAW', 'SOMETHING TO SEND',
+    'A SCRIPT', 'A NEW YARDSTICK', 'FOR SOMEONE WHO LOVES THEM',
+];
+// Some pairings fight each other. A promise written for a partner cannot be built on "things in
+// your fridge": twice in testing that axis pulled the hook back to the usual audience and the
+// partner disappeared, while social situations and things-to-say landed it first time. Same for
+// a script, which needs a situation to speak into rather than an object to point at.
+const AXES_FOR_PROMISE: Record<string, number[]> = {
+    'FOR SOMEONE WHO LOVES THEM': [1, 2, 3, 5],
+    'A SCRIPT': [1, 2, 3],
+};
+
+export async function generateMemeSlideshow(params: { topic?: string; theme?: string; notes?: string; previousTopics?: string[]; language?: string; model?: string; axis?: string; promise?: string; ANTHROPIC_API_KEY: string }) {
     const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(params.model || '') ? params.model! : 'claude-sonnet-4-6';
+    const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)]!;
+    const promise = params.promise && MEME_PROMISES.includes(params.promise) ? params.promise : pick(MEME_PROMISES);
+    const allowed = (AXES_FOR_PROMISE[promise] || MEME_AXES.map((_, i) => i)).map((i) => MEME_AXES[i]!);
+    const axis = params.axis && MEME_AXES.some((a) => a.startsWith(params.axis!)) ? params.axis : pick(allowed);
+    console.log(`[Meme Slideshow] promise: ${promise} · axis: ${axis.split(':')[0]}`);
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [{ role: 'user', content: JSON.stringify({
         direction: [params.topic?.trim(), params.notes?.trim()].filter(Boolean).join('\n'),
-        task: 'Invent a fresh creative topic, then write the complete seven-slide carousel.',
+        task: 'Invent a fresh creative topic inside the assigned axis and promise, then write the complete seven-slide carousel.',
+        assignedAxis: axis,
+        assignedPromise: promise,
+        doNotDrift: 'The axis and promise are assigned for this post. Build the topic inside them rather than choosing your own.',
         recentTopicsToAvoid: (params.previousTopics || []).slice(-50),
         characterTheme: !params.theme?.trim() || params.theme.trim().toLowerCase() === 'cats' ? 'bpd cat' : params.theme.trim(),
         language: params.language === 'de' ? 'Native casual German. All visible copy and labels in German, including the subtitle.' : 'English',
