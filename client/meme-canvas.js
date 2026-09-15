@@ -93,6 +93,9 @@
             this.slides = []; this.scenes = []; this.index = 0; this.selected = null;
             this.images = new Map(); this.pending = new Map(); this.errors = new Set(); this.drag = null;
             this.exporting = false; this.fontsReady = false;
+            // Post metadata lives in meme-slides.js; it is handed over so the zip can carry
+            // the same tiktok_info.txt the slideshow export writes.
+            this.metadata = null;
             this.aiBusy = false;
             this.ready = Promise.all([
                 document.fonts.load('600 49px "Meme TikTok"'),
@@ -521,6 +524,25 @@
             const blob = await new Promise((resolve, reject) => canvas.toBlob((result) => result ? resolve(result) : reject(new Error('PNG export failed')), 'image/png'));
             return stripMetadata(blob);
         }
+        // Everything needed when the post actually goes up, in one file next to the slides.
+        infoFile() {
+            const meta = this.metadata;
+            if (!meta) return '';
+            const hashtags = (meta.hashtags || []).join(' ');
+            const lines = [];
+            if (meta.title) lines.push(`TITLE (paste this as the post text):
+${meta.title}`);
+            if (meta.description || hashtags) {
+                lines.push(`DESCRIPTION + HASHTAGS TOGETHER:
+${[meta.description, hashtags].filter(Boolean).join(' ')}`);
+            }
+            if (meta.sound) {
+                lines.push(`SOUND:
+${[meta.sound.title, meta.sound.artist].filter(Boolean).join(' - ')}
+${meta.sound.link}`);
+            }
+            return lines.join('\n\n');
+        }
         async download(all) {
             if (this.exporting || !this.slides.length) return;
             this.exporting = true;
@@ -536,11 +558,15 @@
                     // A fixed timestamp keeps the zip from recording when the post was made.
                     const date = new Date('2000-01-01T00:00:00Z');
                     for (let i = 0; i < this.slides.length; i++) zip.file(`meme-slide-${i + 1}.png`, await this.png(i), { date });
+                    const info = this.infoFile();
+                    if (info) zip.file('tiktok_info.txt', info, { date });
                     blob = await zip.generateAsync({ type: 'blob' }); filename = 'meme-slides.zip';
                 } else { blob = await this.png(this.index); filename = `meme-slide-${this.index + 1}.png`; }
                 const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = filename;
                 document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-                this.message(all ? `${this.slides.length} slides exported at 1080 × 1350.` : 'PNG exported at 1080 × 1350.');
+                this.message(all
+                    ? `${this.slides.length} slides exported at 1080 × 1350${this.infoFile() ? ' with tiktok_info.txt' : ''}.`
+                    : 'PNG exported at 1080 × 1350.');
             } catch (error) { this.message(error.message || 'Export failed. Please retry.'); }
             finally { this.exporting = false; controls.forEach(([element, disabled]) => { element.disabled = disabled; }); }
         }

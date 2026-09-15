@@ -66,17 +66,14 @@ repeated. Six promises, all equally valid:
   other post: what you would have said versus what you say now.
 - A NEW YARDSTICK: what counts as progress, a good day, or enough on a bad day. Lowers the bar
   on purpose rather than asking for more effort.
-- FOR SOMEONE WHO LOVES THEM: written for a partner, friend or parent of a person with BPD.
-  The hook must name that reader, or the post reads as just another post for the same audience
-  as all the others: "5 things that actually help when your partner has BPD", "5 things people
-  with BPD wish you knew", "5 small things to say when someone you love is spiralling". A hook
-  that merely mentions BPD is not enough here.
-  This audience is large and badly served, and it is also where this niche goes wrong, so the
-  rules are strict: the person with BPD is never the problem to be managed. No "dealing with",
-  no "surviving", no warning signs, no walking on eggshells, no advice that amounts to
-  monitoring someone. Write concrete things that genuinely help, the way you would tell a
-  friend what works, and keep the person with BPD someone worth loving rather than a condition
-  to handle. If a point could be read as a complaint about them, cut it.
+
+EVERY promise here is self-directed: the viewer recognises themselves in the cat, and laughs at
+their own week. That is what lets this format be light about something heavy. So the post is
+never written for someone else about a person with BPD, and the hook is never framed around
+another person's behaviour. "5 things to say when someone you love has BPD and cancels plans"
+is the shape to avoid: the viewer becomes the person who got it wrong, the cat makes light of
+the cancelling, and the person with BPD ends up the punchline rather than the audience. Posts
+for partners and family belong in the other slideshow format, not here.
 
 Whatever the promise, the hook still has to carry the standalone word BPD or DBT as part of its
 grammar: "5 things that aren't laziness, they're BPD" works, "5 sentences that stop a spiral"
@@ -103,7 +100,7 @@ Ground the value in realistic everyday choices and emotional wellbeing. Avoid de
 
 PUNCTUATION: never use an em dash or en dash in any field. No — and no – characters anywhere, not as an aside, not as a pause, not to join clauses. Write two sentences, or use a comma. Dashes in the middle of a sentence are the clearest sign a machine wrote the text.
 
-Voice: plain conversational English, useful and specific. No therapy lecture, motivational slogans, forced metaphors, or theatrical precision. Avoid clinical shorthand such as distorted thoughts, nervous system, dysregulation, cortisol, or emotional hijacking. Describe the observable experience instead. Avoid universal claims like always, every time, or proof that something works. The humor belongs mainly in the two brief image labels. The right-hand character can still be upset. Do not portray distress as moral failure or DBT as instant serenity. Never use jokes about blowing up, being dangerous, or causing relationship damage. Unless the promise is FOR SOMEONE WHO LOVES THEM or the user asks for interpersonal content, at most one point may center arguments or relationship repair. Do not invent a human narrator's diagnosis, therapy history, or app experience. The FOR SOMEONE WHO LOVES THEM promise is the one case where the reader is not assumed to have BPD, so address them directly and never speak about the person with BPD as if they were absent from the room.
+Voice: plain conversational English, useful and specific. No therapy lecture, motivational slogans, forced metaphors, or theatrical precision. Avoid clinical shorthand such as distorted thoughts, nervous system, dysregulation, cortisol, or emotional hijacking. Describe the observable experience instead. Avoid universal claims like always, every time, or proof that something works. The humor belongs mainly in the two brief image labels. The right-hand character can still be upset. Do not portray distress as moral failure or DBT as instant serenity. Never use jokes about blowing up, being dangerous, or causing relationship damage. Unless the user asks for interpersonal content, at most one point may center arguments or relationship repair. Do not invent a human narrator's diagnosis, therapy history, or app experience.
 
 Structure: exactly SEVEN slides, in order:
 1. role hook: headline beginning with 5, containing the standalone word BPD or DBT, preferably 6–11 words and at most 14. Follow the everyday hook rules above. Body is a short parenthetical subtitle using the chosen character theme. For the default character, use exactly (explained by bpd cat) in English, or (erklärt von bpd cat) in German. Keep the character name bpd cat lowercase. Both labels empty.
@@ -153,16 +150,20 @@ export const MEME_AXES = [
     'an ordinary task: errands, chores, admin, appointments, packing, tidying up',
     'a category of thing: apps, drinks, sounds, purchases, messages, small habits that cost nothing',
 ];
+// Every promise here is self-directed: the viewer sees themselves in the cat, which is what
+// lets the format be light about something heavy. A partner-facing promise breaks that, because
+// the viewer becomes the person who got it wrong and the laugh lands on someone else's
+// behaviour. That audience is real and now lives in the slideshow flow's for_partners
+// archetype, where the register is earnest and no cat has to carry the joke.
 export const MEME_PROMISES = [
     'EASIER OR HARDER DAY', 'NOT A CHARACTER FLAW', 'SOMETHING TO SEND',
-    'A SCRIPT', 'A NEW YARDSTICK', 'FOR SOMEONE WHO LOVES THEM',
+    'A SCRIPT', 'A NEW YARDSTICK',
 ];
 // Some pairings fight each other. A promise written for a partner cannot be built on "things in
 // your fridge": twice in testing that axis pulled the hook back to the usual audience and the
 // partner disappeared, while social situations and things-to-say landed it first time. Same for
 // a script, which needs a situation to speak into rather than an object to point at.
 const AXES_FOR_PROMISE: Record<string, number[]> = {
-    'FOR SOMEONE WHO LOVES THEM': [1, 2, 3, 5],
     'A SCRIPT': [1, 2, 3],
 };
 

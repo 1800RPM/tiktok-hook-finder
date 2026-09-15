@@ -5174,7 +5174,9 @@ async function generateSsSlideshow(format = 'current') {
 
         state.ssCaption = data.caption || '';
         state.ssDescription = data.description || '';
-        state.ssSound = null;
+        // Keep the chosen sound: it is the user's pick, not generated copy, and the picker
+        // is available before a post exists.
+        state.ssSound = state.ssSound || null;
         state.ssPinnedComment = data.pinned_comment || '';
         state.ssTitle = data.title || '';
         state.ssHashtags = Array.isArray(data.hashtags) ? data.hashtags : [];

@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import { generateMemeSlideshow, validateMemeSlides } from './meme_slideshow';
+import { MEME_PROMISES, generateMemeSlideshow, validateMemeSlides } from './meme_slideshow';
 
 const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
@@ -99,21 +99,27 @@ test('rewrites em and en dashes instead of failing the whole draft', () => {
     expect(validateMemeSlides(hyphen)[3]!.body).toBe('A well-timed snack is fine.');
 });
 
-test('promises that need a situation are never paired with an object axis', async () => {
+test('a script is never paired with an object axis, and every promise is self-directed', async () => {
     const seen: string[] = [];
     globalThis.fetch = (async (_url: any, init: any) => {
         seen.push(JSON.parse(init.body).messages[0].content);
         return Response.json({ content: [{ type: 'text', text: '{}' }] });
     }) as typeof fetch;
-    // A partner-facing post built on "things in your fridge" loses the partner: the axis wins
-    // and the hook drifts back to the usual audience.
-    for (const promise of ['FOR SOMEONE WHO LOVES THEM', 'A SCRIPT']) {
-        for (let run = 0; run < 12; run++) {
-            seen.length = 0;
-            await generateMemeSlideshow({ promise, ANTHROPIC_API_KEY: 'test' }).catch(() => {});
-            const body = JSON.parse(seen[0]!);
-            expect(body.assignedPromise).toBe(promise);
-            expect(body.assignedAxis).not.toContain('a physical object or place');
-        }
+    // A script needs a situation to speak into, not an object to point at.
+    for (let run = 0; run < 12; run++) {
+        seen.length = 0;
+        await generateMemeSlideshow({ promise: 'A SCRIPT', ANTHROPIC_API_KEY: 'test' }).catch(() => {});
+        const body = JSON.parse(seen[0]!);
+        expect(body.assignedPromise).toBe('A SCRIPT');
+        expect(body.assignedAxis).not.toContain('a physical object or place');
+    }
+    // The cat only works when the viewer sees themselves in it, so a partner-facing promise
+    // does not belong in this format. That audience lives in the slideshow for_partners
+    // archetype instead.
+    expect(MEME_PROMISES).not.toContain('FOR SOMEONE WHO LOVES THEM');
+    for (let run = 0; run < 20; run++) {
+        seen.length = 0;
+        await generateMemeSlideshow({ ANTHROPIC_API_KEY: 'test' }).catch(() => {});
+        expect(MEME_PROMISES).toContain(JSON.parse(seen[0]!).assignedPromise);
     }
 });

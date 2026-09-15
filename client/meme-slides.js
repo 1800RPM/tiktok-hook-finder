@@ -9,6 +9,7 @@
     let soundShown = [];
     let soundAudio = null;
     let soundBusy = false;
+    let soundCategory = '';
     let busy = false;
     const status = (message) => { $('status').textContent = message; };
     const settings = () => Object.fromEntries(settingNames.map((name) => [name, $(name).value]));
@@ -49,6 +50,29 @@
         button.textContent = '❚❚';
         button.dataset.playing = 'true';
         audio.play().catch(() => { stopSound(); status('Wiedergabe blockiert. Klicke die Seite einmal an und versuche es erneut.'); });
+    }
+    // Chips rather than a dropdown: five short labels, one tap to switch. A category with
+    // nothing in it is shown disabled instead of hidden, so the set stays in the same place.
+    function renderSoundFilters(categories) {
+        const row = $('sound-filters');
+        if (!row || !categories) return;
+        row.replaceChildren();
+        const all = [{ id: '', label: 'Alle', hint: 'alle passenden Sounds', count: null }, ...categories];
+        for (const entry of all) {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'ss-sound-chip';
+            chip.textContent = entry.count === null ? entry.label : `${entry.label} ${entry.count}`;
+            chip.title = entry.hint || '';
+            chip.setAttribute('aria-pressed', String(soundCategory === entry.id));
+            chip.disabled = entry.count === 0;
+            chip.addEventListener('click', () => {
+                soundCategory = soundCategory === entry.id ? '' : entry.id;
+                soundShown = [];
+                loadSounds().catch(() => {});
+            });
+            row.append(chip);
+        }
     }
     function renderSounds(sounds) {
         const list = $('sound-list');
@@ -115,16 +139,21 @@
         try {
             // Excluding what is on screen is what makes "Andere Vorschläge" show something new.
             const query = new URLSearchParams({ count: '3', flow: 'meme' });
+            if (soundCategory) query.set('category', soundCategory);
             const exclude = soundShown.map((s) => s.id).join(',');
             if (exclude) query.set('exclude', exclude);
             if (refresh) query.set('refresh', '1');
             const response = await fetch(`${API_BASE}/ss-sounds?${query}`, { headers: getApiAuthHeaders() });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || `Fehler ${response.status}`);
+            renderSoundFilters(data.categories);
             renderSounds(data.sounds || []);
+            const active = (data.categories || []).find((c) => c.id === soundCategory);
             $('sound-status').textContent = (data.sounds || []).length
-                ? `${data.poolSize} Sounds im Pool · instrumental, 40-70s, in Deutschland nutzbar.`
-                : 'Keine Sounds gefunden. Versuche es mit "Andere Vorschläge" erneut.';
+                ? (active
+                    ? `${active.count} Sounds in "${active.label}" · ${active.hint}.`
+                    : `${data.poolSize} Sounds im Pool · instrumental, 40-70s, in Deutschland nutzbar.`)
+                : 'Keine weiteren Sounds in dieser Kategorie. Wähle eine andere oder "Alle".';
         } catch (error) {
             $('sound-status').textContent = `Sounds konnten nicht geladen werden: ${error.message}`;
         } finally {
@@ -136,6 +165,8 @@
     // Metadata is post copy, never slide copy, so it lives outside the slide cards.
     function renderMeta() {
         $('meta-group').hidden = !slides.length;
+        // The canvas writes the zip, so it needs the current title, description and sound.
+        artwork.metadata = meta;
         renderSounds(soundShown);
         const fields = [['title', meta.title], ['description', meta.description], ['hashtags', meta.hashtags.join(' ')]];
         for (const [id, value] of fields) if ($(id).value !== value) $(id).value = value;
@@ -243,7 +274,10 @@
                 title: typeof data.title === 'string' ? data.title : '',
                 description: typeof data.description === 'string' ? data.description : '',
                 hashtags: Array.isArray(data.hashtags) ? data.hashtags.filter((tag) => typeof tag === 'string') : [],
-                sound: null,
+                // The sound is the user's pick, not generated copy, and the picker is available
+                // before a post exists. Clearing it here silently threw away a choice made a
+                // minute earlier, which only showed up as a missing URL in the export.
+                sound: meta.sound,
             };
 
             artwork.setSlides(slides, true);

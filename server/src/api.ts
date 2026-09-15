@@ -2999,8 +2999,9 @@ Output ONLY the JSON object.No markdown, no explanation.`
                 const flow = params.get("flow") === "meme" ? "meme" : "slideshow";
                 // The taste check needs the Anthropic key; without it the pool still works,
                 // it just falls back to the vetted core plus unjudged finds.
+                const category = (params.get("category") || "").trim().slice(0, 20);
                 return sendJSON(await recommendSsSounds(SCRAPE_CREATORS_API_KEY, flow, count, exclude,
-                    params.get("refresh") === "1", ANTHROPIC_API_KEY || ""));
+                    params.get("refresh") === "1", ANTHROPIC_API_KEY || "", category));
             } catch (error) {
                 console.error("[SS Sounds] Recommendation failed:", error);
                 return sendJSON({ error: "Sound suggestions could not be loaded. Please retry." }, 500);

@@ -18,6 +18,18 @@ const root = path.resolve(import.meta.dir, '../../../..');
 // wrong under a deadpan cat explaining that making the bed takes two minutes.
 export type SoundFlow = 'slideshow' | 'meme';
 
+// Five buckets, because the posts themselves sit somewhere between a joke and real advice and
+// the right sound depends on which way a given post leans. The labels are what the filter row
+// shows, so they are written for the person choosing, not for a taxonomy.
+export const SOUND_CATEGORIES = [
+    { id: 'playful', label: 'Verspielt', hint: 'schrullig-freundlich, die Standardader' },
+    { id: 'cartoon', label: 'Cartoon', hint: 'albern, Slapstick, Zeichentrick' },
+    { id: 'upbeat', label: 'Gute Laune', hint: 'treibend und hell, ohne albern zu sein' },
+    { id: 'calm', label: 'Ruhig', hint: 'warm und zurückhaltend, für ernstere Themen' },
+    { id: 'neutral', label: 'Neutral', hint: 'unauffälliger Hintergrund, stört den Text nie' },
+] as const;
+export type SoundCategory = typeof SOUND_CATEGORIES[number]['id'];
+
 type Profile = {
     file: string;
     handles: string[]; handlePages: number;
@@ -27,7 +39,7 @@ type Profile = {
     // Whether a sound only counts when it was used under a photo carousel.
     photoOnly: boolean;
     reject?: RegExp;
-    seeds?: string[];
+    seeds?: Array<{ id: string; category: SoundCategory }>;
     target: number;
     // How wide the random draw reaches into the ranked pool. The slideshow pool is uniformly
     // on-format so it can draw broadly; the meme pool is a curated core plus a noisy tail,
@@ -73,12 +85,22 @@ const PROFILES: Record<SoundFlow, Profile> = {
         // actually is: the approved sounds are library cues, not songs, and that is a corner
         // of TikTok the cat tags only brush against. All are queried with region=DE, so the
         // results are what a German account can reach.
-        hashtags: ['katzenmemes', 'lustigekatzen', 'katzen', 'memesdeutsch', 'humordeutsch',
-            'katzenliebe', 'alltagstipps', 'haushaltstipps', 'katzenmama', 'memesdeutschland',
-            'productionmusic', 'backgroundmusic', 'royaltyfreemusic', 'quirkymusic',
-            'playfulmusic', 'comedymusic', 'funnybackgroundmusic', 'instrumentalmusic',
-            'cartoonmusic', 'whimsicalmusic', 'catmemes', 'funnycats', 'silly', 'goofyahh'],
-        hashtagPages: 3,
+        // Chosen by measured keep rate, not by guessing. The taste check makes that measurable:
+        // #cartoonmusic kept 75%, #comedymusic 71%, #silly 71%, while #lofimusic kept 0 of 10,
+        // #jazzmusic 3 of 28 and #chillbeats 2 of 14. Ambient and chill tags fill the pool with
+        // exactly the sentimentality this format cannot carry, so they are gone.
+        hashtags: [
+            // Production-music seam: where the approved sounds actually live.
+            'cartoonmusic', 'playfulmusic', 'comedymusic', 'royaltyfreemusic', 'elevatormusic',
+            'backgroundmusic', 'productionmusic', 'quirkymusic', 'vlogmusic', 'happymusic',
+            'upbeatmusic', 'circusmusic', 'kazoo', 'funnymusic', 'bouncymusic', 'sitcom',
+            'quirkyinstrumental', 'comedysketch', 'silly',
+            // Cat and meme surfaces, which also prove the track runs on German accounts.
+            'funnycats', 'catmemes', 'katzen', 'lustigekatzen', 'katzenliebe', 'katzenmemes',
+            'katzenmama', 'memesdeutsch',
+        ],
+        // Deeper on fewer tags: six pages of a 70% source beats four pages of a 10% one.
+        hashtagPages: 6,
         region: 'DE',
         // Seven slides need the length; a 34s sound loops audibly under them.
         minDuration: 40, maxDuration: 70,
@@ -98,20 +120,21 @@ const PROFILES: Record<SoundFlow, Profile> = {
         // reproduce them, so the curated list carries the quality and the scrape adds range.
         // See the meme-slide-sounds skill for why each one fits.
         seeds: [
-            '6773560878408140802', // Simple Pleasantries - Arthur Benson
-            '7638038467818342417', // Curious Little Creatures - BlueWhaleMusic
-            '7180363119678457857', // Funny and Unusual Scene - HarmonicoHCO
-            '7225592100154820609', // This Is The Life (Sped Up) - Amy Macdonald
-            '6927016038370428930', // Funny - Gold-Tiger
-            '7367281879719135248', // Funny Comedy - Bwd sound
-            '7321887043663169537', // Feeling Blue - Caleb Arredondo
-            '6850015623452297217', // Need 2 - Pinegrove, the serious pole
+            { id: '6773560878408140802', category: 'neutral' },  // Simple Pleasantries - Arthur Benson
+            { id: '7638038467818342417', category: 'playful' },  // Curious Little Creatures - BlueWhaleMusic
+            { id: '7180363119678457857', category: 'playful' },  // Funny and Unusual Scene - HarmonicoHCO
+            { id: '7225592100154820609', category: 'upbeat' },   // This Is The Life (Sped Up) - Amy Macdonald
+            { id: '6927016038370428930', category: 'cartoon' },  // Funny - Gold-Tiger
+            { id: '7367281879719135248', category: 'cartoon' },  // Funny Comedy - Bwd sound
+            { id: '7321887043663169537', category: 'calm' },     // Feeling Blue - Caleb Arredondo
+            { id: '6850015623452297217', category: 'calm' },     // Need 2 - Pinegrove, the serious pole
             // Clumsy Situations, Cats (both versions) and Go Kitty Go fit the format but the
             // song endpoint returns no playable URL for them, so they cannot be previewed.
         ],
-        // Roughly half of what a scrape returns survives the taste check, so aim high to
-        // land at the 50-plus usable sounds a pool needs to stop repeating across posts.
-        target: 110,
+        // The taste check keeps roughly half, so the raw target is about twice the number of
+        // usable sounds wanted. A hundred usable is the point where a category filter still
+        // has depth: the smallest bucket needs enough entries to be worth filtering to.
+        target: 300,
         // Once the taste check runs, everything left in the pool has passed it, so the draw
         // can reach broadly. A fixed narrow window was right when the tail was unjudged; now
         // it would just hide two thirds of the usable sounds.
@@ -131,7 +154,7 @@ export type SsSound = {
     isOriginal: boolean; playUrl: string; cover: string; link: string;
     source: 'reference' | 'hashtag'; via: string; plays: number; saves: number;
     // Set by the taste check. Undefined means it was never judged.
-    fits?: boolean; verdict?: string;
+    fits?: boolean; verdict?: string; category?: SoundCategory;
 };
 type Pool = { updated: number; sounds: SsSound[] };
 
@@ -186,9 +209,9 @@ async function fetchSeed(id: string, key: string, profile: Profile): Promise<SsS
 
 async function scrape(key: string, profile: Profile, label: string): Promise<SsSound[]> {
     const found: SsSound[] = [];
-    for (const id of profile.seeds || []) {
-        const seed = await fetchSeed(id, key, profile);
-        if (seed) found.push(seed);
+    for (const seedEntry of profile.seeds || []) {
+        const seed = await fetchSeed(seedEntry.id, key, profile);
+        if (seed) found.push({ ...seed, category: seedEntry.category });
     }
     for (const handle of profile.handles) {
         let cursor = '';
@@ -266,7 +289,11 @@ export async function getSoundPool(key: string, flow: SoundFlow, force = false, 
         const known = new Map((cached?.sounds || []).map((s) => [s.id, s]));
         for (const sound of scraped) {
             const previous = known.get(sound.id);
-            if (previous?.fits !== undefined) { sound.fits = previous.fits; sound.verdict = previous.verdict; }
+            if (previous?.fits !== undefined) {
+                sound.fits = previous.fits;
+                sound.verdict = previous.verdict;
+                sound.category = previous.category;
+            }
         }
         const sounds = profile.taste ? await vetSounds(scraped, anthropicKey) : scraped;
         // A failed scrape must not wipe a working pool.
@@ -308,13 +335,39 @@ You cannot hear these tracks, so judge from what the title and artist actually t
 the signal is genuinely weak, reject: a wrong suggestion costs the user listening time, and the
 pool has more candidates than it needs.
 
-Return JSON only: {"verdicts":[{"id":"...","fits":true|false,"reason":"under 12 words"}]}
+Also sort each sound you keep into exactly one bucket, so the user can filter by the mood a
+given post needs. Judge the sound itself, not the title's subject:
+- playful: schrulliges, freundliches Library-Material. The default seam for this format.
+- cartoon: slapstick, zeichentrickhaft, broad and silly.
+- upbeat: bright and driving without tipping into silly.
+- calm: warm and held back, for the posts that carry more weight.
+- neutral: plain background that never competes with the text.
+A rejected sound still needs a bucket; it is ignored.
+
+Return JSON only:
+{"verdicts":[{"id":"...","fits":true|false,"category":"playful","reason":"under 12 words"}]}
 One entry per supplied id, no invented ids.`;
 
 // One call per pool rebuild, so the taste check costs a fraction of a cent every twelve hours.
+const TASTE_BATCH = 60;
+
 async function vetSounds(sounds: SsSound[], anthropicKey: string): Promise<SsSound[]> {
-    const candidates = sounds.filter((s) => s.source !== 'reference' && s.fits === undefined);
+    // Judge anything not yet judged, and anything judged before a later field was introduced.
+    // Without the second case an existing pool could never gain categories, and the only way
+    // to get them would be deleting the pool, which throws away verdicts already paid for.
+    const candidates = sounds.filter((s) => s.source !== 'reference'
+        && (s.fits === undefined || (s.fits && !s.category)));
     if (!candidates.length || !anthropicKey) return sounds;
+    // Batched: a few hundred verdicts do not fit in one response, and a truncated JSON body
+    // would lose the whole run rather than one chunk of it.
+    for (let start = 0; start < candidates.length; start += TASTE_BATCH) {
+        await vetBatch(sounds, candidates.slice(start, start + TASTE_BATCH), anthropicKey);
+    }
+    console.log(`[Meme Sounds] taste check: ${sounds.filter((s) => s.fits !== false).length}/${sounds.length} kept`);
+    return sounds;
+}
+
+async function vetBatch(sounds: SsSound[], candidates: SsSound[], anthropicKey: string) {
     const payload = candidates.map((s) => ({ id: s.id, title: s.title, artist: s.artist, seconds: s.duration }));
     try {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -336,13 +389,13 @@ async function vetSounds(sounds: SsSound[], anthropicKey: string): Promise<SsSou
             if (!verdict) continue;
             sound.fits = !!verdict.fits;
             sound.verdict = String(verdict.reason || '').slice(0, 120);
+            const category = String(verdict.category || '');
+            if (SOUND_CATEGORIES.some((c) => c.id === category)) sound.category = category as SoundCategory;
         }
-        console.log(`[Meme Sounds] taste check: ${sounds.filter((s) => s.fits !== false).length}/${sounds.length} kept`);
     } catch (error) {
-        // An unjudged pool is still usable; the vetted seeds carry it.
-        console.error('[Meme Sounds] taste check failed:', error);
+        // An unjudged batch is still usable; the vetted seeds and the other batches carry it.
+        console.error('[Meme Sounds] taste batch failed:', error);
     }
-    return sounds;
 }
 
 // Reference-account sounds first, then the better-performing hashtag finds.
@@ -350,10 +403,13 @@ function score(sound: SsSound) {
     return (sound.source === 'reference' ? 1_000_000_000 : 0) + sound.saves * 20 + sound.plays;
 }
 
-export function pickSounds(sounds: SsSound[], count: number, exclude: string[], draw = 0.6, minVetted = 0): SsSound[] {
+export function pickSounds(sounds: SsSound[], count: number, exclude: string[], draw = 0.6, minVetted = 0, category = ''): SsSound[] {
     const skip = new Set(exclude);
-    // A rejected sound never reaches a shortlist.
-    const ranked = sounds.filter((s) => !skip.has(s.id) && s.fits !== false).sort((a, b) => score(b) - score(a));
+    // A rejected sound never reaches a shortlist. A category narrows the pool before ranking,
+    // so the vetted floor still applies within whatever the user filtered to.
+    const ranked = sounds
+        .filter((s) => !skip.has(s.id) && s.fits !== false && (!category || s.category === category))
+        .sort((a, b) => score(b) - score(a));
     if (ranked.length <= count) return ranked;
 
     const take = (from: SsSound[], howMany: number) => {
@@ -378,11 +434,14 @@ export function pickSounds(sounds: SsSound[], count: number, exclude: string[], 
     return [...vetted, ...take(shortlist, count - vetted.length)];
 }
 
-export async function recommendSsSounds(key: string, flow: SoundFlow, count: number, exclude: string[], refresh: boolean, anthropicKey = '') {
+export async function recommendSsSounds(key: string, flow: SoundFlow, count: number, exclude: string[], refresh: boolean, anthropicKey = '', category = '') {
     const current = await getSoundPool(key, flow, refresh, anthropicKey);
+    const usable = current.sounds.filter((s) => s.fits !== false);
     return {
-        sounds: pickSounds(current.sounds, count, exclude, PROFILES[flow].drawWindow, PROFILES[flow].minVetted),
-        poolSize: current.sounds.length,
+        sounds: pickSounds(current.sounds, count, exclude, PROFILES[flow].drawWindow, PROFILES[flow].minVetted, category),
+        // What each filter would actually offer, so the UI can grey out an empty one.
+        categories: SOUND_CATEGORIES.map((c) => ({ ...c, count: usable.filter((s) => s.category === c.id).length })),
+        poolSize: usable.length,
         updated: current.updated,
         flow,
     };

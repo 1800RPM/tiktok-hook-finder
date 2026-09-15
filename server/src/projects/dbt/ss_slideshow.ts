@@ -224,7 +224,8 @@ dbt-mind dafuer, weil..."), never ad language.`;
 // so consecutive posts never collapse into the same shape.
 // ---------------------------------------------------------------------------
 export type SsArchetypeId =
-    | 'confession' | 'myth_bust' | 'mistakes' | 'signs' | 'reframe' | 'script' | 'unpopular_opinion' | 'everyday';
+    | 'confession' | 'myth_bust' | 'mistakes' | 'signs' | 'reframe' | 'script' | 'unpopular_opinion'
+    | 'everyday' | 'for_partners';
 
 export type SsDomainId =
     | 'relationships' | 'identity' | 'emotions' | 'self_talk' | 'daily_life' | 'friendships' | 'recovery';
@@ -257,6 +258,19 @@ export const SS_ARCHETYPES: Record<SsArchetypeId, { label: string; spec: string 
     unpopular_opinion: {
         label: 'Unpopular opinion',
         spec: 'a take the niche argues about in the comments. example energy: "5 dbt truths people don\'t want to hear"'
+    },
+    for_partners: {
+        label: 'For partners and family',
+        spec: 'written for the partner, friend or parent of someone with BPD, not for the person '
+            + 'with BPD. This audience is large and badly served. It is also where this niche '
+            + 'goes wrong, so the rules are strict: the person with BPD is never a problem to be '
+            + 'managed. No "dealing with", no "surviving", no warning signs, no walking on '
+            + 'eggshells, no advice that amounts to monitoring someone. The hook must name that '
+            + 'reader, and it must not be framed around the behaviour of the person they love: "5 things '
+            + 'that actually help when your partner has BPD" works, "5 things to say when they '
+            + 'cancel plans" does not, because it makes their behaviour the subject. Write the '
+            + 'concrete things that help, the way you would tell a friend what works. If a line '
+            + 'could be read as a complaint about the person with BPD, cut it.'
     },
     everyday: {
         label: 'Everyday things',
@@ -439,7 +453,13 @@ ${memeAxis ? buildMemeTopicBlock(memeAxis) : `THIS POST'S ASSIGNED COMBINATION (
 Skill tutorials are one format among many, not the house style. Only teach skills if the
 assigned archetype calls for it.`}
 
-${SS_TONE}
+${archetype === 'for_partners' ? `AUDIENCE OVERRIDE FOR THIS POST: the narrator is not the person with BPD. Write as someone who
+loves one: a partner, a close friend, a parent, a few years in and past the phase of trying to
+fix it. Same casual register as the tone block below, but every "i" belongs to that person, and
+the person with BPD is someone they chose and would choose again. Never write about them as a
+condition being handled.
+
+` : ''}${SS_TONE}
 
 ${SS_STRUCTURE}
 
