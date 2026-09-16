@@ -8,6 +8,36 @@ import { buildDescription, buildTitle } from '../dbt/ss_slideshow';
 // The hook has to name the behaviour, otherwise the post never reaches the people it is for.
 const NICHE_WORD = /\b(?:skin[\s-]?picking|picking|picker|hair[\s-]?pulling|pulling|nail[\s-]?biting|bfrbs?|dermatillomania|trichotillomania)\b/i;
 
+// One move per post. In testing, "one step back" turned up in two of five points, which reads
+// as padding. Matched on headline and body only, where the actual advice lives.
+const MOVES: Array<[string, RegExp]> = [
+    ['step back from the mirror', /\bstep(?:s|ped|ping)? back\b|\bback (?:one|a) step\b/i],
+    ['sitting on your hands', /\bsit(?:ting)? on your hands\b|\bunder your thighs\b/i],
+    ['fists', /\bfists?\b/i],
+    ['squeezing a pebble or stone', /\bpebble\b|\bstone\b/i],
+    ['pressing fingertips together', /\bpress(?:ing)?(?: the)? fingertips\b|\bfingertips (?:of both hands )?together\b/i],
+    ['palms on thighs', /\bpalms (?:flat )?on\b/i],
+    ['folding your arms', /\bfold(?:ed|ing)? your arms\b|\bcross(?:ed)? your arms\b/i],
+    ['hands in pockets', /\bpockets?\b/i],
+    ['gripping a pen', /\bpen\b/i],
+    ['lotion', /\blotion\b/i],
+    ['cold water', /\bcold water\b/i],
+    ['clench and release', /\bclench/i],
+    ['hands behind your head', /\bbehind your head\b/i],
+    ['gloves', /\bgloves?\b/i],
+    ['plasters', /\bplasters?\b/i],
+    ['tweezers', /\btweezers\b/i],
+    ['a fidget', /\bfidget/i],
+];
+export function findRepeatedMove(slides: MemeSlide[]): string | null {
+    const points = slides.filter((slide) => slide.role === 'point');
+    for (const [name, pattern] of MOVES) {
+        const hits = points.filter((slide) => pattern.test(`${slide.headline} ${slide.body}`)).length;
+        if (hits > 1) return name;
+    }
+    return null;
+}
+
 export function validateBfrbSlides(value: unknown): MemeSlide[] {
     const slides = (value as { slides?: unknown })?.slides;
     if (!Array.isArray(slides) || slides.length !== 7) throw new Error('Expected a cover, five points, and a CTA.');
@@ -26,8 +56,11 @@ export function validateBfrbSlides(value: unknown): MemeSlide[] {
         if (role === 'point' && (!result.leftLabel || !result.rightLabel)) throw new Error(`Point ${index} needs both image labels.`);
         if (role !== 'point' && (result.leftLabel || result.rightLabel)) throw new Error('Only points have comparison labels.');
         const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
-        if (words(result.headline) > 16 || words(result.body) > 45 || words(result.leftLabel) > 12 || words(result.rightLabel) > 12) {
-            throw new Error(`Slide ${index + 1} is too long for the format.`);
+        // Name the field and the count: a bare "too long" made the model trim the wrong field twice.
+        const limits = { headline: 16, body: 45, leftLabel: 12, rightLabel: 12 } as const;
+        for (const [field, max] of Object.entries(limits) as Array<[keyof typeof limits, number]>) {
+            const count = words(result[field]);
+            if (count > max) throw new Error(`Slide ${index + 1} ${field} has ${count} words, the maximum is ${max}. Shorten that field and keep the rest.`);
         }
         return result;
     });
@@ -70,7 +103,38 @@ SAFETY AND TONE, non-negotiable:
 - Never tell people to "just stop", never frame it as a bad habit someone chooses, never mention streaks, relapse counts or days clean.
 - Never suggest punishing substitutes: no snapping rubber bands, no bitter nail polish as punishment, no pain as a deterrent, no hiding in shame. Covering spots with a plaster or wearing gloves as a gentle barrier is fine.
 - No cure claims, no medical mechanisms, no guaranteed outcomes, no invented statistics, no fabricated therapist endorsements or personal testimonials. Do not invent a human narrator's diagnosis or history.
-- Useful ground truth you can draw on: urges rise and pass like waves; many people pick in a trance and only notice mid-episode; triggers are often places (mirror, bed, car, desk), states (bored, tired, stressed, understimulated) and textures; bright close mirrors and tweezers within reach make it easier; keeping hands busy and adding small barriers makes it harder; being kind to yourself after an episode makes the next one less likely than shame does.
+
+BFRB KNOWLEDGE BASE. Every point must be built on one of these mechanisms, named in plain words, with an action concrete enough to do tonight (a count, a duration, a place, an object). A tip that would help with any kind of stress, like drinking water, going for a walk or putting a podcast on, is not a BFRB tip and does not count.
+1. Awareness first (habit reversal training, the best studied approach for BFRBs). Most episodes start before you notice. Early warning signs worth naming: a hand drifting to the face or hair, fingertips scanning skin for bumps, running fingers through hair looking for a "wrong" strand, going still and quiet in front of a mirror, losing track of time. Noticing earlier is progress even if the episode still happens.
+2. Two ways it happens. Automatic: hands wander while attention is elsewhere (scrolling, reading, driving, TV, calls). Focused: a deliberate urge to fix, smooth or even something out, often at the mirror, often with tension beforehand and relief after. Automatic episodes need barriers and awareness; focused ones need urge surfing and a replacement.
+3. Competing responses. A movement that makes picking, pulling or biting physically impossible, held until the urge drops, usually about a minute. These are the exact ones taught in BFRB Ally, use their wording:
+   fists, 60 seconds: curl both hands into loose fists and hold for a slow count of 60.
+   sit on your hands: slide both hands under your thighs.
+   squeeze a pebble: squeeze a stone, a mug, anything cool and solid.
+   arms down, step back: drop your arms, one step back from the mirror, one breath.
+   press your fingertips: fingertips of both hands together, firm, for ten slow breaths.
+   palms on thighs: both palms flat on your thighs, press down gently.
+   fold your arms: cross your arms and tuck your hands against your sides.
+   pocket anchor: hands in your pockets, pressed flat against your legs.
+   grip a pen: hold a pen along its length, thumb pressing the middle.
+   texture swap: run your fingers over a sleeve, a blanket, a different texture.
+   lotion ritual: slowly work lotion into both hands.
+   cold water on wrists: wrists under cold water for thirty seconds.
+   clench and release: squeeze both fists for five seconds, release slowly, five times.
+   hands behind your head: interlace your fingers behind your head and lean back.
+   count four breaths: one hand on your chest, one on your belly, four slow counted breaths.
+   A competing response is not a punishment and not a distraction app; it gives the hands a job for the length of one urge. Placing it where it happens (by the mirror, the bed, the desk) matters more than knowing it.
+4. Triggers come in five kinds, useful for sorting a list: senses (a bump you can feel, a split end, a rough cuticle, bright light), thoughts ("it has to be even", "just this one"), feelings (bored, anxious, understimulated, tense, tired), movement habits (hand resting on the chin, twirling hair, nails near the mouth), and places (bathroom mirror, bed, car, desk, sofa).
+5. Barriers that make the behaviour slower, not impossible: gloves or finger plasters in the evening, a plaster over a spot, a hat, bandana or tight braid for hair pulling, nails kept short and filed smooth so there is nothing to catch, a magnifying mirror in a drawer, tweezers out of the bathroom, dimmer bathroom light at night, the car visor flipped up.
+6. Matching the sensation. Many people pick or pull for a specific feeling. A substitute that gives a similar feeling works better than a random fidget: a textured or spiky fidget ring, a smooth stone, a fabric with a seam, a soft brush over the fingertips, peeling dried glue or a sticker, rolling a hair tie.
+7. Urge surfing. An urge rises, peaks and falls, often within a few minutes, if you do not act on it. Name it, notice where you feel it, breathe, wait, and keep your hands in a competing response while it passes.
+8. Tracking. A quick note of when, where and what you felt shows a pattern within a week or two, and the pattern tells you where to put the barrier.
+9. Repair. Shame after an episode makes the next one more likely. What helps in the ten minutes after: leave the room, gentle care for the skin or scalp without inspecting it further, one kind sentence you would say to a friend, then the next ordinary task. A slip is information about the trigger, not a reset to zero.
+Do not attach numbers, percentages or strength claims to any of this ("doubles", "the most reliable", "works every time"). No body mechanics either, such as pores opening, skin getting slippery or how long an episode lasts; the one timing you may state is that an urge usually drops within a minute or a few minutes. Say what to do and why it helps, plainly.
+
+NO REPEATS: each of the five points uses a different move, barrier or substitute. Naming the same one twice (for example stepping back from the mirror in two points, or lotion as both a texture and a ritual) reads as padding. Five points means five distinct things to try.
+
+VALUE CHECK before returning: for each of the five points, could a viewer who picks or pulls do it tonight without further explanation, and is it specific to BFRBs? If a point fails either question, replace it. The body carries the value; the two labels stay a short, funny contrast of the same situation.
 
 PUNCTUATION: never use an em dash or en dash in any field. No — and no – characters anywhere. Write two sentences, or use a comma.
 
@@ -78,7 +142,7 @@ Voice: plain conversational English, lowercase-friendly, useful and specific. No
 
 Structure: exactly SEVEN slides, in order:
 1. role hook: headline beginning with 5, naming the behaviour as above, preferably 6-11 words and at most 14. Body is a short parenthetical subtitle using the chosen character theme. For the default character, use exactly (explained by picker cat). Keep the character name lowercase. Both labels empty.
-2-6. role point: numbered headline naming one concrete moment, object or action, preferably 2-6 words, up to 14 words; body 20-40 words connecting it to the promised stake with a practical, gentle alternative where useful. leftLabel and rightLabel, each 2-10 words, contrast the two situations visually, for example "magnifying mirror at 1am" versus "mirror light off, bed". No image descriptions. Five different items that all belong to the cover's category. If the cover promises helpful things, all five must actually be helpful.
+2-6. role point: numbered headline naming one concrete moment, object or action, preferably 2-6 words, up to 14 words; body 20-38 words (count them, the hard limit is 45) connecting it to the promised stake with a practical, gentle alternative where useful. leftLabel and rightLabel, each 2-10 words, contrast the two situations visually, for example "magnifying mirror at 1am" versus "mirror light off, bed". No image descriptions. Five different items that all belong to the cover's category. If the cover promises helpful things, all five must actually be helpful.
 7. role cta: casual headline connecting practice to the topic; brief body naming BFRB Ally once and ONE real feature that fulfils the headline. Real features only: a five-minute urge surfing timer for riding out an urge, a two-tap log without judgment that shows when and where it happens, short guided repair sessions for after an episode, guided paths with competing responses for your hands, Trance Breaker check-ins before your usual risky time, or an anonymous Wave Buddy. No invented features, prices, endorsements or promises. Both labels empty. The app appears only here.
 
 Example of concrete slide writing, not a mandatory topic:
@@ -172,11 +236,17 @@ export async function generateBfrbMemeSlideshow(params: { topic?: string; theme?
             try { parsed = JSON.parse(raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')); }
             catch { throw new Error('The response was not valid JSON. Return only the JSON object.'); }
             const slides = validateBfrbSlides(parsed);
+            const repeated = findRepeatedMove(slides);
+            if (repeated) throw new Error(`${repeated} appears in more than one point. Give each point a different move and rewrite the repeats.`);
             const normalize = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
             if ((params.previousTopics || []).some((topic) => normalize(topic) === normalize(slides[0]!.headline))) {
                 throw new Error('The topic repeats a recent post. Choose a different subject and rewrite all seven slides.');
             }
             const meta = parsed as { title?: unknown; hashtags?: unknown; description?: unknown };
+            // The shared title builder cuts anything over eight words and can leave a stub like
+            // "what to do", so an overlong title is sent back instead of trimmed.
+            const titleWords = String(meta?.title ?? '').split(/\s+/).filter(Boolean).length;
+            if (titleWords > 8) throw new Error(`The title has ${titleWords} words. Write a complete title of at most 7 words.`);
             return {
                 slides,
                 title: buildTitle(meta?.title, [{ text: slides[0]!.headline }]),
