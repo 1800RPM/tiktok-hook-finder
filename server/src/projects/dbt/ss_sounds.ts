@@ -40,6 +40,11 @@ type Profile = {
     photoOnly: boolean;
     reject?: RegExp;
     seeds?: Array<{ id: string; category: SoundCategory }>;
+    // Rejected by hand. A scrape would otherwise keep re-adding them every rebuild.
+    blocked?: string[];
+    // Sound ids to mine outward from: whoever put one of these under a post is making the same
+    // kind of thing, so the rest of their sounds are the closest thing to a warm lead.
+    neighboursOf?: string[];
     target: number;
     // How wide the random draw reaches into the ranked pool. The slideshow pool is uniformly
     // on-format so it can draw broadly; the meme pool is a curated core plus a noisy tail,
@@ -100,6 +105,8 @@ const PROFILES: Record<SoundFlow, Profile> = {
             'katzenmama', 'memesdeutsch',
         ],
         // Deeper on fewer tags: six pages of a 70% source beats four pages of a 10% one.
+        // Six, not more: going to nine added 45 candidates and only 5 usable sounds. The
+        // productive tags are exhausted at that depth, so extra pages cost credits for noise.
         hashtagPages: 6,
         region: 'DE',
         // Seven slides need the length; a 34s sound loops audibly under them.
@@ -128,13 +135,42 @@ const PROFILES: Record<SoundFlow, Profile> = {
             { id: '7367281879719135248', category: 'cartoon' },  // Funny Comedy - Bwd sound
             { id: '7321887043663169537', category: 'calm' },     // Feeling Blue - Caleb Arredondo
             { id: '6850015623452297217', category: 'calm' },     // Need 2 - Pinegrove, the serious pole
+            { id: '6926615418094389249', category: 'upbeat' },   // Lust For Life - Iggy Pop
+            { id: '6805140399900854274', category: 'playful' },  // Yoshi's Island - 3000m
             // Clumsy Situations, Cats (both versions) and Go Kitty Go fit the format but the
             // song endpoint returns no playable URL for them, so they cannot be previewed.
         ],
         // The taste check keeps roughly half, so the raw target is about twice the number of
         // usable sounds wanted. A hundred usable is the point where a category filter still
         // has depth: the smallest bucket needs enough entries to be worth filtering to.
-        target: 300,
+        // Recognisable tracks with a pull of their own, rather than neutral library beds. Both
+        // were picked out by ear as the direction to find more of.
+        neighboursOf: [
+            '6926615418094389249', // Lust For Life - Iggy Pop
+            '6805140399900854274', // Yoshi's Island - 3000m
+            '6773560878408140802', // Simple Pleasantries - Arthur Benson
+            '7180363119678457857', // Funny and Unusual Scene - HarmonicoHCO
+            // Second degree: these came out of the first round and sit in the same seam of
+            // recognisable, characterful tracks, so their creators are the next warm lead.
+            '6921377645716310017', // Smile Like You Mean It - The Killers
+            '7042950585897502721', // Lujon - Henry Mancini
+            '6732122196979746817', // Poem Panic! - Dan Salvato
+            '6855419811560687617', // Saria's Theme - The Versions
+            '6729945756024702977', // Orchestra Tuning / Warming Up - General Sounds
+        ],
+        // Turned down after listening. The taste check reads a title and cannot hear that a
+        // track is nursery music: it kept "Cute Baby" by Jelly Beep Kids because the title
+        // says playful. A blocklist is the honest place for a verdict only ears can reach.
+        blocked: [
+            '6946697844875069441', // A playful life
+            '7571954935362471937', // Cat Mom
+            '6805158820302555137', // Creative
+            '6803420273400875009', // Cute
+            '7650868625814013969', // Cute Baby
+            '7036910067001591810', // DINO SONG
+            '6834865801355347970', // Easy Peasy
+        ],
+        target: 400,
         // Once the taste check runs, everything left in the pool has passed it, so the draw
         // can reach broadly. A fixed narrow window was right when the tail was unjudged; now
         // it would just hide two thirds of the usable sounds.
@@ -154,7 +190,7 @@ export type SsSound = {
     isOriginal: boolean; playUrl: string; cover: string; link: string;
     source: 'reference' | 'hashtag'; via: string; plays: number; saves: number;
     // Set by the taste check. Undefined means it was never judged.
-    fits?: boolean; verdict?: string; category?: SoundCategory;
+    fits?: boolean; verdict?: string; category?: SoundCategory; judgedWith?: number;
 };
 type Pool = { updated: number; sounds: SsSound[] };
 
@@ -172,6 +208,7 @@ function firstUrl(value: any): string {
 function toSound(item: any, source: 'reference' | 'hashtag', via: string, profile: Profile): SsSound | null {
     const music = item?.music || {};
     const id = music.id_str || String(music.id || '');
+    if (profile.blocked?.includes(id)) return null;
     const duration = Number(music.duration || 0);
     // Without a playable URL the card cannot be previewed, which is the whole point.
     const playUrl = firstUrl(music.play_url);
@@ -230,6 +267,30 @@ async function scrape(key: string, profile: Profile, label: string): Promise<SsS
             } catch (error) { console.error(`[${label}] ${handle}:`, error); break; }
         }
     }
+    // Mine outward from sounds that already work: pull the creators who used one, then take
+    // what else those creators reach for. Hashtags find a genre; this finds taste.
+    const seenHandles = new Set<string>();
+    for (const soundId of profile.neighboursOf || []) {
+        let handles: string[] = [];
+        try {
+            const data = await api(`https://api.scrapecreators.com/v1/tiktok/song/videos?clipId=${soundId}`, key);
+            handles = (data?.aweme_list || [])
+                .map((item: any) => item?.author?.unique_id)
+                .filter((handle: any): handle is string => typeof handle === 'string');
+        } catch (error) { console.error(`[${label}] neighbours of ${soundId}:`, error); continue; }
+        for (const handle of handles.slice(0, 8)) {
+            if (seenHandles.has(handle)) continue;
+            seenHandles.add(handle);
+            try {
+                const data = await api(`https://api.scrapecreators.com/v3/tiktok/profile/videos?handle=${handle}&sort_by=popular&region=DE`, key);
+                for (const item of data?.aweme_list || []) {
+                    const sound = toSound(item, 'hashtag', '~' + handle, profile);
+                    if (sound) found.push(sound);
+                }
+            } catch (error) { console.error(`[${label}] ${handle}:`, error); }
+        }
+    }
+
     const enough = () => new Set(found.map((s) => s.id)).size >= profile.target;
     for (const hashtag of profile.hashtags) {
         if (enough()) break;
@@ -293,6 +354,7 @@ export async function getSoundPool(key: string, flow: SoundFlow, force = false, 
                 sound.fits = previous.fits;
                 sound.verdict = previous.verdict;
                 sound.category = previous.category;
+                sound.judgedWith = previous.judgedWith;
             }
         }
         const sounds = profile.taste ? await vetSounds(scraped, anthropicKey) : scraped;
@@ -328,6 +390,12 @@ A sound does NOT fit when it is:
 - sentimental or emotional, a ballad, and solo piano in particular
 - a sad or heartbreak song, whatever the tempo
 - loud, chaotic, hyperpop, phonk, or a joke sound effect, all of which bury the advice
+- children's music: nursery rhymes, baby songs, toy or kindergarten material, anything a
+  children's channel would use. This is the second most common near-miss after ambient, because
+  such tracks are genuinely playful and their titles say so. "Cute Baby" by Jelly Beep Kids,
+  "DINO SONG" and "A playful life" all passed on the word playful and were rejected by ear.
+  Playful has to mean witty, not infantile: a bassoon is fine, a xylophone nursery loop is not.
+  Artist names containing Kids, Baby, Nursery, Toddler or Kindergarten are a reliable tell.
 - sung in a language other than English, because the slide copy is English
 - a mainstream pop hit whose own meaning would take over the post
 
@@ -350,13 +418,17 @@ One entry per supplied id, no invented ids.`;
 
 // One call per pool rebuild, so the taste check costs a fraction of a cent every twelve hours.
 const TASTE_BATCH = 60;
+// Bump whenever the criteria change. Old verdicts were made under older rules, so they are
+// stale rather than wrong: the kids-music rule arrived after most of the pool was judged and
+// would otherwise never be applied to it. Re-judging is a couple of cents and one run.
+const TASTE_VERSION = 2;
 
 async function vetSounds(sounds: SsSound[], anthropicKey: string): Promise<SsSound[]> {
     // Judge anything not yet judged, and anything judged before a later field was introduced.
     // Without the second case an existing pool could never gain categories, and the only way
     // to get them would be deleting the pool, which throws away verdicts already paid for.
     const candidates = sounds.filter((s) => s.source !== 'reference'
-        && (s.fits === undefined || (s.fits && !s.category)));
+        && (s.fits === undefined || (s.fits && !s.category) || s.judgedWith !== TASTE_VERSION));
     if (!candidates.length || !anthropicKey) return sounds;
     // Batched: a few hundred verdicts do not fit in one response, and a truncated JSON body
     // would lose the whole run rather than one chunk of it.
@@ -388,6 +460,7 @@ async function vetBatch(sounds: SsSound[], candidates: SsSound[], anthropicKey: 
             const verdict = byId.get(sound.id);
             if (!verdict) continue;
             sound.fits = !!verdict.fits;
+            sound.judgedWith = TASTE_VERSION;
             sound.verdict = String(verdict.reason || '').slice(0, 120);
             const category = String(verdict.category || '');
             if (SOUND_CATEGORIES.some((c) => c.id === category)) sound.category = category as SoundCategory;

@@ -47,3 +47,4 @@ data/*.db
 
 # Skill symlinks/junctions into .agents/skills (the real files live there).
 /.claude/skills/
+/client/assets/bfrb-slides/

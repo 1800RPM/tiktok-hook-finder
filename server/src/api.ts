@@ -12,6 +12,7 @@ import type { LhFormatId } from "./projects/dbt/lh_formats";
 import { generateSsSlideshow, generateSsTopicSeeds } from "./projects/dbt/ss_slideshow";
 import { recommendSsSounds, resolveSoundAudio } from "./projects/dbt/ss_sounds";
 import { generateMemeSlideshow } from "./projects/dbt/meme_slideshow";
+import { generateBfrbMemeSlideshow } from "./projects/bfrb/bfrb_meme_slideshow";
 import { getMemeAssets, startMemeAnalysis, editMemeLabels, selectMemeAssets } from "./projects/dbt/meme_assets";
 import { generateSsBatch, SS_FORMATS } from "./projects/dbt/ss_batch";
 import type { SsFormatId } from "./projects/dbt/ss_batch";
@@ -2986,6 +2987,27 @@ Output ONLY the JSON object.No markdown, no explanation.`
             } catch (error) {
                 console.error("[Meme Slideshow] Generation failed:", error);
                 return sendJSON({ error: "Meme slideshow generation failed. Please retry." }, 500);
+            }
+        }
+        // BFRB Ally meme carousels: same format and validation limits, separate prompt.
+        else if (cleanPath === "/generate-bfrb-meme-slideshow" && method === "POST") {
+            try {
+                const body = await req.json() as any;
+                if (body?.previousTopics !== undefined && (!Array.isArray(body.previousTopics) || body.previousTopics.length > 50 ||
+                    body.previousTopics.some((topic: unknown) => typeof topic !== 'string' || topic.length > 500))) {
+                    return sendJSON({ error: "Recent topics must be a list of up to 50 short titles." }, 400);
+                }
+                if ((body?.theme !== undefined && (typeof body.theme !== 'string' || body.theme.length > 120)) ||
+                    (body?.notes !== undefined && (typeof body.notes !== 'string' || body.notes.length > 2000))) {
+                    return sendJSON({ error: "Theme or notes exceed the allowed length." }, 400);
+                }
+                if (!ANTHROPIC_API_KEY) return sendJSON({ error: "Anthropic API key is not configured on the server." }, 503);
+                return sendJSON(await generateBfrbMemeSlideshow({
+                    theme: body.theme, notes: body.notes, previousTopics: body.previousTopics, model: body.model, ANTHROPIC_API_KEY,
+                }));
+            } catch (error) {
+                console.error("[BFRB Memes] Generation failed:", error);
+                return sendJSON({ error: "BFRB meme generation failed. Please retry." }, 500);
             }
         }
         // GET /ss-sounds - three sound suggestions for the current slideshow post

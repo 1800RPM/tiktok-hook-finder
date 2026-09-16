@@ -22,6 +22,7 @@
                 <button class="service-btn service-btn-lh" data-service="lh">Little Habits</button>
                 <button class="service-btn service-btn-ss" data-service="ss">Slideshows</button>
                 <button class="service-btn" data-service="meme">Meme Slides</button>
+                <button class="service-btn" data-service="bfrb">BFRB Memes</button>
                 <button class="service-btn service-btn-ts" data-service="the_script">The Script</button>
                 <button class="service-btn service-btn-stickman" data-service="stickman">Stickman</button>
             </div>
@@ -131,6 +132,105 @@
                         </div>
                     </section>
                     <div id="meme-slides"><p class="section-hint">Generate a fresh AI topic and seven slides, or load the approved example to start editing.</p></div>
+                </section>
+            </div>
+            <div id="panel-bfrb" class="service-panel">
+                <section class="panel-section meme-workspace">
+                    <h2>BFRB Ally Memes</h2>
+                    <p class="section-hint">Generate the copy, then arrange your cats on white slides. Cover + five comparisons + the BFRB Ally slide, exported at 1080 × 1350.</p>
+                    <div class="meme-settings">
+                        <label>Character theme<input id="bfrb-theme" class="text-input" maxlength="120" value="picker cat" placeholder="e.g. picker cat"></label>
+                        <label>Text model<select id="bfrb-model" class="select-input"><option value="claude-sonnet-4-6">Claude Sonnet 4.6</option><option value="claude-fable-5">Claude Fable 5</option><option value="claude-opus-5">Claude Opus 5</option><option value="claude-opus-4-8">Claude Opus 4.8</option></select></label>
+                        <label class="meme-wide">Creative direction (optional)<textarea id="bfrb-notes" class="prompt-textarea" rows="2" maxlength="2000" placeholder="Leave blank for a fresh AI topic, or describe a direction to explore"></textarea></label>
+                    </div>
+                    <div class="meme-actions">
+                        <button id="bfrb-generate" type="button" class="btn btn-primary">Generate slide text</button>
+                        <button id="bfrb-example" type="button" class="btn btn-secondary" hidden>Load approved example</button>
+                        <button id="bfrb-copy" type="button" class="btn btn-secondary" disabled>Copy all text</button>
+                        <button id="bfrb-export" type="button" class="btn btn-secondary" disabled>Export JSON</button>
+                        <label class="meme-auto-choice"><input id="bfrb-auto-art" type="checkbox" checked>Auto-place images after generation</label>
+                    </div>
+                    <p id="bfrb-status" role="status" aria-live="polite"></p>
+                    <div class="input-group" id="bfrb-sound-group" style="margin-top: 12px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                            <label class="ss-label" style="margin:0;">TikTok Sound</label>
+                            <button id="bfrb-sound-refresh" type="button" class="btn btn-secondary"
+                                style="padding:4px 10px; font-size:12px;">Andere Vorschl&auml;ge</button>
+                        </div>
+                        <div id="bfrb-sound-filters" class="ss-sound-filters"></div>
+                        <div id="bfrb-sound-list" class="ss-sound-list"></div>
+                        <p id="bfrb-sound-status" class="section-hint" style="margin:6px 0 0;"></p>
+                    </div>
+
+                    <div id="bfrb-meta-group" hidden style="margin-top: 12px;">
+                        <h3 style="margin: 0 0 8px;">TikTok metadata</h3>
+                        <div class="input-group">
+                            <label class="ss-label" for="bfrb-title">Title (max 8 words, paste as the post text)</label>
+                            <input id="bfrb-title" type="text" class="text-input" placeholder="lowercase, in the account's voice">
+                        </div>
+                        <div class="input-group" style="margin-top: 10px;">
+                            <label class="ss-label" for="bfrb-description">Description (goes in front of the hashtags)</label>
+                            <textarea id="bfrb-description" class="text-input" rows="2"
+                                placeholder="Two sentences, no emojis."></textarea>
+                        </div>
+                        <div class="input-group" style="margin-top: 10px;">
+                            <label class="ss-label" for="bfrb-hashtags">Hashtags</label>
+                            <input id="bfrb-hashtags" type="text" class="text-input" placeholder="#skinpicking #bfrb ...">
+                        </div>
+                        <div class="meme-actions" style="margin-top: 10px;">
+                            <button id="bfrb-copy-meta" type="button" class="btn btn-secondary">Copy description + hashtags</button>
+                        </div>
+                    </div>
+                    <section id="bfrb-artwork" hidden aria-label="BFRB meme slide image editor">
+                        <h3>Slide images</h3>
+                        <div class="meme-actions">
+                            <button id="bfrb-art-analyze" type="button" class="btn btn-secondary">Analyze new assets</button>
+                            <button id="bfrb-art-arrange" type="button" class="btn btn-primary">AI arrange carousel</button>
+                        </div>
+                        <div id="bfrb-art-nav" class="meme-actions" aria-label="Choose a slide"></div>
+                        <div class="meme-art-layout">
+                            <div>
+                                <canvas id="bfrb-art-canvas" width="1080" height="1350" tabindex="0" aria-label="Slide canvas. Drag objects to move them. Select an object to resize or rotate it using the controls."></canvas>
+                                <p class="section-hint">Drag to move. Drag the round handle to rotate images; the square handle resizes them. Arrow keys nudge the selected object.</p>
+                                <div class="meme-actions">
+                                    <button id="bfrb-art-png" type="button" class="btn btn-primary">Download this PNG</button>
+                                    <button id="bfrb-art-zip" type="button" class="btn btn-secondary">Download all slides (.zip)</button>
+                                </div>
+                            </div>
+                            <aside class="meme-art-tools">
+                                <label>Selected object<select id="bfrb-art-selection"></select></label>
+                                <div class="meme-settings">
+                                    <label>X position<input id="bfrb-art-x" type="number" step="1"></label>
+                                    <label>Y position<input id="bfrb-art-y" type="number" step="1"></label>
+                                    <label>Image width<input id="bfrb-art-size" type="range" min="60" max="1400" step="1"></label>
+                                    <label>Rotation <span id="bfrb-art-angle-value">0°</span><input id="bfrb-art-angle" type="range" min="-180" max="180" step="1"></label>
+                                </div>
+                                <div class="meme-actions">
+                                    <button id="bfrb-art-arrange-slide" type="button" class="btn btn-primary">AI images for this slide</button>
+                                    <button id="bfrb-art-reset-one" type="button" class="btn btn-secondary">Reset selected position</button>
+                                    <button id="bfrb-art-reset-text" type="button" class="btn btn-secondary">Reset all text</button>
+                                    <button id="bfrb-art-front" type="button" class="btn btn-secondary">Bring image forward</button>
+                                    <button id="bfrb-art-back" type="button" class="btn btn-secondary">Send image backward</button>
+                                    <button id="bfrb-art-remove" type="button" class="btn btn-secondary">Remove image</button>
+                                    <button id="bfrb-art-gauges" type="button" class="btn btn-secondary">Restore urge gauges</button>
+                                    <button id="bfrb-art-swap" type="button" class="btn btn-secondary">Swap high / low</button>
+                                    <button id="bfrb-art-alternatives" type="button" class="btn btn-secondary" disabled>Suggest alternatives</button>
+                                </div>
+                                <div id="bfrb-art-suggestions" class="meme-alternatives"></div>
+                                <details id="bfrb-art-label-panel">
+                                    <summary>Selected image labels</summary>
+                                    <p id="bfrb-art-label-description"></p>
+                                    <label>Correct or add context<textarea id="bfrb-art-label-edit" rows="3" maxlength="1500" placeholder="Describe the joke, mood, or situations this image fits"></textarea></label>
+                                    <button id="bfrb-art-label-save" type="button" class="btn btn-secondary">Save label corrections</button>
+                                </details>
+                                <h4>Cat library</h4>
+                                <label>Find a cat<input id="bfrb-art-search" type="search" placeholder="Search expressions or names"></label>
+                                <div id="bfrb-art-library" class="meme-cat-library"></div>
+                                <p id="bfrb-art-status" role="status" aria-live="polite"></p>
+                            </aside>
+                        </div>
+                    </section>
+                    <div id="bfrb-slides"><p class="section-hint">Generate a fresh AI topic and seven slides, for BFRB Ally.</p></div>
                 </section>
             </div>
             <!-- Left Panel: Controls -->
@@ -1928,8 +2028,9 @@ INSIDE: ..."></textarea>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="app.js?v=20260827g"></script>
-    <script src="meme-canvas.js?v=20260907c"></script>
-    <script src="meme-slides.js?v=20260907c"></script>
+    <script src="meme-canvas.js?v=20260916a"></script>
+    <script src="meme-slides.js?v=20260916a"></script>
+    <script src="bfrb-slides.js?v=20260916a"></script>
 </body>
 
 </html>

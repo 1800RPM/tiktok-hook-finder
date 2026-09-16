@@ -3163,3 +3163,18 @@ select:hover {
 }
 .ss-sound-chip:disabled { opacity: .3; cursor: default; }
 .ss-sound-chip:focus-visible { outline: 2px solid #34d399; outline-offset: 2px; }
+
+/* BFRB Ally memes reuse the meme workspace. */
+body[data-service="bfrb"] .main-content { display: block; }
+body[data-service="bfrb"] .main-content > :not(#panel-bfrb),
+body[data-service="bfrb"] #floating-download-btn { display: none !important; }
+#bfrb-status { min-height: 24px; margin: 16px 0; color: var(--text-secondary); }
+#bfrb-artwork { margin: 28px 0; padding: 24px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); }
+#bfrb-artwork[hidden] { display: none; }
+#bfrb-art-nav { margin: 16px 0; }
+#bfrb-art-nav [aria-pressed='true'] { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+#bfrb-art-canvas { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; background: #fff; touch-action: none; cursor: grab; box-shadow: 0 0 0 1px var(--border-color); }
+#bfrb-art-canvas:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+#bfrb-art-canvas:active { cursor: grabbing; }
+#bfrb-art-label-panel { margin: 16px 0; }
+#bfrb-art-label-description { font-size: .85rem; line-height: 1.5; margin: 10px 0; }

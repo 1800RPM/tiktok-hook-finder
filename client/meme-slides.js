@@ -1,7 +1,9 @@
-(() => {
-    const storageKey = 'dbt-meme-slides-v1';
-    const $ = (id) => document.getElementById(`meme-${id}`);
-    const settingNames = ['theme', 'notes', 'language', 'model'];
+// One factory, one call per app. The DBT-Mind call at the bottom keeps its original ids,
+// storage key and endpoint; bfrb-slides.js calls it again for BFRB Ally.
+window.createMemeSlides = (cfg) => {
+    const storageKey = cfg.storageKey;
+    const $ = (id) => document.getElementById(`${cfg.prefix}-${id}`);
+    const settingNames = cfg.settingNames;
     let previousTopics = [];
     let slides = [];
     // TikTok metadata: never rendered on a slide, but part of the draft.
@@ -13,7 +15,7 @@
     let busy = false;
     const status = (message) => { $('status').textContent = message; };
     const settings = () => Object.fromEntries(settingNames.map((name) => [name, $(name).value]));
-    const artwork = new MemeCanvasEditor(() => save());
+    const artwork = new MemeCanvasEditor(() => save(), cfg.canvas);
     function save() {
         try { localStorage.setItem(storageKey, JSON.stringify({ ...settings(), slides, meta, previousTopics, autoArt: $('auto-art').checked, artwork: artwork.serialize() })); }
         catch { status('Your draft is open, but browser storage is unavailable. Export it to keep a copy.'); }
@@ -220,7 +222,7 @@
             settingNames.forEach((name) => {
                 if (typeof draft[name] === 'string' && ($(name).tagName !== 'SELECT' || [...$(name).options].some((option) => option.value === draft[name]))) $(name).value = draft[name];
             });
-            if ($('theme').value.trim().toLowerCase() === 'cats') $('theme').value = 'bpd cat';
+            if (cfg.migrateCats && $('theme').value.trim().toLowerCase() === 'cats') $('theme').value = 'bpd cat';
             if (isDraft(draft.slides)) {
                 slides = draft.slides;
                 meta = {
@@ -230,7 +232,7 @@
                     sound: draft.meta?.sound && typeof draft.meta.sound.id === 'string' ? draft.meta.sound : null,
                 };
                 artwork.restore(draft.artwork);
-                if (slides[0].body.trim() === '(explained by cats)') slides[0].body = '(explained by bpd cat)';
+                if (cfg.migrateCats && slides[0].body.trim() === '(explained by cats)') slides[0].body = '(explained by bpd cat)';
                 rememberTopic(slides[0].headline); render(); status('Saved draft restored. Edits save automatically in this browser.'); save();
             }
         }
@@ -262,7 +264,7 @@
         $('slides').querySelectorAll('textarea').forEach((input) => { input.disabled = true; });
         status('Choosing a fresh topic and writing seven slides. This can take a couple of minutes.');
         try {
-            const response = await fetch(`${API_BASE}/generate-meme-slideshow`, {
+            const response = await fetch(`${API_BASE}${cfg.endpoint}`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json', ...getApiAuthHeaders() },
                 body: JSON.stringify({ ...settings(), previousTopics }), signal: AbortSignal.timeout(330000),
             });
@@ -300,7 +302,7 @@
             $('slides').querySelectorAll('textarea').forEach((input) => { input.disabled = false; });
         }
     });
-    $('example').addEventListener('click', () => {
+    if (cfg.example) $('example').addEventListener('click', () => {
         const point = (headline, body, leftLabel, rightLabel) => ({ role: 'point', headline, body, leftLabel, rightLabel });
         slides = [
             { role: 'hook', headline: '5 things DBT teaches that sound wrong at first', body: '(explained by bpd cat)', leftLabel: '', rightLabel: '' },
@@ -329,10 +331,16 @@
         catch { status('Clipboard access is unavailable. Use Export JSON to save the text.'); }
     });
     $('export').addEventListener('click', () => {
-        const blob = new Blob([JSON.stringify({ format: 'meme-slides', version: 1, ...settings(), topic: slides[0]?.headline || '', slides, meta, artwork: artwork.serialize() }, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify({ format: cfg.exportName, version: 1, ...settings(), topic: slides[0]?.headline || '', slides, meta, artwork: artwork.serialize() }, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement('a'); link.href = url; link.download = 'meme-slides.json';
+        const link = document.createElement('a'); link.href = url; link.download = `${cfg.exportName}.json`;
         document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
         status('Draft exported as JSON.');
     });
-})();
+};
+
+createMemeSlides({
+    prefix: 'meme', storageKey: 'dbt-meme-slides-v1', endpoint: '/generate-meme-slideshow',
+    settingNames: ['theme', 'notes', 'language', 'model'], exportName: 'meme-slides',
+    migrateCats: true, example: true,
+});

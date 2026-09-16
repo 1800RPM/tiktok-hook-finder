@@ -1,15 +1,21 @@
 (() => {
     'use strict';
     const W = 1080, H = 1350;
-    const LOW = 'assets/meme-slides/bpd_level_low.png';
-    const HIGH = 'assets/meme-slides/bpd_level_high.png';
-    // The closing slide is one finished image, identical in every post: heading, app card and cats are baked in.
-    const CTA_SLIDE = 'assets/meme-slides/cta_slide.png';
+    // Everything that differs between apps. The defaults are the DBT-Mind meme flow; BFRB Ally
+    // passes its own element prefix, gauges and closing slide.
+    const DEFAULTS = {
+        prefix: 'meme-art', artwork: 'meme-artwork', panel: '#panel-meme', filePrefix: 'meme-slide',
+        low: 'assets/meme-slides/bpd_level_low.png',
+        high: 'assets/meme-slides/bpd_level_high.png',
+        gaugeLabel: 'BPD',
+        // The closing slide is one finished image, identical in every post: heading, app card and cats are baked in.
+        cta: 'assets/meme-slides/cta_slide.png',
+    };
     const FONT = '"Meme TikTok", "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
     const clamp = (n, low, high) => Math.max(low, Math.min(high, n));
     const radians = (degrees) => degrees * Math.PI / 180;
     const id = () => crypto.randomUUID();
-    const validSrc = (src) => typeof src === 'string' && src.startsWith('assets/meme-slides/') && !src.includes('..');
+    const validSrc = (src) => typeof src === 'string' && /^assets\/(?:meme|bfrb)-slides\//.test(src) && !src.includes('..');
 
     // Canvas exports carry no EXIF, but browsers differ in which ancillary PNG chunks they emit
     // (sRGB, pHYs, gAMA, and in principle tEXt/tIME). Keeping only the chunks needed to decode the
@@ -86,9 +92,10 @@
     }
 
     class MemeCanvasEditor {
-        constructor(onChange) {
+        constructor(onChange, options = {}) {
             this.onChange = onChange;
-            this.$ = (name) => document.getElementById(`meme-art-${name}`);
+            this.cfg = { ...DEFAULTS, ...options };
+            this.$ = (name) => document.getElementById(`${this.cfg.prefix}-${name}`);
             this.canvas = this.$('canvas'); this.ctx = this.canvas.getContext('2d');
             this.slides = []; this.scenes = []; this.index = 0; this.selected = null;
             this.images = new Map(); this.pending = new Map(); this.errors = new Set(); this.drag = null;
@@ -126,13 +133,13 @@
                 if (!this.scenes[i]) { this.scenes[i] = { offsets: {}, images: [] }; this.defaultGauges(i); this.defaultTemplate(i); }
                 // Migrate existing cover layouts while preserving manually placed cats.
                 if (this.slides[i].role === 'hook') {
-                    this.scenes[i].images = this.scenes[i].images.filter((image) => !image.gauge && image.src !== HIGH && image.src !== LOW);
+                    this.scenes[i].images = this.scenes[i].images.filter((image) => !image.gauge && image.src !== this.cfg.high && image.src !== this.cfg.low);
                 }
                 // Drafts saved before the CTA slide existed carry no app artwork yet.
-                if (this.slides[i].role === 'cta' && this.scenes[i].images[0]?.src !== CTA_SLIDE) this.defaultTemplate(i);
+                if (this.slides[i].role === 'cta' && this.scenes[i].images[0]?.src !== this.cfg.cta) this.defaultTemplate(i);
                 for (const image of this.scenes[i].images) this.loadImage(image.src).catch(() => {});
             }
-            document.getElementById('meme-artwork').hidden = !this.slides.length;
+            document.getElementById(this.cfg.artwork).hidden = !this.slides.length;
             this.$('nav').replaceChildren();
             this.slides.forEach((slide, i) => {
                 const button = document.createElement('button'); button.type = 'button'; button.className = 'btn btn-secondary';
@@ -150,7 +157,7 @@
             if (this.slides[index]?.role !== 'point') return;
             const scene = this.scenes[index], y = layout(this.ctx, this.slides[index]).gaugeY;
             scene.images = scene.images.filter((image) => !image.gauge);
-            for (const [x, src, name] of [[270, HIGH, 'BPD high'], [810, LOW, 'BPD low']]) {
+            for (const [x, src, name] of [[270, this.cfg.high, `${this.cfg.gaugeLabel} high`], [810, this.cfg.low, `${this.cfg.gaugeLabel} low`]]) {
                 scene.images.push({ id: id(), kind: 'image', gauge: true, name, src, x, y, w: 290, h: 210, angle: 0,
                     home: { x, y, w: 290, h: 210, angle: 0 } });
                 this.loadImage(src).catch(() => {});
@@ -161,8 +168,8 @@
             const scene = this.scenes[index];
             scene.images = scene.images.filter((image) => !image.template);
             const home = { x: W / 2, y: H / 2, w: W, h: H, angle: 0 };
-            scene.images.unshift({ id: id(), kind: 'image', template: true, name: 'App slide', src: CTA_SLIDE, ...home, home });
-            this.loadImage(CTA_SLIDE).catch(() => {});
+            scene.images.unshift({ id: id(), kind: 'image', template: true, name: 'App slide', src: this.cfg.cta, ...home, home });
+            this.loadImage(this.cfg.cta).catch(() => {});
         }
         loadImage(src) {
             if (this.images.has(src)) return Promise.resolve(this.images.get(src));
@@ -327,7 +334,7 @@
             this.$('gauges').addEventListener('click', () => { if (!this.scene()) return; this.defaultGauges(); this.refresh(); this.save(); });
             this.$('swap').addEventListener('click', () => {
                 if (!this.scene() || this.slides[this.index]?.role !== 'point') return;
-                for (const o of this.scene().images.filter((o) => o.gauge)) { o.src = o.src === HIGH ? LOW : HIGH; o.name = o.src === HIGH ? 'BPD high' : 'BPD low'; }
+                for (const o of this.scene().images.filter((o) => o.gauge)) { const { high, low, gaugeLabel } = this.cfg; o.src = o.src === high ? low : high; o.name = `${gaugeLabel} ${o.src === high ? 'high' : 'low'}`; }
                 this.refresh(); this.save();
             });
             this.$('search').addEventListener('input', () => this.renderLibrary());
@@ -452,7 +459,7 @@
                 this.slides[index].role !== 'cta' && (only === null || index === only));
             if (!targets.length) return this.message('The app slide is fixed artwork. Choose another slide.');
             this.aiBusy = true;
-            const controls = [...document.querySelectorAll('#panel-meme button, #panel-meme input, #panel-meme select, #panel-meme textarea')].map((element) => [element, element.disabled]);
+            const controls = [...document.querySelectorAll(['button', 'input', 'select', 'textarea'].map((tag) => `${this.cfg.panel} ${tag}`).join(', '))].map((element) => [element, element.disabled]);
             controls.forEach(([element]) => { element.disabled = true; });
             const signature = JSON.stringify(this.slides), scenesBefore = this.scenes;
             try {
@@ -546,7 +553,7 @@ ${meta.sound.link}`);
         async download(all) {
             if (this.exporting || !this.slides.length) return;
             this.exporting = true;
-            const controls = [...document.querySelectorAll('#panel-meme button, #panel-meme input, #panel-meme select, #panel-meme textarea')]
+            const controls = [...document.querySelectorAll(['button', 'input', 'select', 'textarea'].map((tag) => `${this.cfg.panel} ${tag}`).join(', '))]
                 .map((element) => [element, element.disabled]);
             controls.forEach(([element]) => { element.disabled = true; });
             this.message('Rendering full-resolution images…');
@@ -557,11 +564,11 @@ ${meta.sound.link}`);
                     const zip = new JSZip();
                     // A fixed timestamp keeps the zip from recording when the post was made.
                     const date = new Date('2000-01-01T00:00:00Z');
-                    for (let i = 0; i < this.slides.length; i++) zip.file(`meme-slide-${i + 1}.png`, await this.png(i), { date });
+                    for (let i = 0; i < this.slides.length; i++) zip.file(`${this.cfg.filePrefix}-${i + 1}.png`, await this.png(i), { date });
                     const info = this.infoFile();
                     if (info) zip.file('tiktok_info.txt', info, { date });
-                    blob = await zip.generateAsync({ type: 'blob' }); filename = 'meme-slides.zip';
-                } else { blob = await this.png(this.index); filename = `meme-slide-${this.index + 1}.png`; }
+                    blob = await zip.generateAsync({ type: 'blob' }); filename = `${this.cfg.filePrefix}s.zip`;
+                } else { blob = await this.png(this.index); filename = `${this.cfg.filePrefix}-${this.index + 1}.png`; }
                 const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = filename;
                 document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
                 this.message(all
