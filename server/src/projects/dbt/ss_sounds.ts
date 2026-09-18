@@ -23,6 +23,7 @@ export type SoundFlow = 'slideshow' | 'meme';
 // shows, so they are written for the person choosing, not for a taxonomy.
 export const SOUND_CATEGORIES = [
     { id: 'playful', label: 'Verspielt', hint: 'schrullig-freundlich, die Standardader' },
+    { id: 'elevator', label: 'Warteschleife', hint: 'Fahrstuhl-, Warte- und Lobbymusik' },
     { id: 'cartoon', label: 'Cartoon', hint: 'albern, Slapstick, Zeichentrick' },
     { id: 'upbeat', label: 'Gute Laune', hint: 'treibend und hell, ohne albern zu sein' },
     { id: 'calm', label: 'Ruhig', hint: 'warm und zurückhaltend, für ernstere Themen' },
@@ -45,6 +46,9 @@ type Profile = {
     // Sound ids to mine outward from: whoever put one of these under a post is making the same
     // kind of thing, so the rest of their sounds are the closest thing to a warm lead.
     neighboursOf?: string[];
+    // Plain keyword searches. They return videos rather than a genre tag's mixed bag, and for
+    // functional music ("hold music", "lobby music") that is where the actual tracks turn up.
+    keywords?: string[];
     target: number;
     // How wide the random draw reaches into the ranked pool. The slideshow pool is uniformly
     // on-format so it can draw broadly; the meme pool is a curated core plus a noisy tail,
@@ -137,6 +141,13 @@ const PROFILES: Record<SoundFlow, Profile> = {
             { id: '6850015623452297217', category: 'calm' },     // Need 2 - Pinegrove, the serious pole
             { id: '6926615418094389249', category: 'upbeat' },   // Lust For Life - Iggy Pop
             { id: '6805140399900854274', category: 'playful' },  // Yoshi's Island - 3000m
+            // Waiting-room music: the joke is that nothing is happening, which suits a cat
+            // staring at you while the slide explains something.
+            { id: '6704976900642572289', category: 'upbeat' },   // Mission Impossible - Kenichi Tsunoda Big Band
+            { id: '6770213754270386178', category: 'elevator' }, // Local Forecast - Elevator - Kevin MacLeod
+            { id: '7124723447204153346', category: 'elevator' }, // Waiting Music - Lesfm
+            { id: '7459271507363530768', category: 'elevator' }, // Elevator Spaghetti - Jorjiana
+            { id: '6744303202360887298', category: 'elevator' }, // Wii - Mii Channel - Super Guitar Bros
             // Clumsy Situations, Cats (both versions) and Go Kitty Go fit the format but the
             // song endpoint returns no playable URL for them, so they cannot be previewed.
         ],
@@ -157,6 +168,21 @@ const PROFILES: Record<SoundFlow, Profile> = {
             '6732122196979746817', // Poem Panic! - Dan Salvato
             '6855419811560687617', // Saria's Theme - The Versions
             '6729945756024702977', // Orchestra Tuning / Warming Up - General Sounds
+            // Waiting-room seam, asked for by name. People who put hold music under a video
+            // tend to own more of it.
+            '6770213754270386178', // Local Forecast - Elevator - Kevin MacLeod
+            '7124723447204153346', // Waiting Music - Lesfm
+            '7459271507363530768', // Elevator Spaghetti - Jorjiana
+            '6744303202360887298', // Wii - Mii Channel - Super Guitar Bros
+            '7075899812617177089', // KK Bossa - Animal Crossing
+        ],
+        // Measured against hashtags for the same idea: #lobbymusic and #muzak returned mostly
+        // chart songs that happened to carry the tag, while these searches surfaced Kahoot's
+        // lobby theme, hotel hold music and the Wii menu themes.
+        keywords: [
+            'elevator music', 'waiting music', 'hold music', 'lobby music', 'hotel lobby music',
+            'kahoot lobby music', 'wii shop music', 'mii channel music', 'animal crossing music',
+            'bossa nova', 'pink panther theme',
         ],
         // Turned down after listening. The taste check reads a title and cannot hear that a
         // track is nursery music: it kept "Cute Baby" by Jelly Beep Kids because the title
@@ -291,6 +317,16 @@ async function scrape(key: string, profile: Profile, label: string): Promise<SsS
         }
     }
 
+    for (const query of profile.keywords || []) {
+        try {
+            const data = await api(`https://api.scrapecreators.com/v1/tiktok/search/keyword?query=${encodeURIComponent(query)}&region=${profile.region}`, key);
+            for (const entry of data?.search_item_list || []) {
+                const sound = toSound(entry?.aweme_info || entry, 'hashtag', '?' + query, profile);
+                if (sound) found.push(sound);
+            }
+        } catch (error) { console.error(`[${label}] "${query}":`, error); }
+    }
+
     const enough = () => new Set(found.map((s) => s.id)).size >= profile.target;
     for (const hashtag of profile.hashtags) {
         if (enough()) break;
@@ -320,6 +356,7 @@ async function scrape(key: string, profile: Profile, label: string): Promise<SsS
             const winner = best.get(sound.id)!;
             winner.source = 'reference';
             winner.via = current.via;
+            winner.category = current.category;
         }
     }
     return [...best.values()];
@@ -343,7 +380,7 @@ export async function getSoundPool(key: string, flow: SoundFlow, force = false, 
     const cached = await load(flow);
     if (!force && cached && Date.now() - cached.updated < POOL_TTL_MS && cached.sounds.length) return cached;
     const running = builds.get(flow);
-    if (running) return running;
+    if (running) return !force && cached?.sounds.length ? cached : running;
     const build = (async () => {
         const scraped = await scrape(key, profile, flow === 'meme' ? 'Meme Sounds' : 'SS Sounds');
         // Carry forward verdicts already paid for, so a rebuild only judges what is new.
@@ -353,9 +390,17 @@ export async function getSoundPool(key: string, flow: SoundFlow, force = false, 
             if (previous?.fits !== undefined) {
                 sound.fits = previous.fits;
                 sound.verdict = previous.verdict;
-                sound.category = previous.category;
+                // A seed's category is set by hand and outranks an older model verdict.
+                if (sound.source !== 'reference' || !sound.category) sound.category = previous.category;
                 sound.judgedWith = previous.judgedWith;
             }
+        }
+        // Additive: a kept sound that this scrape happened not to reach stays in the pool.
+        // Neighbour mining samples different creators each run, and without this a rebuild
+        // silently dropped Pink Panther and Mission Impossible, which nothing was wrong with.
+        const scrapedIds = new Set(scraped.map((s) => s.id));
+        for (const previous of cached?.sounds || []) {
+            if (previous.fits === true && !scrapedIds.has(previous.id) && !profile.blocked?.includes(previous.id)) scraped.push(previous);
         }
         const sounds = profile.taste ? await vetSounds(scraped, anthropicKey) : scraped;
         // A failed scrape must not wipe a working pool.
@@ -368,6 +413,12 @@ export async function getSoundPool(key: string, flow: SoundFlow, force = false, 
         return next;
     })().finally(() => { builds.delete(flow); });
     builds.set(flow, build);
+    // An expired pool is still a good pool. A rebuild scrapes a dozen searches and re-judges
+    // with the model, which outlasts the request, so serve what we have and swap in the result.
+    if (!force && cached?.sounds.length) {
+        build.catch((error) => console.error('[Sounds] Background rebuild failed:', error));
+        return cached;
+    }
     return build;
 }
 
@@ -396,8 +447,22 @@ A sound does NOT fit when it is:
   "DINO SONG" and "A playful life" all passed on the word playful and were rejected by ear.
   Playful has to mean witty, not infantile: a bassoon is fine, a xylophone nursery loop is not.
   Artist names containing Kids, Baby, Nursery, Toddler or Kindergarten are a reliable tell.
-- sung in a language other than English, because the slide copy is English
-- a mainstream pop hit whose own meaning would take over the post
+- sung in a language other than English, because the slide copy is English (instrumental
+  bossa nova and lounge are fine)
+- current chart pop, rap or a vocal song whose lyrics tell their own story (a breakup, a party,
+  a flex), because the words compete with the slide
+Recognisable is not the same as mainstream. Classic, characterful tracks are wanted and were
+picked out by ear as the best direction: Lust For Life, Stayin' Alive, Smile Like You Mean It,
+Gorillaz instrumentals, the Pink Panther and Mission Impossible themes, film and TV cues, Henry
+Mancini, Nintendo and Zelda themes, Broadway overtures. Keep these; their familiarity is the
+joke landing, not a distraction.
+
+Waiting-room music is explicitly wanted: elevator music, hold music, lobby and hotel-lobby
+jazz, muzak, easy-listening bossa nova, and the menu or shop themes of games (Wii Shop, Mii
+Channel, Animal Crossing's K.K. tracks, Kahoot's lobby theme). The joke is that nothing is
+happening, which suits a deadpan cat. Keep them even when they sound plain. Tracks found through
+a "lobby" or "hold music" search that are really chart songs or rap are still mainstream hits and
+do not fit.
 
 You cannot hear these tracks, so judge from what the title and artist actually tell you. When
 the signal is genuinely weak, reject: a wrong suggestion costs the user listening time, and the
@@ -406,6 +471,8 @@ pool has more candidates than it needs.
 Also sort each sound you keep into exactly one bucket, so the user can filter by the mood a
 given post needs. Judge the sound itself, not the title's subject:
 - playful: schrulliges, freundliches Library-Material. The default seam for this format.
+- elevator: waiting-room music, as described above: elevator, hold, lobby, muzak, bossa lounge,
+  game menu and shop themes.
 - cartoon: slapstick, zeichentrickhaft, broad and silly.
 - upbeat: bright and driving without tipping into silly.
 - calm: warm and held back, for the posts that carry more weight.
@@ -421,7 +488,7 @@ const TASTE_BATCH = 60;
 // Bump whenever the criteria change. Old verdicts were made under older rules, so they are
 // stale rather than wrong: the kids-music rule arrived after most of the pool was judged and
 // would otherwise never be applied to it. Re-judging is a couple of cents and one run.
-const TASTE_VERSION = 2;
+const TASTE_VERSION = 4;
 
 async function vetSounds(sounds: SsSound[], anthropicKey: string): Promise<SsSound[]> {
     // Judge anything not yet judged, and anything judged before a later field was introduced.
