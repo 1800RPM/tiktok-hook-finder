@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import { buildDescription, buildTitle, generateSsSlideshow, SS_ARCHETYPES, SS_EVERYDAY_AXES } from './ss_slideshow';
+import { buildDescription, buildTitle, generateSsSlideshow, SS_ARCHETYPES, SS_EVERYDAY_AXES, validateSsCurrentHook } from './ss_slideshow';
 
 const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
@@ -191,3 +191,54 @@ test('every flow returns the same metadata shape, legacy included', async () => 
     // ...and must not be left hanging on the final slide.
     expect(result.slides[result.slides.length - 1].text).not.toContain('DESCRIPTION');
 });
+
+test('the current-flow hook must carry the word bpd, woven in rather than bolted on', () => {
+    const post = (headline: string) => ({ slides: [{ role: 'hook', headline, body: '' }] });
+    expect(validateSsCurrentHook(post("5 relationship fight habits that aren't character flaws"))).toHaveLength(1);
+    expect(validateSsCurrentHook(post('5 things nobody tells you about dbt'))).toHaveLength(1);
+    expect(validateSsCurrentHook(post('5 errands BPD makes feel impossible'))).toEqual([]);
+    expect(validateSsCurrentHook(post('5 things i say to my bpd brain instead of spiraling'))).toEqual([]);
+    // "bpdtok" is not the word.
+    expect(validateSsCurrentHook(post('5 bpdtok habits'))).toHaveLength(1);
+    // German posts may say "borderline" instead.
+    expect(validateSsCurrentHook(post('5 dinge die mit borderline schwerer sind'), 'de')).toEqual([]);
+    expect(validateSsCurrentHook(post('5 dinge die mit borderline schwerer sind'), 'en')).toHaveLength(1);
+});
+
+test('the current flow asks for a rewrite when the hook drops bpd, and keeps the rewrite', async () => {
+    const item = (n: number) => ({ role: n === 3 ? 'cta' : 'skill', headline: `${n}. item ${n}`, body: 'a body line' });
+    const post = (hook: string) => JSON.stringify({
+        slides: [{ role: 'hook', headline: hook, body: '' }, ...[1, 2, 3, 4, 5].map(item)],
+        title: 'a title', hashtags: ['#bpd', '#dbt', '#bpdtok', '#dbtskills', '#mentalhealth'],
+        description: 'a description.', caption: 'a caption', pinned_comment: 'the app is DBT-Mind',
+    });
+    const requests: any[] = [];
+    globalThis.fetch = (async (_url: any, init: any) => {
+        const body = JSON.parse(init.body);
+        requests.push(body);
+        const text = requests.length === 1
+            ? post("5 relationship fight habits that aren't character flaws")
+            : post("5 bpd fight habits that aren't character flaws");
+        return Response.json({ content: [{ type: 'text', text }] });
+    }) as typeof fetch;
+    const result: any = await generateSsSlideshow({ format: 'current', archetype: 'reframe', domain: 'relationships', ANTHROPIC_API_KEY: 'test' });
+    expect(requests).toHaveLength(2);
+    const correction = requests[1].messages[2].content;
+    expect(requests[1].messages[1].role).toBe('assistant');
+    expect(correction).toContain('must contain the word "bpd"');
+    expect(correction).toContain("5 relationship fight habits that aren't character flaws");
+    expect(result.slides[0].text).toContain('bpd');
+    // The rule also reaches the prompt itself, so the retry is the exception, not the plan.
+    expect(requests[0].system).toContain('The headline contains the word "bpd"');
+});
+
+test('the listicle and hacks flows keep their own hook checks instead of the bpd guard', async () => {
+    let system = '';
+    globalThis.fetch = (async (_url: any, init: any) => {
+        system = JSON.parse(init.body).system;
+        return Response.json({ content: [{ type: 'text', text: '{}' }] });
+    }) as typeof fetch;
+    await generateSsSlideshow({ format: 'dbt', ANTHROPIC_API_KEY: 'test' }).catch(() => {});
+    expect(system).not.toContain('The headline contains the word "bpd"');
+});
+

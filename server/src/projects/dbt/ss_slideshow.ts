@@ -233,7 +233,7 @@ export type SsDomainId =
 export const SS_ARCHETYPES: Record<SsArchetypeId, { label: string; spec: string }> = {
     confession: {
         label: 'Confession',
-        spec: 'first-person honesty about what still goes wrong. example energy: "5 things i still get wrong after 2 years of dbt"'
+        spec: 'first-person honesty about what still goes wrong. example energy: "5 things my bpd still gets wrong after 2 years of dbt"'
     },
     myth_bust: {
         label: 'Myth-bust',
@@ -241,7 +241,7 @@ export const SS_ARCHETYPES: Record<SsArchetypeId, { label: string; spec: string 
     },
     mistakes: {
         label: 'Mistakes',
-        spec: 'past-tense self-indictment with the lesson baked in. example energy: "5 ways i made every argument worse before dbt"'
+        spec: 'past-tense self-indictment with the lesson baked in. example energy: "5 ways bpd made every argument worse before dbt"'
     },
     signs: {
         label: 'Signs',
@@ -253,11 +253,11 @@ export const SS_ARCHETYPES: Record<SsArchetypeId, { label: string; spec: string 
     },
     script: {
         label: 'Script',
-        spec: 'literal sentences the viewer can say to themselves or others. example energy: "5 things i say to myself instead of spiraling now"'
+        spec: 'literal sentences the viewer can say to themselves or others. example energy: "5 things i say to my bpd brain instead of spiraling"'
     },
     unpopular_opinion: {
         label: 'Unpopular opinion',
-        spec: 'a take the niche argues about in the comments. example energy: "5 dbt truths people don\'t want to hear"'
+        spec: 'a take the niche argues about in the comments. example energy: "5 bpd truths people don\'t want to hear"'
     },
     for_partners: {
         label: 'For partners and family',
@@ -276,7 +276,7 @@ export const SS_ARCHETYPES: Record<SsArchetypeId, { label: string; spec: string 
         label: 'Everyday things',
         spec: 'ordinary objects, places and small decisions instead of therapy concepts. The viewer should care '
             + 'if they merely want their day to feel easier, without studying therapy or identifying with a '
-            + 'diagnosis. example energy: "5 things in your kitchen that make bpd days harder", "5 dbt habits '
+            + 'diagnosis. example energy: "5 things in your kitchen that make bpd days harder", "5 bpd habits '
             + 'that cost nothing". The five items must be concrete things a viewer can picture, not five lessons.'
     }
 };
@@ -361,7 +361,14 @@ Notice: casual asides, blunt statements, real advice delivered like a friend say
 const SS_STRUCTURE = `POST STRUCTURE — 6 slides total: 1 hook slide + 5 numbered slides.
 
 HOOK SLIDE (role "hook"):
-- The headline starts with "5" and is max 10 words. Clearly tied to BPD or DBT.
+- The headline starts with "5" and is max 10 words.
+- The headline contains the word "bpd" (lowercase, like the account types it), and it carries
+  weight in the sentence rather than being appended to it. Use it as the subject ("5 errands
+  bpd makes feel impossible"), as a modifier ("5 bpd habits that cost nothing"), inside a phrase
+  ("5 things that get easier with bpd") or as the brain ("5 things i say to my bpd brain").
+  Never bolt it on after a comma or at the end: "5 things i do when someone cancels on me, bpd"
+  is the failure to avoid. Read the headline aloud; if "bpd" could be deleted without breaking
+  the sentence, rewrite it. "dbt" is welcome in addition, but it never replaces "bpd".
 - Not a question — a curiosity-driving title in the same casual voice as the slides.
 - Must match the assigned hook archetype.
 - Put everything in "headline", leave "body" empty (a one-line tilt is allowed but rare).
@@ -417,12 +424,8 @@ function buildMemeTopicBlock(axis: { label: string; spec: string }): string {
   easier, without studying therapy or identifying with a diagnosis.
 - The five items must be concrete things a viewer can picture: objects, places, actions, small
   decisions. Not five lessons, not five feelings, not five therapy concepts.
-- The hook headline must contain the standalone word BPD or DBT, and it has to carry weight in
-  the sentence rather than be appended to it. Use it as the subject ("5 errands BPD makes feel
-  impossible"), as a modifier ("5 BPD habits that cost nothing"), or inside a phrase ("5 things
-  that get easier with BPD"). Never bolt it on after a comma or at the end: "5 things i do when
-  someone cancels on me, BPD" is the failure to avoid. Read the headline aloud; if the niche
-  word could be deleted without breaking the sentence, rewrite it.
+- The hook headline contains "bpd" woven in naturally, exactly as the HOOK SLIDE rules below
+  describe. A viewer who does not identify with the diagnosis should still care.
 - The hook promises five items rather than five abstract lessons. Up to two short words may be
   capitalised for emphasis.
 - Rejected shapes, because they need interest in therapy before the viewer cares: "5 things DBT
@@ -522,6 +525,7 @@ Model: "for everyone asking, the app in step 3 is DBT-Mind (free) 🖤"
 FINAL CHECK before answering:
 - exactly 6 slide objects: 1 hook + 5 items, all five clearly different from each other
 - the hook headline starts with "5" and is 10 words or fewer
+- the hook headline contains "bpd", woven in so the sentence breaks without it
 - the 4th object has role "cta" and its body is first-person usage, no recommendation
 - every item headline is 14 words or fewer, every body is 14 words or fewer
 - the title is 8 words or fewer and carries no hashtags; there are exactly 5 hashtags
@@ -1714,6 +1718,19 @@ function validateSsListicle(candidate: any, previousTexts: string[], keyword: st
     return failures;
 }
 
+// Current-flow guard (current, everyday, meme, for_partners): the hook must contain "bpd".
+// The prompt asks for it, but the model drops it in maybe one post out of four, and a hook
+// like "5 relationship fight habits that aren't character flaws" no longer tells a cold
+// scroller whose post this is. German posts may say "borderline" instead.
+export function validateSsCurrentHook(candidate: any, language: 'en' | 'de' = 'en'): string[] {
+    const slides: any[] = Array.isArray(candidate?.slides) ? candidate.slides : [];
+    if (slides.length === 0) return [];
+    const hookText = normalizeSsSlideText(composeSsText(slides[0]));
+    const keyword = language === 'de' ? /\b(bpd|borderline)\b/ : /\bbpd\b/;
+    if (keyword.test(hookText)) return [];
+    return [`The hook headline must contain the word "bpd", woven in naturally so the sentence breaks without it (subject, modifier or inside a phrase — never bolted on after a comma or at the end). Current hook: "${composeSsText(slides[0]).replace(/\s+/g, ' ').trim()}". Keep the same topic and the same 5 items; only rewrite the hook so "bpd" carries weight in it.`];
+}
+
 export async function generateSsSlideshow(params: {
     theme?: string;
     archetype?: string;
@@ -1954,6 +1971,19 @@ export async function generateSsSlideshow(params: {
                         messages.push({
                             role: 'user',
                             content: `Rewrite the FULL slideshow. Fix every issue:\n${listicleFailures.map((failure) => `- ${failure}`).join('\n')}\nReturn valid JSON only.`
+                        });
+                        parsed = null;
+                        continue;
+                    }
+                }
+                if (!hacks && !legacy && !listicle && attempt < 2) {
+                    const hookFailures = validateSsCurrentHook(candidate, language);
+                    if (hookFailures.length > 0) {
+                        console.warn(`[SS Slideshow] Hook keyword check failed (attempt ${attempt + 1}):`, hookFailures.join(' | '));
+                        messages.push({ role: 'assistant', content: rawText });
+                        messages.push({
+                            role: 'user',
+                            content: `Rewrite the FULL slideshow. Fix every issue:\n${hookFailures.map((failure) => `- ${failure}`).join('\n')}\nReturn valid JSON only.`
                         });
                         parsed = null;
                         continue;
