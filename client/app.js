@@ -5376,7 +5376,7 @@ function syncSsFormatChoice() {
     }
     if (elements.ssFormatHint) {
         elements.ssFormatHint.textContent = hacks
-            ? 'Weird hacks format: a face-cam hook, 3–5 oddly specific therapist hacks (each with a plain-language "why it works"), a bridge slide, the app-screenshot slide, and a hopeful closing slide. 6–9 slides, written by Opus 5.'
+            ? 'Weird hacks format: a face-cam hook, then 5–7 numbered therapist hacks (each with a plain-language "why it works"). One hack mid-list is the DBT-Mind habit; the post ends on the last hack. 6–8 slides, written by Opus 5.'
             : legacy
             ? 'Legacy format: 6 slides with a face hook, five atmospheric photos, numbered points 1–5, and a woven app mention. This matches the older folder-1 post.'
             : simple

@@ -996,62 +996,72 @@ FINAL CHECK before answering:
 }
 
 // ---------------------------------------------------------------------------
-// "Weird hacks" format: the therapist-hack carousel. A face-cam hook, 3-5 oddly
-// specific physical hacks with a plain-language reason each, then a bridge slide
-// that names why none of it is reachable mid-episode, the app slide, and a
-// closing slide. Modelled on the hannahbpd posts, with the two things those got
-// wrong fixed by the prompt: the hacks must actually be weird (not generic self
+// "Weird hacks" format: the therapist-hack carousel. A face-cam hook, then 5-7
+// oddly specific physical hacks with a plain-language reason each. The app is one of
+// the hacks, mid-list; there is no bridge, app or closing slide after the list.
+// Modelled on the hannahbpd posts, with the two things those got wrong fixed by the prompt: the hacks must actually be weird (not generic self
 // care), and the "why it works" line must be human language, never neuroscience
 // vocabulary.
 // ---------------------------------------------------------------------------
+// The hook shapes are lifted from four proven posts (therapist / psychiatrist / counselor
+// hack carousels outside the BPD niche). All four share one skeleton: an odd adjective,
+// "hacks" or "tricks", a named professional, a giving verb, then the moment written the way
+// the person feels it ("when my thoughts won't shut up"), never the clinical label. The
+// bracketed proof line is always endorsement, never a joke or a warning.
 const SS_HACKS_HOOK_ARCHETYPES: Array<{ label: string; spec: string }> = [
     {
         label: 'Therapist gave me',
-        spec: '"Weird hacks my therapist gave me for [situation]" — borrowed authority, zero lecture.'
+        spec: `"Weird BPD hacks my therapist gave me for when [the felt moment]". Proven original: "Weird hacks my counselor gave me for being scared my sadness will never end".`
     },
     {
-        label: 'Sounds fake',
-        spec: '"Weird bpd hacks that sound fake until you try them" — the skeptic frame.'
+        label: 'Crazy effective',
+        spec: `"Crazy effective BPD hacks from my therapist for when [the felt moment]". Proven original: "Crazy effective hacks from my therapist for when my thoughts won't shut up".`
     },
     {
-        label: 'Embarrassing but works',
-        spec: '"Weird bpd hacks I would be embarrassed to admit work" — the confession frame.'
+        label: 'Psychiatrist shared',
+        spec: `"Weird [time of day or place] BPD hacks my psychiatrist shared to stop [the felt moment]". Proven original: "Weird bedtime hacks my psychiatrist shared to stop nighttime anxiety". The time word is optional: use "bedtime" or "nighttime" only when the situation fits the night, otherwise drop it ("Weird BPD hacks my psychiatrist shared to stop emotional overwhelm"). Never "3am".`
     },
     {
-        label: '3am version',
-        spec: '"Weird hacks for when [situation] hits at 3am and nobody is awake" — the alone-at-night frame.'
+        label: 'Scared that',
+        spec: `"Weird BPD hacks my counselor gave me for being scared [the fear, in plain words]". Proven original: "Weird hacks my counselor gave me for being scared my sadness will never end". The fear is the one this situation actually carries.`
     },
     {
-        label: 'Under 60 seconds',
-        spec: '"Weird bpd hacks that take under 60 seconds" — the no-effort frame. Every hack must genuinely be doable in a minute, in bed, for free.'
+        label: 'Taught me',
+        spec: `"Weird BPD tricks my therapist taught me" and nothing more in the headline, the shortest shape. Proven original: "Weird ADHD tricks my therapist taught me (That actually work)...". The situation is then only in the hacks themselves.`
     },
     {
-        label: 'Not in the worksheets',
-        spec: '"Weird bpd hacks nobody puts in the dbt worksheets" — the insider frame. The hacks are the odd improvised ones, not the famous skill names.'
-    },
-    {
-        label: 'Body over brain',
-        spec: '"Weird physical hacks for when [situation] and your brain will not listen" — every hack is something you do with your hands, voice, or body, never a thought exercise.'
-    },
-    {
-        label: 'Only believed after',
-        spec: '"Weird hacks for [situation] I only believed after they worked on me" — the reluctant-convert frame.'
+        label: 'DBT therapist',
+        spec: `"Weird BPD hacks my DBT therapist taught me for when [the felt moment]". Same skeleton as the proven originals, with the niche's own kind of therapist.`
     }
 ];
 
+// The bracket under the hook, verbatim from the proven posts. One is assigned per post: left
+// to itself the model settles on one safe paraphrase ("(that actually helped)") every time.
+const SS_HACKS_PROOF_BRACKETS = [
+    '(that actually work)',
+    '(and they actually work)',
+    '(that changed my life)',
+    '(that actually made a lot of sense)'
+];
+
+// Each situation is BROAD on purpose. The proven hooks name a feeling everyone in the niche
+// has had ("when my thoughts won't shut up", "nighttime anxiety"), never one scene (a dry
+// text, a paragraph at midnight). A narrow scene shrinks the audience to people living that
+// exact moment; the broad feeling makes every BPD viewer think "that's me".
+// "Say it like" lists hook-ready phrasings at the proven level of broadness.
 const SS_HACKS_TERRITORIES: Array<{ label: string; spec: string }> = [
-    { label: 'The flip', spec: 'splitting: the person who was perfect twenty minutes ago is suddenly the worst, and the brain rewrites every good memory.' },
-    { label: 'Rejection spike', spec: 'a dry text, a shorter reply, a tone shift, the seconds where the body decides it is being left.' },
-    { label: 'The 3am spiral', spec: 'lying awake replaying one moment, everyone asleep, the story getting worse with every loop.' },
-    { label: 'The unsent paragraph', spec: 'the urge to send the eight-message essay, the double text, the "we need to talk" at midnight.' },
-    { label: 'FP overload', spec: 'the favorite-person pull: waiting for one specific reply, the whole day hanging on one name in the notifications.' },
-    { label: 'Empty days', spec: 'the numb flat days where nothing feels like anything and even good stuff does not land.' },
-    { label: 'Bad body days', spec: 'the days you hate every photo of yourself and the mirror feels like a different person each time.' },
-    { label: 'Before the hangout', spec: 'the pre-plans panic and the post-hangout replay of everything you said.' },
-    { label: 'After the blowup', spec: 'the shame hangover: the morning after you said too much and want to disappear.' },
-    { label: 'Quiet mode', spec: 'quiet bpd: the collapse happens inwards, nobody sees it, you say you are fine and go silent instead.' },
-    { label: 'The identity blank', spec: 'not knowing who you are without the person you are around, changing with every room.' },
-    { label: 'The crash after good', spec: 'the drop that follows a genuinely good day, and the certainty that you ruined it somehow.' }
+    { label: 'Big emotions', spec: `emotions that feel too big and too fast. Say it like: "when my emotions feel too big", "when my emotions go from 0 to 100", "to stop emotional overwhelm".` },
+    { label: 'Racing thoughts', spec: `the head that will not go quiet, overthinking everything. Say it like: "when my thoughts won't stop spiraling", "when I overthink everything", "to stop the overthinking".` },
+    { label: 'Fear of being left', spec: `the constant fear that people will leave. Say it like: "being scared everyone will leave me", "when I feel like everyone is leaving".` },
+    { label: 'Emptiness', spec: `the numb, hollow feeling. Say it like: "when I feel empty inside", "for the empty feeling", "when I feel nothing at all".` },
+    { label: 'Bad BPD days', spec: `the days when everything is too much. Say it like: "for bad BPD days", "when everything feels like too much", "when I can't calm down".` },
+    { label: 'Nighttime', spec: `the evenings and nights when it all gets louder. Use the time word ("bedtime", "nighttime") in the hook. Say it like: "to stop nighttime spiraling", "when my brain gets loud at night".` },
+    { label: 'Feeling like too much', spec: `feeling like a burden or "too much" for the people around you. Say it like: "when I feel like I'm too much", "when I feel like a burden".` },
+    { label: 'Love and hate', spec: `loving someone and then suddenly hating them. Say it like: "when I go from loving someone to hating them", "when my feelings about people flip".` },
+    { label: 'Getting triggered', spec: `small things setting off huge reactions. Say it like: "when I get triggered", "when little things set me off", "to stop overreacting".` },
+    { label: 'Scared it never ends', spec: `the fear that the pain is permanent. Use the "Scared that" framing if possible. Say it like: "being scared I'll always feel like this", "being scared it will never get better".` },
+    { label: 'Self-hate', spec: `the harsh inner voice after a bad moment. Say it like: "when I can't stop hating myself", "when my inner voice gets mean". Nothing about self-harm.` },
+    { label: 'Relationships', spec: `the bpd relationship rollercoaster in general. Say it like: "for BPD in relationships", "when I get insecure in my relationship".` }
 ];
 
 // How the app slide introduces DBT-Mind. One is assigned per generation so the account
@@ -1106,19 +1116,23 @@ const SS_HACKS_SAFETY = `SAFETY AND TOPIC GUARDRAILS (hard rules):
 - Never tell the viewer to stop or start therapy or medication.
 - The account is a person sharing what works for them, never a clinician.`;
 
-function buildHacksSystemPrompt(language: 'en' | 'de', hook: { label: string; spec: string }, territory: { label: string; spec: string }, ctaAngle: { label: string; spec: string }): string {
+function buildHacksSystemPrompt(language: 'en' | 'de', hook: { label: string; spec: string }, territory: { label: string; spec: string }, ctaAngle: { label: string; spec: string }, proofBracket: string, plan: { hackCount: number; appPosition: number; numberStyle: '.' | ')' }): string {
+    const n = (i: number) => `${i}${plan.numberStyle}`;
     return `You are the writer for a gen-z mental-health TikTok account in the BPD/DBT niche.
 
-This format: the WEIRD HACKS carousel. A talking-to-the-camera hook slide, then a handful
-of oddly specific hacks a therapist actually gave the narrator, then a short bridge slide,
-then the app slide, then a closing slide. It performs because the hacks are small, physical
-and slightly embarrassing, so people save them and send them to one friend.
+This format: the WEIRD HACKS carousel. A talking-to-the-camera hook slide, then a numbered
+list of hacks a therapist actually gave the narrator. One of the hacks is the narrator's own
+habit with the DBT-Mind app, sitting in the list like any other hack. Nothing comes after
+the last hack: no summary, no outro. It performs because the hacks are small, physical and
+slightly embarrassing, so people save them and send them to one friend.
 
 THIS POST'S ASSIGNED HOOK SHAPE (do not drift from it):
 - ${hook.label}: ${hook.spec}
 
 THIS POST'S ASSIGNED SITUATION (every hack is for THIS moment):
 - ${territory.label}: ${territory.spec}
+  The "Say it like" lines show the level of broadness for the hook. Use one or say the same
+  feeling in equally broad words. The hook NEVER narrows it to one scene or trigger.
 
 THE WEIRDNESS TEST (the single most important rule):
 Every hack must be something the viewer would feel slightly stupid doing, and would never
@@ -1141,44 +1155,53 @@ THE THREE-BEAT BODY (every hack slide uses this exact shape):
 Whole body under 40 words. Beat 1 and beat 2 are mandatory.
 
 STRUCTURE, exactly 6 to 9 slides in this order (3 hacks makes 6, 5 hacks makes 9):
-1. HOOK SLIDE (role "hook"). This is filmed on the narrator's face, so the copy is short.
-   "headline" is the hook line following the assigned hook shape, and it must literally
-   contain the word "hacks" and the word "bpd".
-   "body" is a SECOND HOOK in parentheses. This is the single most rewritten line on the
-   account, so treat it as its own hook, not as a summary:
-   - MAXIMUM 7 WORDS inside the brackets. 3 to 5 is better. It must read in half a second.
-   - It adds a new reason to swipe that the headline did not already give: proof, a
-     confession, a warning, or one specific number.
-   - These are SHAPES, not copy. Write your own every time, and never reuse one of
-     these strings word for word: "(that actually work)" is the proof shape,
-     "(number 3 is unhinged)" the specific-number shape, "(i was wrong)" the confession
-     shape, "(sorry in advance)" the warning shape.
-   - Bad, because it just restates the headline in more words: "(that actually helped me
-     catch the flip before it took over)", "(the only things that work when there is
-     nobody to text)". Never write a clause this long.
-   - Lowercase, no period at the end, always wrapped in round brackets.
-2. HACK SLIDES (role "skill"). YOU choose how many: 3, 4 or 5. "headline" is
-   "N. plain name of the hack" (max 8 words, numbered with a digit), "body" is the
-   three-beat body above. No two hacks may work the same way (do not give two "say it out
-   loud" hacks). Cover different angles of the assigned situation: something with the body,
-   something with the phone, something with time, something with evidence.
-3. BRIDGE SLIDE (role "bridge", exactly one, no number, comes after the last hack). Two or
-   three short lines that name the honest limit: in the middle of it you cannot remember
-   any of this, and that is not a willpower problem. It sets up the next slide without
-   naming the app and without any product language. Keep it concrete, not poetic.
-4. APP SLIDE (role "cta", second to last). The background is a screenshot of the DBT-Mind
-   app store page, so the copy is one first-person line: how the narrator uses it for THIS
-   situation, naming one real feature and one plain benefit.
+1. HOOK SLIDE (role "hook"). The text sits over a selfie of the narrator, so it is one
+   sentence plus one bracket. This slide copies a PROVEN template. Do not get creative with
+   its shape, only with the situation inside it. The four proven originals (other niches):
+     "Crazy effective hacks from my therapist for when my thoughts won't shut up" + "(that changed my life)"
+     "Weird bedtime hacks my psychiatrist shared to stop nighttime anxiety" + "(and they actually work)"
+     "Weird hacks my counselor gave me for being scared my sadness will never end" + "(that actually made a lot of sense)"
+     "Weird ADHD tricks my therapist taught me" + "(That actually work)..."
+   "headline" rules:
+   - Skeleton: [Weird | Crazy effective] + BPD + [hacks | tricks] + [my therapist | my DBT
+     therapist | my psychiatrist | my counselor] + [gave me | taught me | shared] + [for when
+     ... | for being scared ... | to stop ...]. Follow the assigned hook shape exactly.
+   - Must contain "BPD" (capitals) and the word "hacks" or "tricks".
+   - The situation is BROAD, a feeling every person with BPD has had, 2 to 8 words:
+     "when my thoughts won't shut up", "nighttime anxiety", "being scared my sadness will
+     never end". NEVER one specific scene or trigger: no texts, replies, paragraphs,
+     friends, hangouts, mornings after, specific people. Wrong: "when my whole day depends
+     on one person texting back". Right: "when my emotions feel too big".
+   - The situation is written the way it FEELS, in first person, like the narrator is
+     saying it to a friend: "when one dry text ruins my entire day", "being scared everyone
+     I love will leave me". Never the clinical or community label: no "splitting", "FP",
+     "favorite person", "quiet bpd", "dysregulation", "emotional regulation", "episode".
+   - Sentence case: capital first letter, "BPD" in capitals, the rest lowercase. Normal
+     grammar and apostrophes ("won't", "I'm"). This is the one slide NOT written lowercase.
+   - 7 to 16 words. No period at the end.
+   "body" is the proof bracket and nothing else. THIS POST'S ASSIGNED BRACKET, word for
+   word${language === 'de' ? ' (translated into natural German, same meaning)' : ''}: ${proofBracket}
+   It is proven copy, so it is exempt from the "nothing copied" rule. Nothing else goes in "body".
+2. HACK SLIDES. EXACTLY ${plan.hackCount} of them, numbered 1 to ${plan.hackCount}. Every "headline"
+   starts with the number followed by "${plan.numberStyle}" then a space, e.g. "${n(1)} plain name of the hack"
+   (max 8 words after the number). Use "${plan.numberStyle}" on EVERY hack, never mix styles. "body" is
+   the three-beat body above. No two hacks may work the same way (do not give two "say it
+   out loud" hacks). Cover different angles of the assigned situation: something with the
+   body, something with the phone, something with time, something with evidence.
+   All hacks have role "skill" EXCEPT hack ${n(plan.appPosition)}, which is the APP HACK.
+3. THE APP HACK (role "cta", it is hack number ${plan.appPosition}, in the middle of the list, not an ad
+   break). Same shape as every other hack: numbered headline naming the move in plain words
+   (e.g. "${n(plan.appPosition)} let an app do the remembering"), then the three-beat body: what the
+   narrator does in DBT-Mind in THIS situation (one real feature), why it works in plain
+   language, optional honest aside. First person. It must read like hack number
+   ${plan.appPosition}, not like a sponsor slot, so it is as small and specific as the hacks around it.
    THIS POST'S ASSIGNED APP ANGLE (do not drift to a different one):
    - ${ctaAngle.label}: ${ctaAngle.spec}
    The rhythm above is a shape, not copy. Write your own sentence.
    NEVER say the app is free, and never mention price, cost, "no subscription", or
    anything about paying. The app name on its own is enough. Never "download", never
    "check it out", never "link in bio", never ad language of any kind.
-5. CLOSING SLIDE (role "close", always last). Three or four lines: the honest hopeful note
-   that these patterns can change with practice, plus at most ONE soft second mention of
-   tracking or using the app, in different words from the app slide. Never repeat the app
-   slide's sentence. Never end on a sales line.
+   The last slide of the post is simply hack number ${plan.hackCount}. No bridge, no closing slide.
 
 ${SS_APP_FEATURES}
 
@@ -1194,22 +1217,21 @@ ${language === 'de' ? `${SS_GERMAN_NATIVE_BLOCK}\n\n` : ''}OUTPUT: valid JSON on
 {"slides": [...], "save_trigger": "...", "title": "...", "hashtags": ["...", 5 of them],
  "caption": "...", "description": "...", "pinned_comment": "..."}
 
-Each slide object: {"role": "hook"|"skill"|"bridge"|"cta"|"close", "headline": "the label
+Each slide object: {"role": "hook"|"skill"|"cta", "headline": "the label
 line", "body": "the supporting lines", "image_query": "..."}
 NEVER put a line break inside "headline" or "body". The renderer owns all spacing.
-The slides array is: hook, the numbered hacks IN ORDER, the bridge slide, the app slide,
-the closing slide.
+The slides array is: hook, then the ${plan.hackCount} numbered hacks IN ORDER (the app hack at
+position ${plan.appPosition} of the hacks). ${plan.hackCount + 1} slides in total.
 
 For EVERY slide also write "image_query": a Pinterest search phrase for a dim, warm,
 lived-in room photo matching the slide's mood (e.g. "dark bedroom lamp night aesthetic",
 "messy desk warm light evening"). No people facing camera, no horror energy, no stock
 photo energy. The hook slide's query describes a close-up selfie-style front camera shot
-in a bedroom. The app slide gets a normal room photo query too; the screenshot is added
-by hand later.
+in a bedroom. The app hack gets a normal photo query too.
 
 TITLE (typed into TikTok when the post goes up): MAXIMUM 8 WORDS, lowercase, in the
 account's voice, no hashtags, no emoji, no quotation marks.
-Model: "weird hacks my therapist gave me for splitting"
+Model: "weird bpd hacks my therapist gave me for rejection"
 
 HASHTAGS: exactly 5, lowercase, no spaces, each starting with #. At least 3 BPD/DBT
 specific (#bpd #dbtskills #bpdrecovery #dbt #emotionregulation), the rest broader mental
@@ -1217,7 +1239,7 @@ health tags that genuinely fit. No banned tags, nothing about self-harm, no #fyp
 
 CAPTION: 3 to 5 short lines in the account's voice, first person, lowercase, written like
 a person venting to their followers. The first line lands the situation from the hook. One
-middle line mentions the app the way the "cta" slide did, in different words. Never say ad
+middle line mentions the app the way the app hack did, in different words. Never say ad
 or sponsored.
 
 DESCRIPTION (goes directly in front of the hashtags when the post is published):
@@ -1242,16 +1264,15 @@ PINNED_COMMENT: the plain friendly answer to "what app?", naming DBT-Mind once, 
 SAVE_TRIGGER: one sentence naming why a viewer would save this post.
 
 FINAL CHECK before answering:
-- the hook contains the words "hacks" and "bpd"
-- the hook body is a parenthesised second hook of 7 words or fewer, and is not a longer
-  restatement of the headline
-- 3 to 5 hack slides, every headline numbered with a digit and max 8 words
+- the hook headline follows the proven skeleton, contains "BPD" and "hacks" or "tricks",
+  names the situation the way it feels (no jargon), sentence case, 7 to 16 words, broad situation (no single scene)
+- the hook body is exactly the assigned proof bracket
+- exactly ${plan.hackCount} hack slides, headlines "${n(1)}" to "${n(plan.hackCount)}", max 8 words after the number
 - every hack passes the weirdness test and is a physical or behavioural action
 - every hack body has the move and a plain-language why, under 40 words, no banned words
-- there is exactly one "bridge" slide, one "cta" slide, one "close" slide, in that order
-- the cta slide names DBT-Mind in first person, follows the assigned app angle, and says
-  nothing about the app being free or about price
-- the close slide does not repeat the cta slide
+- hack ${plan.appPosition} is the app hack (role "cta"), names DBT-Mind in first person, follows the
+  assigned app angle, says nothing about price, and reads like a hack, not an ad
+- no bridge slide, no closing slide: the post ends on hack ${plan.hackCount}
 - no line breaks inside any headline or body, no dashes anywhere
 - nothing copied word for word from the ALREADY USED list or from this prompt's examples`;
 }
@@ -1261,38 +1282,67 @@ const SS_HACKS_BANNED_WORDS = [
     'neural', 'neuroscience', 'emotional hijack', 'pattern distortion', 'threat mode'
 ];
 
+// Labels the proven hooks never use: they name the feeling, not the term for it.
+const SS_HACKS_HOOK_JARGON = [
+    'splitting', 'favorite person', 'favourite person', ' fp ', 'quiet bpd', 'dysregulat',
+    'emotional regulation', 'emotion regulation', 'episode', 'abandonment'
+];
+
+// Scene words: they pin the hook to one trigger instead of the broad feeling.
+const SS_HACKS_HOOK_SCENE_WORDS = [
+    'text', 'repl', 'paragraph', 'message', 'friends', 'hangout', 'party', 'boyfriend',
+    'girlfriend', 'partner', 'fight', 'argument', 'morning after', 'one person'
+];
+
 const SS_HACKS_GENERIC_HACKS = [
     'journal about', 'breathe deeply', 'deep breath', 'take a walk', 'drink water',
     'be kind to yourself', 'practice self care', 'talk to someone'
 ];
 
-function validateSsHacks(candidate: any, previousTexts: string[]): string[] {
+function validateSsHacks(candidate: any, previousTexts: string[], plan: { hackCount: number; appPosition: number; numberStyle: '.' | ')' }): string[] {
     const failures: string[] = [];
     const slides: any[] = Array.isArray(candidate?.slides) ? candidate.slides : [];
-    if (slides.length < 6 || slides.length > 9) {
-        failures.push(`The post must be 1 hook + 3-5 numbered hacks + 1 bridge + 1 app slide + 1 closing slide (got ${slides.length} slides).`);
+    if (slides.length !== plan.hackCount + 1) {
+        failures.push(`The post must be 1 hook + exactly ${plan.hackCount} numbered hacks, nothing after the last hack (got ${slides.length} slides).`);
         return failures;
     }
-    const hackCount = slides.length - 4;
-    const hookText = normalizeSsSlideText(composeSsText(slides[0]));
-    if (!hookText.includes('hack')) failures.push('The hook must literally contain the word "hacks".');
-    if (!hookText.includes('bpd')) failures.push('The hook must literally contain the word "bpd" so a cold scroller knows the niche instantly.');
+    const hackCount = plan.hackCount;
+    const numberMark = plan.numberStyle === '.' ? '\\.' : '\\)';
+    const hookHeadline = s(slides[0]?.headline);
+    const hookText = normalizeSsSlideText(hookHeadline);
+    if (!/\b(hacks|tricks)\b/.test(hookText)) failures.push('The hook headline must literally contain "hacks" or "tricks".');
+    if (!/\bBPD\b/.test(hookHeadline)) failures.push('The hook headline must contain "BPD" in capitals, e.g. "Weird BPD hacks my therapist gave me for when...".');
+    if (!/\bmy (dbt )?(therapist|psychiatrist|counselor)\b/.test(hookText)) {
+        failures.push('The hook headline must credit "my therapist", "my DBT therapist", "my psychiatrist" or "my counselor", like the proven hooks.');
+    }
+    if (!/^(weird|crazy effective)\b/.test(hookText)) failures.push('The hook headline must open with "Weird" or "Crazy effective", like the proven hooks.');
+    if (hookHeadline && hookHeadline[0] !== hookHeadline[0]!.toUpperCase()) failures.push('The hook headline is sentence case: capital first letter.');
+    const hookWords = hookHeadline.split(/\s+/).filter(Boolean).length;
+    if (hookWords < 7 || hookWords > 16) failures.push(`The hook headline is ${hookWords} words. Keep it between 7 and 16, like the proven hooks.`);
+    const hookJargon = SS_HACKS_HOOK_JARGON.filter((word) => hookText.includes(word));
+    if (hookJargon.length > 0) {
+        failures.push(`The hook names the situation with a label (${hookJargon.join(', ')}). Say how it feels instead, e.g. "when I go from loving someone to hating them in one conversation".`);
+    }
+    const hookScene = SS_HACKS_HOOK_SCENE_WORDS.filter((word) => new RegExp(`\\b${word}`).test(hookText));
+    if (hookScene.length > 0) {
+        failures.push(`The hook narrows the situation to one scene (${hookScene.join(', ')}). The proven hooks name a broad feeling: "when my thoughts won't shut up", "when my emotions feel too big".`);
+    }
     const hookBody = s(slides[0]?.body);
-    const bracketed = hookBody.match(/\(([^)]*)\)/);
+    const bracketed = hookBody.match(/^\s*\(([^)]*)\)\s*\.{0,3}\s*$/);
     if (!bracketed) {
-        failures.push('The hook body must be a short second hook wrapped in round brackets, e.g. "(that actually work)".');
+        failures.push('The hook body must be only a proof bracket in round brackets, e.g. "(that actually work)".');
     } else {
         const bracketWords = bracketed[1]!.trim().split(/\s+/).filter(Boolean).length;
-        if (bracketWords > 7) {
-            failures.push(`The bracketed second hook is ${bracketWords} words. Cut it to 7 or fewer so it reads in half a second: "(that actually work)", "(number 3 is unhinged)". Do not restate the headline.`);
+        if (bracketWords < 3 || bracketWords > 7) {
+            failures.push(`The proof bracket is ${bracketWords} words. Keep it 3 to 7: "(that actually work)", "(that changed my life)".`);
         }
     }
 
     for (let i = 1; i <= hackCount; i++) {
         const headline = s(slides[i]?.headline);
         const body = s(slides[i]?.body);
-        if (!new RegExp(`^\\s*${i}\\s*[.)]`).test(headline)) {
-            failures.push(`Hack slide ${i} must have a headline starting with "${i}." (got "${headline.slice(0, 60)}").`);
+        if (!new RegExp(`^\\s*${i}${numberMark}\\s`).test(headline)) {
+            failures.push(`Hack slide ${i} must have a headline starting with "${i}${plan.numberStyle} " (got "${headline.slice(0, 60)}").`);
         }
         if (headline.trim().split(/\s+/).length > 10) {
             failures.push(`Hack ${i} headline is too long (max 8 words after the number): "${headline.slice(0, 80)}".`);
@@ -1315,20 +1365,14 @@ function validateSsHacks(candidate: any, previousTexts: string[]): string[] {
         failures.push('No dashes anywhere in the slide copy. Use periods and commas.');
     }
 
-    const bridge = slides[slides.length - 3];
-    const cta = slides[slides.length - 2];
-    const close = slides[slides.length - 1];
-    if (s(bridge?.role) !== 'bridge') failures.push('The slide after the last hack must have role "bridge".');
-    if (normalizeSsSlideText(composeSsText(bridge)).includes('dbt mind')) failures.push('The bridge slide must not name the app. It only names the honest limit.');
-    if (s(cta?.role) !== 'cta') failures.push('The second to last slide must have role "cta".');
+    const cta = slides[plan.appPosition];
+    if (s(cta?.role) !== 'cta') failures.push(`Hack ${plan.appPosition} must be the app hack with role "cta".`);
     const ctaNormalized = normalizeSsSlideText(composeSsText(cta));
-    if (!ctaNormalized.includes('dbt mind')) failures.push('The app slide must name DBT-Mind once, in first person.');
+    if (!ctaNormalized.includes('dbt mind')) failures.push(`Hack ${plan.appPosition} (the app hack) must name DBT-Mind once, in first person.`);
     const pricingWord = ['free', 'freemium', 'no subscription', 'costs nothing', 'paid'].find((word) => ctaNormalized.includes(word));
-    if (pricingWord) failures.push(`The app slide must not mention price. Remove "${pricingWord}" and let the app name stand on its own.`);
-    if (s(close?.role) !== 'close') failures.push('The last slide must have role "close".');
-    const closeText = normalizeSsSlideText(composeSsText(close));
-    const ctaText = normalizeSsSlideText(composeSsText(cta));
-    if (closeText && ctaText && closeText === ctaText) failures.push('The closing slide repeats the app slide word for word. Rewrite it.');
+    if (pricingWord) failures.push(`The app hack must not mention price. Remove "${pricingWord}" and let the app name stand on its own.`);
+    const otherAppMentions = slides.filter((slide, index) => index !== plan.appPosition && normalizeSsSlideText(composeSsText(slide)).includes('dbt mind')).length;
+    if (otherAppMentions > 0) failures.push(`DBT-Mind is named only in hack ${plan.appPosition}. Remove it from the other slides.`);
 
     if (previousTexts.length > 0) {
         const used = new Set(previousTexts.map(normalizeSsSlideText));
@@ -1749,7 +1793,7 @@ export async function generateSsSlideshow(params: {
     const legacy = params.format === 'legacy';
     const simple = params.format === 'simple';
     const dbt = params.format === 'dbt';
-    // Weird hacks: hook + 3-5 numbered hacks + bridge + app slide + closing slide.
+    // Weird hacks: hook + 5-7 numbered hacks, one of which is the app hack.
     const hacks = params.format === 'hacks';
     // Meme: the meme-slides topic discovery, written as a normal UGC slideshow. Same 6-slide
     // output as the current format, so only the topic block differs.
@@ -1811,6 +1855,16 @@ export async function generateSsSlideshow(params: {
         })()
         : pickedTerritory;
     const hacksCtaAngle = SS_HACKS_CTA_ANGLES[Math.floor(Math.random() * SS_HACKS_CTA_ANGLES.length)]!;
+    const hacksProofBracket = SS_HACKS_PROOF_BRACKETS[Math.floor(Math.random() * SS_HACKS_PROOF_BRACKETS.length)]!;
+    // Drawn in code, not left to the model: left alone it always picks the same count, the
+    // same "1." style and parks the app last.
+    const hacksHackCount = 5 + Math.floor(Math.random() * 3); // 5-7
+    const hacksPlan = {
+        hackCount: hacksHackCount,
+        // Never the first hack (the viewer has not been paid yet) and never the last.
+        appPosition: 3 + Math.floor(Math.random() * (hacksHackCount - 3)),
+        numberStyle: (Math.random() < 0.5 ? '.' : ')') as '.' | ')'
+    };
 
     const requestedArchetype = s(params.archetype);
     const archetypeId: SsArchetypeId = requestedArchetype && requestedArchetype !== 'random' && requestedArchetype in SS_ARCHETYPES
@@ -1842,7 +1896,7 @@ export async function generateSsSlideshow(params: {
             'Write the weird-hacks slideshow now.',
             theme && theme.trim()
                 ? `Angle it around: ${theme.trim()}.`
-                : 'Pick the exact angle inside your assigned situation yourself, and pick the hack count (3, 4 or 5) yourself.',
+                : 'Pick the exact angle inside your assigned situation yourself.',
             usedTextsBlock,
             language === 'de' ? 'Write all copy in native German. Return no English slide copy.' : '',
             'Return valid JSON only.'
@@ -1926,7 +1980,7 @@ export async function generateSsSlideshow(params: {
                 max_tokens: 16000,
                 ...(model === 'claude-fable-5' || model === 'claude-opus-5' ? { fallbacks: [{ model: 'claude-opus-4-8' }] } : {}),
                 system: hacks
-                    ? buildHacksSystemPrompt(language, listicleHook, listicleTerritory, hacksCtaAngle)
+                    ? buildHacksSystemPrompt(language, listicleHook, listicleTerritory, hacksCtaAngle, hacksProofBracket, hacksPlan)
                     : legacy
                         ? LEGACY_SS_PROMPT
                         : dbt
@@ -1951,7 +2005,7 @@ export async function generateSsSlideshow(params: {
                 const candidate = legacy ? parseLegacyText(rawText) : extractJsonObject(rawText);
                 if (!candidate) throw new Error('Legacy output did not match the required COVER and numbered-point format');
                 if (hacks && attempt < 2) {
-                    const hackFailures = validateSsHacks(candidate, previousTexts);
+                    const hackFailures = validateSsHacks(candidate, previousTexts, hacksPlan);
                     if (hackFailures.length > 0) {
                         console.warn(`[SS Slideshow] Hacks-format check failed (attempt ${attempt + 1}):`, hackFailures.join(' | '));
                         messages.push({ role: 'assistant', content: rawText });
@@ -2042,20 +2096,14 @@ export async function generateSsSlideshow(params: {
     // first person. It sits at 4 rather than 5 so it lands before swipe-fatigue, with two
     // slides after it so the set never ends on the app.
     // Listicle formats (simple + dbt) instead end on the app: 1 hook + 5-7 points + 1 bonus "cta" slide.
-    // Hacks: 1 hook + 3-5 numbered hacks + 1 bridge + 1 app slide + 1 closing slide.
+    // Hacks: 1 hook + 5-7 numbered hacks, one of them the app hack.
     const listicleSlideCount = Math.min(rawSlides.length, 9);
-    const hacksSlideCount = Math.min(rawSlides.length, 9);
+    const hacksSlideCount = Math.min(rawSlides.length, hacksPlan.hackCount + 1);
+    // The proof bracket is fixed copy; pin it even if the model paraphrased it.
+    if (hacks && language === 'en' && rawSlides[0] && typeof rawSlides[0] === 'object') rawSlides[0].body = hacksProofBracket;
     const slides = hacks
         ? rawSlides.slice(0, hacksSlideCount).map((slide, index) => {
-            const role = index === 0
-                ? 'hook'
-                : index === hacksSlideCount - 3
-                    ? 'bridge'
-                    : index === hacksSlideCount - 2
-                        ? 'cta'
-                        : index === hacksSlideCount - 1
-                            ? 'close'
-                            : 'skill';
+            const role = index === 0 ? 'hook' : index === hacksPlan.appPosition ? 'cta' : 'skill';
             return { n: index + 1, ...norm(slide, role), role };
         })
         : legacy
