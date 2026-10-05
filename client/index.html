@@ -1662,6 +1662,13 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                 <option value="morning_after">🌅 The morning after the outburst</option>
                                 <option value="vulnerability_hangover">🥴 The vulnerability hangover</option>
                                 <option value="mid_split">⚡ Splitting mid-conversation</option>
+                        <label for="ss-native-text-toggle" class="testing-toggle">
+                            <input type="checkbox" id="ss-native-text-toggle">
+                            <span>Add slide text natively in TikTok</span>
+                        </label>
+                        <p class="ss-hint" style="margin: 4px 0 10px;">Slides export as clean photos, and the zip
+                            gets slide_texts.txt with every slide's text to paste into TikTok's text tool.</p>
+
                                 <option value="masking">🎭 Quiet BPD / masking</option>
                                 <option value="object_permanence">🫥 Object permanence (out of sight = gone)</option>
                                 <option value="identity_disturbance">🪞 Identity disturbance</option>
@@ -1684,6 +1691,14 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                         <div class="input-group" style="margin-bottom: 12px;">
                             <label for="ts-tone-select" class="ts-label">Tone</label>
                             <select id="ts-tone-select" class="select-input ts-select">
+                        <div class="ss-photo-picker-head">
+                            <span class="ss-label">Hook photo picker</span>
+                            <span id="ss-hook-picker-status" class="ss-photo-picker-status">Click a photo to put it on slide 1</span>
+                        </div>
+                        <div id="ss-hook-grid" class="ss-library-grid"></div>
+                        <button class="btn ss-btn-quiet full-width" id="ss-hook-more-btn" type="button"
+                            style="display:none; margin-bottom: 10px;">Show all hook photos</button>
+
                                 <option value="random">🎲 Random</option>
                                 <option value="dark_humor">💀 Dark humor</option>
                                 <option value="soft">🫂 Soft</option>

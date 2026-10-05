@@ -619,7 +619,8 @@ function listImageLibrarySets(): Array<{ id: string; label: string; count: numbe
     if (!existsSync(IMAGE_LIBRARY_ROOT)) return sets;
 
     const walk = (dir: string, rel: string, depth: number) => {
-        if (depth > 5 || sets.length >= 150) return;
+        // The library already holds ~150 image folders; a lower cap silently hid new ones.
+        if (depth > 5 || sets.length >= 500) return;
         let entries: string[] = [];
         try { entries = readdirSync(dir); } catch { return; }
 

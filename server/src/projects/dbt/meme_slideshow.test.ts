@@ -56,7 +56,7 @@ test('repairs a generated hook that omits the niche word', async () => {
         value.slides[0]!.headline = ++calls === 1 ? '5 habits for easier mornings' : '5 habits for easier BPD mornings';
         return Response.json({ content: [{ type: 'text', text: JSON.stringify(value) }] });
     }) as typeof fetch;
-    const result = await generateMemeSlideshow({ ANTHROPIC_API_KEY: 'test' });
+    const result = await generateMemeSlideshow({ promise: 'NOT A CHARACTER FLAW', ANTHROPIC_API_KEY: 'test' });
     expect(calls).toBe(2);
     expect(result.slides[0]!.headline).toBe('5 habits for easier BPD mornings');
 });
@@ -69,7 +69,7 @@ test('generates without a supplied topic and retries a recent topic', async () =
         if (requests.length > 1) result.slides[0]!.headline = '5 ways DBT changes how you handle boredom';
         return Response.json({ content: [{ type: 'text', text: JSON.stringify(result) }] });
     }) as typeof fetch;
-    const result = await generateMemeSlideshow({ previousTopics: ['5 overlooked DBT lessons'], ANTHROPIC_API_KEY: 'test' });
+    const result = await generateMemeSlideshow({ promise: 'NOT A CHARACTER FLAW', previousTopics: ['5 overlooked DBT lessons'], ANTHROPIC_API_KEY: 'test' });
     expect(result.slides[0]!.headline).toContain('boredom');
     expect(requests).toHaveLength(2);
     const input = JSON.parse(requests[0].messages[0].content);
@@ -99,19 +99,19 @@ test('rewrites em and en dashes instead of failing the whole draft', () => {
     expect(validateMemeSlides(hyphen)[3]!.body).toBe('A well-timed snack is fine.');
 });
 
-test('a script is never paired with an object axis, and every promise is self-directed', async () => {
+test('a script is never paired with an inner-experience territory, and every promise is self-directed', async () => {
     const seen: string[] = [];
     globalThis.fetch = (async (_url: any, init: any) => {
         seen.push(JSON.parse(init.body).messages[0].content);
         return Response.json({ content: [{ type: 'text', text: '{}' }] });
     }) as typeof fetch;
-    // A script needs a situation to speak into, not an object to point at.
+    // A script needs a moment where something gets said, not a purely inner experience.
     for (let run = 0; run < 12; run++) {
         seen.length = 0;
         await generateMemeSlideshow({ promise: 'A SCRIPT', ANTHROPIC_API_KEY: 'test' }).catch(() => {});
         const body = JSON.parse(seen[0]!);
         expect(body.assignedPromise).toBe('A SCRIPT');
-        expect(body.assignedAxis).not.toContain('a physical object or place');
+        expect(body.assignedAxis).not.toMatch(/^(borrowed personality|invisible effort)/);
     }
     // The cat only works when the viewer sees themselves in it, so a partner-facing promise
     // does not belong in this format. That audience lives in the slideshow for_partners

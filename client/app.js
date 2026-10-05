@@ -460,6 +460,9 @@ const elements = {
     ssCopyCaptionBtn: document.getElementById('ss-copy-caption-btn'),
     ssLibrarySelect: document.getElementById('ss-library-select'),
     ssHookLibrarySelect: document.getElementById('ss-hook-library-select'),
+    ssHookGrid: document.getElementById('ss-hook-grid'),
+    ssHookMoreBtn: document.getElementById('ss-hook-more-btn'),
+    ssHookPickerStatus: document.getElementById('ss-hook-picker-status'),
     ssLibraryGrid: document.getElementById('ss-library-grid'),
     ssLibraryMoreBtn: document.getElementById('ss-library-more-btn'),
     ssPhotoPickerStatus: document.getElementById('ss-photo-picker-status'),
@@ -467,6 +470,7 @@ const elements = {
     ssClearPhotosBtn: document.getElementById('ss-clear-photos-btn'),
     ssCopyPinnedBtn: document.getElementById('ss-copy-pinned-btn'),
     ssExportResSelect: document.getElementById('ss-export-res-select'),
+    ssNativeTextToggle: document.getElementById('ss-native-text-toggle'),
     floatingDownloadBtn: document.getElementById('floating-download-btn'),
     ssLanguageSelect: document.getElementById('ss-language-select'),
     tsScenarioSelect: document.getElementById('ts-scenario-select'),
@@ -4835,6 +4839,10 @@ async function renderSsSlideToCanvas(slide, canvas) {
         ctx.fillRect(0, 0, width, height);
     }
 
+    // Native-text mode: the text gets typed in TikTok's own editor, so the export is the
+    // bare photo. The on-screen preview keeps its text as the layout reference.
+    if (elements.ssNativeTextToggle?.checked) return;
+
     const scale = slide.ssTextScale || 1;
     // Base size matches the Storytelling GF v2 default (26px input x 1.26 x 1.5 scale = ~49px).
     const size = 49 * exportScale * scale;
@@ -4941,16 +4949,26 @@ async function loadSsLibrarySets() {
             .map(s => `<option value="${escapeHtml(s.id)}">${/^.*[\\/]pink$/i.test(s.id) ? 'Pink skies' : 'Green fields'} (${s.count})</option>`)
             .join('');
         elements.ssLibrarySelect.innerHTML = '<option value="__random-pink-green__">Randomize one theme per post</option>' + options;
+        // Slide 1 only ever uses a hook folder ("Hook images" and its subfolders such as
+        // "crying"), so the picker lists those by their own folder name instead of every
+        // folder in the library. Falls back to everything if no hook folder exists.
+        const hookSets = sets.filter(s => /hook/i.test(s.id));
+        const hookChoices = hookSets.length ? hookSets : sets;
         if (elements.ssHookLibrarySelect) {
-            const hookOptions = sets
-            .map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.label)} (${s.count})</option>`)
-            .join('');
-            elements.ssHookLibrarySelect.innerHTML = hookOptions;
+            const folderName = (id) => {
+                const name = String(id).split(/[\\/]/).pop() || id;
+                return name.charAt(0).toUpperCase() + name.slice(1);
+            };
+            elements.ssHookLibrarySelect.innerHTML = hookChoices
+                .map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(folderName(s.id))} (${s.count})</option>`)
+                .join('');
         }
 
         // Step photos are Pink or Green only. Slide 1 remains a dedicated hook image.
         elements.ssLibrarySelect.value = '__random-pink-green__';
-        const hook = sets.find(s => /hook/i.test(s.id));
+        let savedHookSet = '';
+        try { savedHookSet = localStorage.getItem('ss_hook_set') || ''; } catch { /* storage blocked */ }
+        const hook = hookChoices.find(s => s.id === savedHookSet) || hookChoices[0];
         if (hook && elements.ssHookLibrarySelect) elements.ssHookLibrarySelect.value = hook.id;
 
         await Promise.all([loadSsLibraryImages(), loadSsHookImages()]);
@@ -4999,6 +5017,38 @@ async function loadSsHookImages() {
         console.error('Hook photo list failed:', error);
         state.ssHookImages = [];
     }
+    state.ssHookExpanded = false;
+    renderSsHookGrid();
+}
+
+// Thumbnails of the selected hook folder. Same look as the step picker, but a click always
+// targets the hook slide, so the cover can be set without selecting slide 1 first.
+function renderSsHookGrid() {
+    if (!elements.ssHookGrid) return;
+    const images = state.ssHookImages || [];
+    const visible = state.ssHookExpanded ? images : images.slice(0, 12);
+    const current = state.slides.find(slide => slide?.ss?.role === 'hook')?.ssHookName;
+    elements.ssHookGrid.innerHTML = visible
+        .map(name => `<button class="ss-library-thumb-wrap${name === current ? ' is-selected' : ''}" type="button" title="Use ${escapeHtml(name)} on slide 1"><img class="ss-library-thumb" loading="lazy" data-name="${escapeHtml(name)}" src="${ssLibraryFileUrl(state.ssHookSet, name)}" alt="Hook photo ${escapeHtml(name)}"></button>`)
+        .join('') || '<div class="ss-hint">No photos in this folder.</div>';
+    if (elements.ssHookMoreBtn) {
+        elements.ssHookMoreBtn.style.display = images.length > 12 ? 'block' : 'none';
+        elements.ssHookMoreBtn.textContent = state.ssHookExpanded ? 'Show fewer hook photos' : `Show all ${images.length} hook photos`;
+    }
+}
+
+async function ssApplyHookPhoto(name) {
+    const index = state.slides.findIndex(slide => slide?.ss?.role === 'hook');
+    if (index < 0) {
+        showNotification('Generate a slideshow first.', 'error');
+        return;
+    }
+    const slide = state.slides[index];
+    slide.image = await ssFetchImageAsDataUrl(state.ssHookSet, name);
+    slide.ssHookName = name;
+    renderSlidesPreview();
+    setCurrentSlideIndex(index);
+    renderSsHookGrid();
 }
 
 // EVERY slide gets the same photo treatment, including the app step. If the app
@@ -5048,6 +5098,8 @@ async function ssFillRandomPhotos() {
             if (slide.ss.role === 'hook' && state.ssHookSet && hookPool.length > 0) {
                 const pick = hookPool[Math.floor(Math.random() * hookPool.length)];
                 slide.image = await ssFetchImageAsDataUrl(state.ssHookSet, pick);
+                slide.ssHookName = pick;
+                renderSsHookGrid();
                 continue;
             }
             slide.image = await ssFetchImageAsDataUrl(setId, shuffled[stepCursor % shuffled.length]);
@@ -5099,11 +5151,11 @@ async function ssShuffleHookPhoto(index) {
         showNotification('No hook photos loaded — pick a hook folder in the photo library.', 'error');
         return;
     }
-    const pick = pool[Math.floor(Math.random() * pool.length)];
+    // Never re-draw the photo that is already on the slide.
+    const others = pool.length > 1 ? pool.filter(name => name !== slide.ssHookName) : pool;
+    const pick = others[Math.floor(Math.random() * others.length)];
     try {
-        slide.image = await ssFetchImageAsDataUrl(state.ssHookSet, pick);
-        renderSlidesPreview();
-        setCurrentSlideIndex(index);
+        await ssApplyHookPhoto(pick);
         showNotification('New hook photo added.', 'success');
     } catch (error) {
         showNotification(`Could not load hook photo: ${error.message || 'unknown error'}`, 'error');
@@ -8392,12 +8444,20 @@ async function downloadAllSlides() {
         if (state.ssSound) lines.push(`SOUND:\n${[state.ssSound.title, state.ssSound.artist].filter(Boolean).join(' - ')}\n${state.ssSound.link}`);
         if (lines.length) zip.file('tiktok_info.txt', lines.join('\n\n'));
 
+        // Native-text mode: the photos carry no text, so the copy travels as a document,
+        // one block per slide in posting order, ready to paste into TikTok's text tool.
+        const nativeText = Boolean(elements.ssNativeTextToggle?.checked);
+        if (nativeText) {
+            const slideTexts = state.slides.map((slide, i) => `SLIDE ${i + 1}\n${String(slide.text || '').trim()}`);
+            zip.file('slide_texts.txt', slideTexts.join('\n\n\n'));
+        }
+
         const content = await zip.generateAsync({ type: 'blob' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(content);
         link.download = 'slideshow.zip';
         link.click();
-        showNotification(`Downloaded ${state.slides.length} slides + tiktok_info.txt`, 'success');
+        showNotification(`Downloaded ${state.slides.length} slides + tiktok_info.txt${nativeText ? ' + slide_texts.txt' : ''}`, 'success');
         return;
     }
 
@@ -10372,6 +10432,12 @@ function initEventListeners() {
         elements.lhDownloadAllBtn.addEventListener('click', downloadAllSlides);
     }
 
+    if (elements.ssNativeTextToggle) {
+        try { elements.ssNativeTextToggle.checked = localStorage.getItem('ss_native_text') === '1'; } catch { /* storage blocked */ }
+        elements.ssNativeTextToggle.addEventListener('change', () => {
+            try { localStorage.setItem('ss_native_text', elements.ssNativeTextToggle.checked ? '1' : '0'); } catch { /* storage blocked */ }
+        });
+    }
     if (elements.ssDownloadAllBtn) {
         elements.ssDownloadAllBtn.addEventListener('click', downloadAllSlides);
     }
@@ -10540,7 +10606,13 @@ function initEventListeners() {
     }
 
     if (elements.ssHookLibrarySelect) {
-        elements.ssHookLibrarySelect.addEventListener('change', loadSsHookImages);
+        // Switching the hook folder swaps slide 1 right away; the dice keeps drawing from it.
+        elements.ssHookLibrarySelect.addEventListener('change', async () => {
+            try { localStorage.setItem('ss_hook_set', elements.ssHookLibrarySelect.value); } catch { /* storage blocked */ }
+            await loadSsHookImages();
+            const hookIndex = state.slides.findIndex(slide => slide?.ss?.role === 'hook');
+            if (hookIndex >= 0) await ssShuffleHookPhoto(hookIndex);
+        });
     }
 
     if (elements.ssFillPhotosBtn) {
@@ -10549,8 +10621,9 @@ function initEventListeners() {
 
     if (elements.ssClearPhotosBtn) {
         elements.ssClearPhotosBtn.addEventListener('click', () => {
-            state.slides.forEach(slide => { if (slide?.ss) slide.image = null; });
+            state.slides.forEach(slide => { if (slide?.ss) { slide.image = null; slide.ssHookName = null; } });
             renderSlidesPreview();
+            renderSsHookGrid();
             showNotification('Photos cleared', 'info');
         });
     }
@@ -10572,6 +10645,25 @@ function initEventListeners() {
             } catch (error) {
                 showNotification(`Could not load photo: ${error.message}`, 'error');
             }
+        });
+    }
+
+    if (elements.ssHookGrid) {
+        elements.ssHookGrid.addEventListener('click', async (e) => {
+            const thumb = e.target.closest('.ss-library-thumb-wrap')?.querySelector('.ss-library-thumb');
+            if (!thumb) return;
+            try {
+                await ssApplyHookPhoto(thumb.dataset.name);
+                if (elements.ssHookPickerStatus) elements.ssHookPickerStatus.textContent = 'Hook photo applied to slide 1';
+            } catch (error) {
+                showNotification(`Could not load hook photo: ${error.message}`, 'error');
+            }
+        });
+    }
+    if (elements.ssHookMoreBtn) {
+        elements.ssHookMoreBtn.addEventListener('click', () => {
+            state.ssHookExpanded = !state.ssHookExpanded;
+            renderSsHookGrid();
         });
     }
 

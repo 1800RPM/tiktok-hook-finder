@@ -2073,6 +2073,8 @@ input[type="color"]::-webkit-color-swatch {
 .ss-library-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; max-height: 190px; overflow-y: auto; padding: 2px; }
 .ss-library-thumb-wrap { display: block; aspect-ratio: 1; overflow: hidden; padding: 0; border: 1px solid transparent; border-radius: 7px; background: var(--bg-tertiary); cursor: pointer; }
 .ss-library-thumb-wrap:hover { border-color: var(--accent-cyan); }
+.ss-library-thumb-wrap:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 1px; }
+.ss-library-thumb-wrap.is-selected { border-color: var(--accent-cyan); box-shadow: 0 0 0 1px var(--accent-cyan); }
 .ss-library-thumb { display: block; width: 100%; height: 100%; object-fit: cover; }
 .ss-photo-picker-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; margin-bottom: 7px; }
 .ss-photo-picker-status { color: var(--text-muted); font-size: .66rem; text-align: right; }
