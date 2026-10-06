@@ -57,6 +57,21 @@ export async function createTikTokDraft(input: { accountId: string; caption: str
     return { id: String(data?.id ?? data?.data?.id ?? ''), status: String(data?.status ?? data?.data?.status ?? 'created') };
 }
 
+// Delivery times already booked in post-bridge for one account, so a new send plans around
+// them even when this browser's own record is missing (another device, cleared storage).
+export async function listScheduledTimes(accountId: string) {
+    if (!/^\d+$/.test(accountId)) throw new Error('Unknown account.');
+    const times: string[] = [];
+    for (let offset = 0; offset < 2000; offset += 50) {
+        const page = await postBridge(`/posts?status=scheduled&limit=50&offset=${offset}`);
+        for (const p of page?.data || []) {
+            if (p.status === 'scheduled' && p.scheduled_at && (p.social_accounts || []).map(String).includes(accountId)) times.push(String(p.scheduled_at));
+        }
+        if (!page?.meta?.next) break;
+    }
+    return times;
+}
+
 // post-bridge accepts a post right away and hands it to TikTok in the background, so a
 // "created" answer says nothing about delivery. TikTok can still refuse it (e.g. 429 when too
 // many uploads arrive at once); this reads what actually happened.

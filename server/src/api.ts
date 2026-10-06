@@ -16,7 +16,7 @@ import { generateBfrbMemeSlideshow } from "./projects/bfrb/bfrb_meme_slideshow";
 import { getMemeAssets, startMemeAnalysis, editMemeLabels, selectMemeAssets } from "./projects/dbt/meme_assets";
 import { generateSsBatch, SS_FORMATS } from "./projects/dbt/ss_batch";
 import { usageSummary } from "./claude_usage";
-import { createTikTokDraft, getDraftStatus, listPublishAccounts, publishingStatus, uploadSlideImage } from "./publish";
+import { createTikTokDraft, getDraftStatus, listPublishAccounts, listScheduledTimes, publishingStatus, uploadSlideImage } from "./publish";
 import type { SsFormatId } from "./projects/dbt/ss_batch";
 import { generateTheScriptSlideshow } from "./projects/dbt/the_script";
 import { getAnchorImage, buildUGCSlide1Prompt } from "./common/prompt_utils";
@@ -2968,6 +2968,10 @@ Output ONLY the JSON object.No markdown, no explanation.`
         else if (cleanPath === '/publish/status' && method === 'GET') {
             return sendJSON(publishingStatus());
         }
+        else if (cleanPath === '/publish/scheduled' && method === 'GET') {
+            try { return sendJSON({ times: await listScheduledTimes(url.searchParams.get('accountId') || '') }); }
+            catch (error: any) { return sendJSON({ error: error.message || 'Could not read scheduled posts.' }, 502); }
+        }
         else if (cleanPath === '/publish/channels' && method === 'GET') {
             try { return sendJSON({ channels: await listPublishAccounts() }); }
             catch (error: any) { console.error('[Publish] channels:', error); return sendJSON({ error: error.message || 'Could not load the publishing accounts.' }, 502); }
@@ -2990,10 +2994,10 @@ Output ONLY the JSON object.No markdown, no explanation.`
                     !Array.isArray(body.imageUrls) || body.imageUrls.some((u: any) => typeof u !== 'string' || !/^https:\/\//.test(u))) {
                     return sendJSON({ error: 'Provide channelId, text and https image URLs.' }, 400);
                 }
-                // Optional delivery time: in the future, at most 3 days ahead.
+                // Optional delivery time in the future, as far ahead as wanted.
                 const scheduledAt = typeof body.scheduledAt === 'string' ? new Date(body.scheduledAt) : null;
-                if (scheduledAt && (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() < Date.now() - 60000 || scheduledAt.getTime() > Date.now() + 3 * 86400000)) {
-                    return sendJSON({ error: 'scheduledAt must be a time within the next 3 days.' }, 400);
+                if (scheduledAt && (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() < Date.now() - 60000)) {
+                    return sendJSON({ error: 'scheduledAt must be a future time.' }, 400);
                 }
                 return sendJSON({ post: await createTikTokDraft({ accountId: body.channelId, caption: body.text, title: typeof body.title === 'string' ? body.title : '', imageUrls: body.imageUrls, autoAddMusic: typeof body.autoAddMusic === 'boolean' ? body.autoAddMusic : undefined, scheduledAt: scheduledAt?.toISOString() }) });
             } catch (error: any) { console.error('[Publish] draft:', error); return sendJSON({ error: error.message || 'Draft failed.' }, 502); }

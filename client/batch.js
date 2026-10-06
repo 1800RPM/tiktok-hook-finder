@@ -499,12 +499,10 @@
     // TikTok caps API uploads per account at roughly 15 a day (drafts count, and so does every
     // other app posting there) and restricts accounts that get bursts. So a batch reaches each
     // account spread out: one post per hour, at most 8 in any 24 hours, so 24 posts fill three
-    // days. post-bridge holds each post until its time. Posts that would land more than three
-    // days out (the server's scheduling limit) stay approved for a later send.
+    // days and any number simply runs further ahead. post-bridge holds each post until its time.
     const DAILY_CAP = 8;
     const SLOT_GAP_MS = 60 * 60 * 1000;
     const DAY_MS = 24 * 60 * 60 * 1000;
-    const HOLD_AFTER_MS = 3 * DAY_MS - 60 * 60 * 1000;
     const SLOTS_KEY = 'batch_account_slots';
     function slotLog() { try { return JSON.parse(localStorage.getItem(SLOTS_KEY) || '{}'); } catch { return {}; } }
     function accountSlots(channelId) { return (slotLog()[channelId] || []).filter((t) => t > Date.now() - DAY_MS).sort((a, b) => a - b); }
@@ -514,8 +512,9 @@
         try { localStorage.setItem(SLOTS_KEY, JSON.stringify(log)); } catch { /* storage blocked */ }
     }
     // The earliest delivery time after the slots already taken that keeps the hour gap and the cap.
-    function nextSlot(taken) {
-        const now = Date.now();
+    // A paused account (TikTok restricted it) starts at the end of its pause instead of now.
+    function nextSlot(taken, notBefore = 0) {
+        const now = Math.max(Date.now(), notBefore);
         let time = taken.length ? Math.max(now, taken[taken.length - 1] + SLOT_GAP_MS) : now;
         for (;;) {
             const inWindow = taken.filter((t) => t > time - DAY_MS && t <= time);
@@ -523,37 +522,33 @@
             time = inWindow[inWindow.length - DAILY_CAP] + DAY_MS;
         }
     }
-    function planSlots(queue) {
-        const taken = new Map(), scheduled = [], held = [];
+    // Taken slots = this browser's record plus what post-bridge already has booked for the account.
+    async function planSlots(queue) {
+        const taken = new Map(), scheduled = [];
         for (const p of queue) {
-            if (!taken.has(p.channelId)) taken.set(p.channelId, accountSlots(p.channelId));
-            const slots = taken.get(p.channelId), time = nextSlot(slots);
-            if (time - Date.now() >= HOLD_AFTER_MS) { held.push({ p, time }); continue; }
+            if (!taken.has(p.channelId)) {
+                const booked = await api(`/publish/scheduled?accountId=${encodeURIComponent(p.channelId)}`)
+                    .then((r) => (r.times || []).map((t) => Date.parse(t)).filter(Number.isFinite)).catch(() => []);
+                taken.set(p.channelId, [...new Set([...accountSlots(p.channelId), ...booked])].sort((a, b) => a - b));
+            }
+            const slots = taken.get(p.channelId), time = nextSlot(slots, cooldownUntil(p.channelId));
             slots.push(time);
             scheduled.push({ p, time });
         }
-        return { scheduled, held };
+        return { scheduled };
     }
-    const when = (time) => new Date(time).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+    const when = (time) => new Date(time).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
     async function sendApproved() {
         if (sendRun) return;
-        const cooling = posts.filter((p) => p.status === 'approved' && cooldownUntil(p.channelId));
-        const queue = posts.filter((p) => p.status === 'approved' && !cooldownUntil(p.channelId));
-        if (cooling.length) {
-            const names = [...new Set(cooling.map((p) => channelName(p.channelId)))].join(', ');
-            const until = when(Math.max(...cooling.map((p) => cooldownUntil(p.channelId))));
-            notify(`${cooling.length} post${cooling.length === 1 ? '' : 's'} for ${names} held back: TikTok restricted the account, sending resumes ${until}.`, queue.length ? 'info' : 'error');
-        }
-        if (!queue.length) return cooling.length ? undefined : notify('Approve at least one post first.', 'error');
-        const { scheduled, held } = planSlots(queue);
-        const heldNote = held.length
-            ? `${held.length} post${held.length === 1 ? '' : 's'} held back by the daily limit (${DAILY_CAP} per account in 24 hours). Send again from ${when(Math.min(...held.map((h) => h.time)))}.`
-            : '';
-        if (!scheduled.length) return notify(heldNote, 'error');
-        sendRun = { done: 0, total: scheduled.length };
+        // Posts for a paused account are not held back any more: they are scheduled from the end
+        // of the pause, so nothing reaches TikTok while the restriction may still be on.
+        const queue = posts.filter((p) => p.status === 'approved');
+        if (!queue.length) return notify('Approve at least one post first.', 'error');
+        sendRun = { done: 0, total: queue.length };
         syncControls();
         try {
+            const { scheduled } = await planSlots(queue);
             const status = await api('/publish/status').catch(() => ({}));
             if (!status.storage) return notify('Image hosting is not set up: add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to server/.env and restart the server.', 'error');
             const sentNow = [];
@@ -565,10 +560,7 @@
                 sendRun.done = n + 1; syncControls();
             }
             const later = sentNow.filter((p) => p.delivery === 'scheduled');
-            notify([
-                `${sentNow.length} of ${scheduled.length} posts sent to post-bridge${later.length ? `, ${later.length} of them scheduled up to ${when(Math.max(...later.map((p) => p.scheduledFor)))} (one per hour per account)` : ''}.`,
-                heldNote,
-            ].filter(Boolean).join(' '), sentNow.length ? 'success' : 'error');
+            notify(`${sentNow.length} of ${scheduled.length} posts sent to post-bridge${later.length ? `, ${later.length} of them scheduled from ${when(Math.min(...later.map((p) => p.scheduledFor)))} to ${when(Math.max(...later.map((p) => p.scheduledFor)))} (one per hour, at most ${DAILY_CAP} a day per account)` : ''}.`, sentNow.length ? 'success' : 'error');
             verifyDelivery(sentNow.filter((p) => p.delivery === 'checking'));
         } finally { sendRun = null; syncControls(); }
     }
@@ -634,7 +626,7 @@
                         const restricted = RESTRICTION_PATTERN.test(reason);
                         if (restricted) { setCooldown(p.channelId); p.cooldownApplied = true; }
                         Object.assign(p, { status: 'approved', error: restricted
-                            ? `TikTok restricted this account for posting too often: ${reason} Sending to it is paused for 24 hours; the post stays here until then.`
+                            ? `TikTok restricted this account for posting too often: ${reason} The account is paused for 24 hours: sending it again schedules it for after the pause.`
                             : `TikTok did not take the draft: ${reason}. Send it again.` });
                         delete p.delivery; delete p.draftId;
                     }
@@ -664,8 +656,7 @@
     function syncControls() {
         $('generate').disabled = running || !channels.length;
         $('generate').textContent = running ? 'Generating…' : 'Generate batch';
-        // Posts for a paused account do not count: the button only offers what would really go out.
-        const approved = posts.filter((p) => p.status === 'approved' && !cooldownUntil(p.channelId)).length;
+        const approved = posts.filter((p) => p.status === 'approved').length;
         $('send').disabled = Boolean(sendRun) || !approved || running;
         $('send').textContent = sendRun
             ? `Sending ${Math.min(sendRun.done + 1, sendRun.total)} of ${sendRun.total}…`
