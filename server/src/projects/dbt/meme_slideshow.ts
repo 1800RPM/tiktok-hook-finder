@@ -1,4 +1,5 @@
 import { buildDescription, buildHashtags, buildTitle } from './ss_slideshow';
+import { logClaudeUsage } from '../../claude_usage';
 
 export type MemeSlide = { role: 'hook' | 'point' | 'cta'; headline: string; body: string; leftLabel: string; rightLabel: string };
 
@@ -184,7 +185,7 @@ const AXES_FOR_PROMISE: Record<string, number[]> = {
 };
 
 export async function generateMemeSlideshow(params: { topic?: string; theme?: string; notes?: string; previousTopics?: string[]; language?: string; model?: string; axis?: string; promise?: string; ANTHROPIC_API_KEY: string }) {
-    const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-sonnet-5-5'].includes(params.model || '') ? params.model! : 'claude-sonnet-4-6';
+    const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-sonnet-5-5'].includes(params.model || '') ? params.model! : 'claude-sonnet-5-5';
     // Sonnet 5.5 thinks before it answers (adaptive by default), so it needs room beyond the
     // 4000 tokens the copy itself takes, and a decline is finished by a fallback model.
     const sonnet55 = model === 'claude-sonnet-5-5';
@@ -211,6 +212,7 @@ export async function generateMemeSlideshow(params: { topic?: string; theme?: st
         });
         if (!response.ok) throw new Error(`Text provider returned ${response.status}. Please retry.`);
         const data = await response.json() as any;
+        logClaudeUsage('Meme slides · copy', data, attempt);
         const raw = (data.content || []).filter((block: any) => block.type === 'text').map((block: any) => block.text).join('\n');
         try {
             // Parsed separately so a SyntaxError, which can quote the model's own text, never

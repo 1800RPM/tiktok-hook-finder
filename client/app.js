@@ -1058,6 +1058,43 @@ function updateSelectedSlideEditor() {
     }
 }
 
+// Slideshow text starts centered in the upper half of the photo (keeps faces and the
+// horizon clear). Batch posts use the same spot.
+const SS_TEXT_HOME = { x: 50, y: 33 };
+
+// One-click text colours next to the colour picker (Slideshows preview and Batch review).
+const TEXT_COLOR_PRESETS = [
+    { value: '#ffffff', label: 'White' },
+    { value: '#fdfea9', label: 'Soft yellow' },
+    { value: '#000000', label: 'Black' },
+];
+function textColorSwatches(input, onPick) {
+    const wrap = document.createElement('div');
+    wrap.className = 'color-swatches';
+    const sync = () => wrap.querySelectorAll('button').forEach((b) => b.classList.toggle('is-active', b.dataset.color === input.value.toLowerCase()));
+    for (const preset of TEXT_COLOR_PRESETS) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'color-swatch';
+        button.dataset.color = preset.value;
+        button.style.background = preset.value;
+        button.title = preset.label;
+        button.setAttribute('aria-label', `Text colour: ${preset.label}`);
+        button.addEventListener('click', () => {
+            if (input.disabled) return;
+            input.value = preset.value;
+            sync();
+            onPick();
+        });
+        wrap.append(button);
+    }
+    input.addEventListener('input', sync);
+    input.addEventListener('change', sync);
+    wrap.sync = sync;
+    sync();
+    return wrap;
+}
+
 function getDefaultSlidePosition(index) {
     // Slide 1: centered in lower half. Legacy weird_hack keeps Slide 6 slightly lower.
     if (index === 0) return { x: 50, y: 72 };
@@ -4735,7 +4772,7 @@ function renderSsSlides(slides) {
         text: ssSlideText(slide),
         image: null,
         id: Date.now() + index,
-        position: { x: 50, y: 50 },
+        position: { ...SS_TEXT_HOME },
         scale: 1.5,
         maxWidth: 120,
         fontSize: null,
@@ -5175,7 +5212,7 @@ async function generateSsSlideshow(format = 'current') {
     const remembersHistory = format !== 'legacy';
     const theme = elements.ssThemeInput?.value?.trim() || '';
     const language = elements.ssLanguageSelect?.value === 'de' ? 'de' : 'en';
-    const model = elements.ssModelSelect?.value || 'claude-fable-5';
+    const model = elements.ssModelSelect?.value || 'claude-sonnet-5-5';
     const topicSeed = elements.ssTopicSeedSelect?.value?.trim() || '';
     if (legacy && !topicSeed) {
         showNotification('Choose a topic seed before generating the legacy slideshow.', 'error');
@@ -5421,14 +5458,9 @@ function syncSsFormatChoice() {
     if (elements.ssArchetypeGroup) elements.ssArchetypeGroup.style.display = format === 'current' ? 'block' : 'none';
     if (elements.ssTerritoryGroup) elements.ssTerritoryGroup.style.display = simple ? 'block' : 'none';
     if (elements.ssHookGroup) elements.ssHookGroup.style.display = simple ? 'block' : 'none';
-    // The weird-hacks copy is the most judgement-heavy format on the account (the
-    // weirdness test, the plain-language mechanism line), so it defaults to Opus 5.
-    if (hacks && elements.ssModelSelect && elements.ssModelSelect.value !== 'claude-opus-5') {
-        elements.ssModelSelect.value = 'claude-opus-5';
-    }
     if (elements.ssFormatHint) {
         elements.ssFormatHint.textContent = hacks
-            ? 'Weird hacks format: a face-cam hook, then 5–7 numbered therapist hacks (each with a plain-language "why it works"). One hack mid-list is the DBT-Mind habit; the post ends on the last hack. 6–8 slides, written by Opus 5.'
+            ? 'Weird hacks format: a face-cam hook, then 5–7 numbered therapist hacks (each with a plain-language "why it works"). One hack mid-list is the DBT-Mind habit; the post ends on the last hack. 6–8 slides.'
             : legacy
             ? 'Legacy format: 6 slides with a face hook, five atmospheric photos, numbered points 1–5, and a woven app mention. This matches the older folder-1 post.'
             : simple
@@ -5470,7 +5502,7 @@ async function generateSsTopicSeeds() {
         const response = await fetch(`${API_BASE}/generate-ss-topic-seeds`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getApiAuthHeaders() },
-            body: JSON.stringify({ model: elements.ssModelSelect?.value || 'claude-fable-5', usedSeeds: [...usedSeeds, ...seenSeeds, ...poolSeeds] })
+            body: JSON.stringify({ model: elements.ssModelSelect?.value || 'claude-sonnet-5-5', usedSeeds: [...usedSeeds, ...seenSeeds, ...poolSeeds] })
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}: ${(await response.text()).slice(0, 200)}`);
         const data = await response.json();
@@ -9658,6 +9690,10 @@ function initEventListeners() {
             syncLegacyTextStyleControlsFromPreview();
             renderSlidesPreview();
         });
+        const swatches = textColorSwatches(elements.previewTextColorInput, () => elements.previewTextColorInput.dispatchEvent(new Event('input')));
+        elements.previewTextColorInput.after(swatches);
+        // The colour also changes in code (formats, presets), so the highlight follows it.
+        elements.previewTextColorInput.closest('.preview-style-colors')?.addEventListener('pointerenter', swatches.sync);
     }
 
     if (elements.previewBgColorInput) {
@@ -10346,10 +10382,10 @@ function initEventListeners() {
         if (!overlayEl) return;
         const slide = state.slides[parseInt(overlayEl.dataset.ssOverlay, 10)];
         if (!slide) return;
-        slide.position = { x: 50, y: 50 };
+        slide.position = { ...SS_TEXT_HOME };
         slide.ssTextScale = 1;
-        overlayEl.style.left = '50%';
-        overlayEl.style.top = '50%';
+        overlayEl.style.left = `${SS_TEXT_HOME.x}%`;
+        overlayEl.style.top = `${SS_TEXT_HOME.y}%`;
         overlayEl.style.transform = 'translate(-50%, -50%) scale(1)';
         const indicator = overlayEl.querySelector('.scale-indicator');
         if (indicator) indicator.textContent = '100%';

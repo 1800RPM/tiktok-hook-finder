@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TikTok Slide Creator</title>
-    <link rel="stylesheet" href="styles.css?v=20260827d">
+    <link rel="stylesheet" href="styles.css?v=20260827dx">
 </head>
 
 <body data-service="dbt">
@@ -24,13 +24,12 @@
                 <button class="service-btn" data-service="meme">Meme Slides</button>
                 <button class="service-btn" data-service="bfrb">BFRB Memes</button>
                 <button class="service-btn service-btn-ts" data-service="the_script">The Script</button>
-                <button class="service-btn service-btn-stickman" data-service="stickman">Stickman</button>
                 <button class="service-btn" data-service="batch">Batch → TikTok</button>
+                <button class="service-btn service-btn-stickman" data-service="stickman">Stickman</button>
             </div>
         </header>
 
         <main class="main-content">
-            <div id="panel-meme" class="service-panel">
             <div id="panel-batch" class="service-panel">
                 <section class="panel-section batch-workspace">
                     <h2>Batch → TikTok</h2>
@@ -38,7 +37,7 @@
                     <div class="batch-setup">
                         <label>TikTok account<select id="batch-account" class="select-input"><option value="">Loading…</option></select></label>
                         <label>Format<select id="batch-format" class="select-input"></select></label>
-                        <label>Posts<select id="batch-count" class="select-input"><option>1</option><option>3</option><option selected>5</option><option>10</option></select></label>
+                        <label>Posts<select id="batch-count" class="select-input"><option>1</option><option>3</option><option selected>5</option><option>10</option><option>16</option><option>24</option></select></label>
                         <label>Language<select id="batch-language" class="select-input"><option value="en">English</option><option value="de">German</option></select></label>
                         <button id="batch-generate" type="button" class="btn btn-primary">Generate batch</button>
                     </div>
@@ -73,13 +72,14 @@
                 </section>
             </div>
 
+            <div id="panel-meme" class="service-panel">
                 <section class="panel-section meme-workspace">
                     <h2>Meme Slides</h2>
                     <p class="section-hint">Generate the copy, then arrange your cats on white slides. Cover + five comparisons + the app slide, exported at 1080 × 1350.</p>
                     <div class="meme-settings">
                         <label>Character theme<input id="meme-theme" class="text-input" maxlength="120" value="bpd cat" placeholder="e.g. bpd cat"></label>
                         <label>Language<select id="meme-language" class="select-input"><option value="en">English</option><option value="de">German</option></select></label>
-                        <label>Text model<select id="meme-model" class="select-input"><option value="claude-sonnet-4-6">Claude Sonnet 4.6</option><option value="claude-fable-5">Claude Fable 5</option><option value="claude-opus-5">Claude Opus 5</option><option value="claude-opus-4-8">Claude Opus 4.8</option></select></label>
+                        <label>Text model<select id="meme-model" class="select-input"><option value="claude-sonnet-5-5" selected>Claude Sonnet 5.5 (default)</option><option value="claude-sonnet-4-6">Claude Sonnet 4.6</option><option value="claude-fable-5">Claude Fable 5</option><option value="claude-opus-5">Claude Opus 5</option><option value="claude-opus-4-8">Claude Opus 4.8</option></select></label>
                         <label class="meme-wide">Creative direction (optional)<textarea id="meme-notes" class="prompt-textarea" rows="2" maxlength="2000" placeholder="Leave blank for a fresh AI topic, or describe a direction to explore"></textarea></label>
                     </div>
                     <div class="meme-actions">
@@ -1511,7 +1511,8 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                         <div class="input-group" style="margin-bottom: 14px;">
                             <label for="ss-model-select" class="ss-label">AI model</label>
                             <select id="ss-model-select" class="select-input ss-select">
-                                <option value="claude-fable-5" selected>Claude Fable 5</option>
+                                <option value="claude-sonnet-5-5" selected>Claude Sonnet 5.5 (cheapest, default)</option>
+                                <option value="claude-fable-5">Claude Fable 5</option>
                                 <option value="claude-opus-5">Claude Opus 5</option>
                                 <option value="claude-opus-4-8">Claude Opus 4.8</option>
                                 <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
@@ -1605,6 +1606,13 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                             <p class="ss-hint" style="margin: 6px 0 0;">TikTok displays photo posts at 1080 × 1920 and rescales anything larger with its own compressor — that downscale is what makes text look washed. Native size uploads 1:1.</p>
                         </div>
 
+                        <label for="ss-native-text-toggle" class="testing-toggle">
+                            <input type="checkbox" id="ss-native-text-toggle">
+                            <span>Add slide text natively in TikTok</span>
+                        </label>
+                        <p class="ss-hint" style="margin: 4px 0 10px;">Slides export as clean photos, and the zip
+                            gets slide_texts.txt with every slide's text to paste into TikTok's text tool.</p>
+
                         <button class="btn btn-success full-width" id="ss-download-all-btn"
                             style="margin-top: 4px; display: none;">
                             💾 Download all slides + title (.zip)
@@ -1626,6 +1634,14 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                 <option value="">Loading folders…</option>
                             </select>
                         </div>
+
+                        <div class="ss-photo-picker-head">
+                            <span class="ss-label">Hook photo picker</span>
+                            <span id="ss-hook-picker-status" class="ss-photo-picker-status">Click a photo to put it on slide 1</span>
+                        </div>
+                        <div id="ss-hook-grid" class="ss-library-grid"></div>
+                        <button class="btn ss-btn-quiet full-width" id="ss-hook-more-btn" type="button"
+                            style="display:none; margin-bottom: 10px;">Show all hook photos</button>
 
                         <div class="input-group" style="margin-bottom: 10px;">
                             <label for="ss-library-select" class="ss-label">Step photo theme (slides 2–X)</label>
@@ -1705,13 +1721,6 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                 <option value="morning_after">🌅 The morning after the outburst</option>
                                 <option value="vulnerability_hangover">🥴 The vulnerability hangover</option>
                                 <option value="mid_split">⚡ Splitting mid-conversation</option>
-                        <label for="ss-native-text-toggle" class="testing-toggle">
-                            <input type="checkbox" id="ss-native-text-toggle">
-                            <span>Add slide text natively in TikTok</span>
-                        </label>
-                        <p class="ss-hint" style="margin: 4px 0 10px;">Slides export as clean photos, and the zip
-                            gets slide_texts.txt with every slide's text to paste into TikTok's text tool.</p>
-
                                 <option value="masking">🎭 Quiet BPD / masking</option>
                                 <option value="object_permanence">🫥 Object permanence (out of sight = gone)</option>
                                 <option value="identity_disturbance">🪞 Identity disturbance</option>
@@ -1734,14 +1743,6 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                         <div class="input-group" style="margin-bottom: 12px;">
                             <label for="ts-tone-select" class="ts-label">Tone</label>
                             <select id="ts-tone-select" class="select-input ts-select">
-                        <div class="ss-photo-picker-head">
-                            <span class="ss-label">Hook photo picker</span>
-                            <span id="ss-hook-picker-status" class="ss-photo-picker-status">Click a photo to put it on slide 1</span>
-                        </div>
-                        <div id="ss-hook-grid" class="ss-library-grid"></div>
-                        <button class="btn ss-btn-quiet full-width" id="ss-hook-more-btn" type="button"
-                            style="display:none; margin-bottom: 10px;">Show all hook photos</button>
-
                                 <option value="random">🎲 Random</option>
                                 <option value="dark_humor">💀 Dark humor</option>
                                 <option value="soft">🫂 Soft</option>
@@ -2085,10 +2086,10 @@ INSIDE: ..."></textarea>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="app.js?v=20261005b"></script>
+    <script src="app.js?v=20261006d"></script>
     <script src="meme-canvas.js?v=20261005b"></script>
-    <script src="meme-slides.js?v=20261005b"></script>
-    <script src="batch.js?v=20261005b"></script>
+    <script src="meme-slides.js?v=20261006a"></script>
+    <script src="batch.js?v=20261006d"></script>
     <script src="bfrb-slides.js?v=20260916a"></script>
 </body>
 

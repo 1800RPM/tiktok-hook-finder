@@ -31,7 +31,7 @@ export async function listPublishAccounts() {
     return accounts;
 }
 
-export async function createTikTokDraft(input: { accountId: string; caption: string; title?: string; imageUrls: string[]; autoAddMusic?: boolean }) {
+export async function createTikTokDraft(input: { accountId: string; caption: string; title?: string; imageUrls: string[]; autoAddMusic?: boolean; scheduledAt?: string }) {
     if (!/^\d+$/.test(input.accountId)) throw new Error('Unknown account. Pick the account again in the Batch tab.');
     if (!input.imageUrls.length || input.imageUrls.length > 35) throw new Error('A TikTok photo post needs 1 to 35 images.');
     const data = await postBridge('/posts', {
@@ -40,7 +40,11 @@ export async function createTikTokDraft(input: { accountId: string; caption: str
             caption: input.caption,
             social_accounts: [Number(input.accountId)],
             media_urls: input.imageUrls,
-            // No scheduled_at: handed to TikTok right away, and draft keeps it out of the feed.
+            // Without scheduled_at it goes to TikTok right away. With it, post-bridge hands it over
+            // at that time, so a batch reaches the account spread out instead of in one burst
+            // (TikTok caps API uploads per account per day and restricts bursts). draft keeps
+            // it out of the feed either way.
+            ...(input.scheduledAt ? { scheduled_at: input.scheduledAt } : {}),
             // TikTok's API cannot attach a chosen sound. When one was picked it rides in the caption,
             // and auto_add_music: false stops TikTok from putting a random track in its place.
             platform_configurations: { tiktok: {

@@ -5,6 +5,8 @@
 // the app line (usage voice only, features restricted to SS_APP_FEATURES so nothing false
 // is claimed). Variety comes from a server-assigned hook-archetype x topic-domain combo.
 
+import { logClaudeUsage } from '../../claude_usage';
+
 const SS_TOPIC_SEED_PROMPT = `# PROMPT: Topic Seed Generator (DBT-Mind TikTok Slideshows)
 
 You generate topic seeds for a bpd/dbt TikTok slideshow account. Your output feeds a separate writing prompt that turns each seed into a confessional 5-point post. Every batch contains TWO clearly separated tiers of simplicity.
@@ -76,10 +78,10 @@ ALREADY USED:
 `;
 
 export async function generateSsTopicSeeds(params: { model?: string; usedSeeds?: string[]; ANTHROPIC_API_KEY: string }) {
-    const requestedModel = String(params.model || 'claude-fable-5');
-    const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(requestedModel)
+    const requestedModel = String(params.model || 'claude-sonnet-5-5');
+    const model = ['claude-sonnet-5-5', 'claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(requestedModel)
         ? requestedModel
-        : 'claude-fable-5';
+        : 'claude-sonnet-5-5';
     const used = Array.isArray(params.usedSeeds) ? params.usedSeeds.filter(Boolean).slice(-300) : [];
     const system = `${SS_TOPIC_SEED_PROMPT}${used.join('\n') || '(none yet)'}`;
     let userMessage = 'Generate the 30 numbered seeds now in the exact grouped plain-text format. Return nothing else.';
@@ -92,19 +94,22 @@ export async function generateSsTopicSeeds(params: { model?: string; usedSeeds?:
             headers: {
                 'x-api-key': params.ANTHROPIC_API_KEY,
                 'anthropic-version': '2023-06-01',
-                'anthropic-beta': 'server-side-fallback-2026-06-01',
+                'anthropic-beta': model === 'claude-sonnet-5-5' ? 'server-side-fallback-2026-07-01' : 'server-side-fallback-2026-06-01',
                 'content-type': 'application/json'
             },
             body: JSON.stringify({
                 model,
-                max_tokens: 5000,
+                // Sonnet 5.5 thinks before answering, so it gets room beyond the ~3000-token list.
+                max_tokens: model === 'claude-sonnet-5-5' ? 12000 : 5000,
                 ...(model === 'claude-fable-5' ? { fallbacks: [{ model: 'claude-opus-4-8' }] } : {}),
+                ...(model === 'claude-sonnet-5-5' ? { fallbacks: 'default' } : {}),
                 system,
                 messages: [{ role: 'user', content: userMessage }]
             })
         });
         if (!response.ok) throw new Error(`Anthropic topic seed request failed: ${response.status}`);
         const raw = await response.json() as any;
+        logClaudeUsage('Slideshows · topic seeds', raw, attempt);
         const text = firstTextBlock(raw).replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
         seeds = [];
         try {
@@ -1802,7 +1807,7 @@ export async function generateSsSlideshow(params: {
     const listicle = simple || dbt;
     const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-sonnet-5-5'].includes(String(params.model))
         ? String(params.model)
-        : 'claude-fable-5';
+        : 'claude-sonnet-5-5';
 
     // Slide texts from earlier listicle generations. The same topic may come back,
     // but no slide text may ever repeat word for word — the list goes into the prompt and
@@ -1999,9 +2004,8 @@ export async function generateSsSlideshow(params: {
                 console.error('[SS Slideshow] Request declined by safety classifiers:', JSON.stringify(rawData.stop_details || {}));
                 throw new Error('Anthropic declined this request. Try a different archetype or theme.');
             }
-            // Fable 5 bills thinking as output tokens, so watch this if runs get pricey.
-            console.log('[SS Slideshow] model=' + rawData.model + ' in=' + (rawData.usage?.input_tokens ?? '?') +
-                ' out=' + (rawData.usage?.output_tokens ?? '?') + ' stop=' + rawData.stop_reason);
+            // Thinking is billed as output tokens; retries show up as attempt 2 and 3.
+            logClaudeUsage(`Slideshows · ${params.format || 'current'}`, rawData, attempt);
             const rawText = firstTextBlock(rawData);
             try {
                 const candidate = legacy ? parseLegacyText(rawText) : extractJsonObject(rawText);

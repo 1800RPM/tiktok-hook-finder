@@ -2,6 +2,7 @@ import path from 'path';
 import { createHash } from 'crypto';
 import { mkdir, readFile, readdir, writeFile, rename } from 'fs/promises';
 import sharp from 'sharp';
+import { logClaudeUsage } from '../../claude_usage';
 
 const root = path.resolve(import.meta.dir, '../../../..');
 const source = path.join(root, 'assets/Meme Slide');
@@ -79,9 +80,8 @@ async function ask(key: string, content: any[], system: string) {
         body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 5000, system, messages: [{ role: 'user', content }] }) });
     if (!response.ok) throw new Error(`Asset AI returned ${response.status}. Retry later.`);
     const data: any = await response.json();
-    const use = data.usage || {};
     // cacheRead staying at 0 across calls means something upstream of the breakpoint changed.
-    console.log(`[Meme assets] in ${use.input_tokens} · cacheWrite ${use.cache_creation_input_tokens || 0} · cacheRead ${use.cache_read_input_tokens || 0} · out ${use.output_tokens}`);
+    logClaudeUsage('Meme slides · images', data);
     const raw = data.content.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n');
     return parseAssetJson(raw);
 }

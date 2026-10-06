@@ -141,11 +141,17 @@
     }
 
     // ---- Generation ---------------------------------------------------------------------------
-    async function ensureSsLibrary() {
-        if (!state.ssLibraryLoaded) { state.ssLibraryLoaded = true; await loadSsLibrarySets(); }
-        if (!state.ssHookImages?.length) await loadSsHookImages();
-        if (!state.ssStepPhotoSets?.length) throw new Error('No pink/green photo folders found. Open the Slideshows tab once to check the photo library.');
-        if (!state.ssHookImages?.length) throw new Error('The hook photo folder is empty. Pick one in Slideshows → Photo library.');
+    // Both generation workers ask at the same moment, so they share one load. Without it the
+    // second worker saw "already loading", found no folders yet and failed every post it took.
+    let ssLibraryLoad = null;
+    function ensureSsLibrary() {
+        ssLibraryLoad ??= (async () => {
+            if (!state.ssStepPhotoSets?.length) { state.ssLibraryLoaded = true; await loadSsLibrarySets(); }
+            if (!state.ssHookImages?.length) await loadSsHookImages();
+            if (!state.ssStepPhotoSets?.length) throw new Error('No pink/green photo folders found. Open the Slideshows tab once to check the photo library.');
+            if (!state.ssHookImages?.length) throw new Error('The hook photo folder is empty. Pick one in Slideshows → Photo library.');
+        })().finally(() => { ssLibraryLoad = null; });
+        return ssLibraryLoad;
     }
 
     async function generateSs(p, formatDef, language, batchTexts) {
@@ -170,7 +176,7 @@
             // Starts from the Slideshows tab's style, then lives with the post.
             textStyle: currentTabStyle(),
             slides: slides.map((s, i) => ({
-                text: String(s.text || ''), position: { x: 50, y: 50 }, ssTextScale: 1,
+                text: String(s.text || ''), position: { ...SS_TEXT_HOME }, ssTextScale: 1,
                 ss: { n: s.n || i + 1, role: s.role, skill: s.skill || '' },
                 imageRef: s.role === 'hook'
                     ? { set: hookSet, name: hooks[Math.floor(Math.random() * hooks.length)] }
@@ -469,39 +475,120 @@
     }
 
     // ---- Sending ------------------------------------------------------------------------------
+    // Per-account pause after TikTok restricts an account for posting too often (a 429 or its
+    // "temporarily restricted" message). Kept in browser storage so a reload does not lift it.
+    const RESTRICTION_PATTERN = /temporarily restricted|posting too frequently|error 429|too many requests/i;
+    const COOLDOWN_KEY = 'batch_account_cooldowns';
+    const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+    function cooldowns() { try { return JSON.parse(localStorage.getItem(COOLDOWN_KEY) || '{}'); } catch { return {}; } }
+    function cooldownUntil(channelId) {
+        const until = Number(cooldowns()[channelId] || 0);
+        return until > Date.now() ? until : 0;
+    }
+    function setCooldown(channelId) {
+        try { localStorage.setItem(COOLDOWN_KEY, JSON.stringify({ ...cooldowns(), [channelId]: Date.now() + COOLDOWN_MS })); } catch { /* storage blocked */ }
+    }
+
     // One send run at a time. The button used to come back on during a run (every status change
     // re-enabled it), and each extra click started a second loop over the same posts: five posts
     // went out fifteen times, and TikTok answered the flood with 429s.
     let sendRun = null;
-    // TikTok accepts only a few inbox uploads per minute per account, so posts go out spaced.
+    // Uploads to post-bridge are spaced a little so image hosting and the API are not hammered.
     const SEND_GAP_MS = 12000;
+
+    // TikTok caps API uploads per account at roughly 15 a day (drafts count, and so does every
+    // other app posting there) and restricts accounts that get bursts. So a batch reaches each
+    // account spread out: one post per hour, at most 8 in any 24 hours, so 24 posts fill three
+    // days. post-bridge holds each post until its time. Posts that would land more than three
+    // days out (the server's scheduling limit) stay approved for a later send.
+    const DAILY_CAP = 8;
+    const SLOT_GAP_MS = 60 * 60 * 1000;
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const HOLD_AFTER_MS = 3 * DAY_MS - 60 * 60 * 1000;
+    const SLOTS_KEY = 'batch_account_slots';
+    function slotLog() { try { return JSON.parse(localStorage.getItem(SLOTS_KEY) || '{}'); } catch { return {}; } }
+    function accountSlots(channelId) { return (slotLog()[channelId] || []).filter((t) => t > Date.now() - DAY_MS).sort((a, b) => a - b); }
+    function recordSlot(channelId, time) {
+        const log = slotLog();
+        log[channelId] = [...(log[channelId] || []).filter((t) => t > Date.now() - DAY_MS), time];
+        try { localStorage.setItem(SLOTS_KEY, JSON.stringify(log)); } catch { /* storage blocked */ }
+    }
+    // The earliest delivery time after the slots already taken that keeps the hour gap and the cap.
+    function nextSlot(taken) {
+        const now = Date.now();
+        let time = taken.length ? Math.max(now, taken[taken.length - 1] + SLOT_GAP_MS) : now;
+        for (;;) {
+            const inWindow = taken.filter((t) => t > time - DAY_MS && t <= time);
+            if (inWindow.length < DAILY_CAP) return time;
+            time = inWindow[inWindow.length - DAILY_CAP] + DAY_MS;
+        }
+    }
+    function planSlots(queue) {
+        const taken = new Map(), scheduled = [], held = [];
+        for (const p of queue) {
+            if (!taken.has(p.channelId)) taken.set(p.channelId, accountSlots(p.channelId));
+            const slots = taken.get(p.channelId), time = nextSlot(slots);
+            if (time - Date.now() >= HOLD_AFTER_MS) { held.push({ p, time }); continue; }
+            slots.push(time);
+            scheduled.push({ p, time });
+        }
+        return { scheduled, held };
+    }
+    const when = (time) => new Date(time).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+
     async function sendApproved() {
         if (sendRun) return;
-        const queue = posts.filter((p) => p.status === 'approved');
-        if (!queue.length) return notify('Approve at least one post first.', 'error');
-        sendRun = { done: 0, total: queue.length };
+        const cooling = posts.filter((p) => p.status === 'approved' && cooldownUntil(p.channelId));
+        const queue = posts.filter((p) => p.status === 'approved' && !cooldownUntil(p.channelId));
+        if (cooling.length) {
+            const names = [...new Set(cooling.map((p) => channelName(p.channelId)))].join(', ');
+            const until = when(Math.max(...cooling.map((p) => cooldownUntil(p.channelId))));
+            notify(`${cooling.length} post${cooling.length === 1 ? '' : 's'} for ${names} held back: TikTok restricted the account, sending resumes ${until}.`, queue.length ? 'info' : 'error');
+        }
+        if (!queue.length) return cooling.length ? undefined : notify('Approve at least one post first.', 'error');
+        const { scheduled, held } = planSlots(queue);
+        const heldNote = held.length
+            ? `${held.length} post${held.length === 1 ? '' : 's'} held back by the daily limit (${DAILY_CAP} per account in 24 hours). Send again from ${when(Math.min(...held.map((h) => h.time)))}.`
+            : '';
+        if (!scheduled.length) return notify(heldNote, 'error');
+        sendRun = { done: 0, total: scheduled.length };
         syncControls();
         try {
             const status = await api('/publish/status').catch(() => ({}));
             if (!status.storage) return notify('Image hosting is not set up: add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to server/.env and restart the server.', 'error');
             const sentNow = [];
-            for (const [n, p] of queue.entries()) {
+            for (const [n, { p, time }] of scheduled.entries()) {
                 // Re-read: the post may have been removed or rejected while earlier ones were sending.
                 if (!post(p.id) || p.status !== 'approved') continue;
                 if (n > 0) await new Promise((resolve) => setTimeout(resolve, SEND_GAP_MS));
-                if (await sendOne(p)) sentNow.push(p);
+                if (await sendOne(p, time)) { sentNow.push(p); recordSlot(p.channelId, time); }
                 sendRun.done = n + 1; syncControls();
             }
-            notify(`${sentNow.length} of ${queue.length} posts sent. Checking that TikTok accepted them…`, sentNow.length ? 'success' : 'error');
-            verifyDelivery(sentNow);
+            const later = sentNow.filter((p) => p.delivery === 'scheduled');
+            notify([
+                `${sentNow.length} of ${scheduled.length} posts sent to post-bridge${later.length ? `, ${later.length} of them scheduled up to ${when(Math.max(...later.map((p) => p.scheduledFor)))} (one per hour per account)` : ''}.`,
+                heldNote,
+            ].filter(Boolean).join(' '), sentNow.length ? 'success' : 'error');
+            verifyDelivery(sentNow.filter((p) => p.delivery === 'checking'));
         } finally { sendRun = null; syncControls(); }
     }
-    async function sendOne(p) {
+    // Scheduled drafts are checked once their time has passed, while this page is open or on the next visit.
+    function checkDueScheduled() {
+        const due = posts.filter((p) => p.status === 'sent' && p.delivery === 'scheduled' && p.draftId && p.scheduledFor + 60000 < Date.now());
+        if (!due.length) return;
+        for (const p of due) p.delivery = 'checking';
+        save(); renderAll();
+        verifyDelivery(due);
+    }
+    setInterval(checkDueScheduled, 2 * 60 * 1000);
+    async function sendOne(p, time = Date.now()) {
         p.status = 'sending'; save(); renderAll();
         try {
                 // A fresh folder per attempt: re-uploading over the same files while TikTok was still
                 // fetching them is how a draft arrived with images missing.
                 const folder = `batch/${new Date().toISOString().slice(0, 10)}/${p.id}/${Date.now()}`;
+                // The first post per account goes right away; later ones wait for their hour.
+                const later = time - Date.now() > 2 * 60 * 1000;
                 const urls = [];
                 for (let i = 0; i < p.slides.length; i++) {
                     const blob = p.kind === 'ss'
@@ -516,9 +603,9 @@
                 const { post: draft } = await api('/publish/draft', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     // With a sound chosen, TikTok must not add its own; without one it may.
-                    body: JSON.stringify({ channelId: p.channelId, text: text || p.title || ' ', title: p.title, imageUrls: urls, autoAddMusic: !p.sound }),
+                    body: JSON.stringify({ channelId: p.channelId, text: text || p.title || ' ', title: p.title, imageUrls: urls, autoAddMusic: !p.sound, ...(later ? { scheduledAt: new Date(time).toISOString() } : {}) }),
                 });
-                Object.assign(p, { status: 'sent', draftId: draft.id, sentAt: Date.now(), delivery: 'checking' }); delete p.error;
+                Object.assign(p, { status: 'sent', draftId: draft.id, sentAt: Date.now(), scheduledFor: later ? time : Date.now(), delivery: later ? 'scheduled' : 'checking' }); delete p.error;
             save(); renderAll();
             return true;
         } catch (error) {
@@ -541,7 +628,14 @@
                     pending.delete(p);
                     if (result.delivered) p.delivery = 'delivered';
                     else {
-                        Object.assign(p, { status: 'approved', error: `TikTok did not take the draft: ${result.error || result.status}. Send it again.` });
+                        const reason = result.error || result.status;
+                        // A posting restriction is lifted by waiting, not retrying: every attempt
+                        // can extend it. The account is locked for sending until then.
+                        const restricted = RESTRICTION_PATTERN.test(reason);
+                        if (restricted) { setCooldown(p.channelId); p.cooldownApplied = true; }
+                        Object.assign(p, { status: 'approved', error: restricted
+                            ? `TikTok restricted this account for posting too often: ${reason} Sending to it is paused for 24 hours; the post stays here until then.`
+                            : `TikTok did not take the draft: ${reason}. Send it again.` });
                         delete p.delivery; delete p.draftId;
                     }
                     save(); renderAll();
@@ -570,7 +664,8 @@
     function syncControls() {
         $('generate').disabled = running || !channels.length;
         $('generate').textContent = running ? 'Generating…' : 'Generate batch';
-        const approved = posts.filter((p) => p.status === 'approved').length;
+        // Posts for a paused account do not count: the button only offers what would really go out.
+        const approved = posts.filter((p) => p.status === 'approved' && !cooldownUntil(p.channelId)).length;
         $('send').disabled = Boolean(sendRun) || !approved || running;
         $('send').textContent = sendRun
             ? `Sending ${Math.min(sendRun.done + 1, sendRun.total)} of ${sendRun.total}…`
@@ -592,7 +687,7 @@
             item.disabled = ['queued', 'generating'].includes(p.status);
             item.append(el('span', { className: 'batch-chip-n', textContent: String(i + 1) }),
                 el('span', { className: 'batch-chip-text', textContent: p.slides?.[0] ? (p.kind === 'ss' ? p.slides[0].text.split('\n')[0] : p.slides[0].headline) : p.formatLabel }),
-                el('span', { className: 'batch-chip-status', textContent: p.status === 'sent' ? (p.delivery === 'delivered' ? 'In TikTok inbox' : p.delivery === 'checking' ? 'Sent, checking…' : STATUS_LABEL.sent) : STATUS_LABEL[p.status] || p.status }));
+                el('span', { className: 'batch-chip-status', textContent: p.status === 'sent' ? (p.delivery === 'delivered' ? 'In TikTok inbox' : p.delivery === 'checking' ? 'Sent, checking…' : p.delivery === 'scheduled' ? `Arrives ${when(p.scheduledFor)}` : STATUS_LABEL.sent) : STATUS_LABEL[p.status] || p.status }));
             item.addEventListener('click', () => openPost(p.id));
             // The remove button sits beside the chip, not inside it: a button cannot hold a button.
             const remove = el('button', { type: 'button', className: 'batch-chip-remove', textContent: '×', title: 'Remove this post' });
@@ -645,7 +740,7 @@
         }
         overlay.addEventListener('pointerdown', (event) => {
             if (['sent', 'sending'].includes(p.status) || event.button !== 0) return;
-            const rect = frame.getBoundingClientRect(), start = { x: event.clientX, y: event.clientY }, from = { ...(slide.position || { x: 50, y: 50 }) };
+            const rect = frame.getBoundingClientRect(), start = { x: event.clientX, y: event.clientY }, from = { ...(slide.position || SS_TEXT_HOME) };
             overlay.setPointerCapture(event.pointerId);
             const move = (e) => {
                 slide.position = {
@@ -664,12 +759,12 @@
             event.preventDefault();
         });
         overlay.addEventListener('dblclick', () => {
-            slide.position = { x: 50, y: 50 }; slide.ssTextScale = 1;
+            slide.position = { ...SS_TEXT_HOME }; slide.ssTextScale = 1;
             placeOverlay(overlay, slide); save(); renderReview(); ensurePreviews(p, currentSlide);
         });
     }
     function placeOverlay(overlay, slide) {
-        const pos = slide.position || { x: 50, y: 50 };
+        const pos = slide.position || SS_TEXT_HOME;
         overlay.style.left = `${pos.x}%`; overlay.style.top = `${pos.y}%`;
         overlay.style.transform = `translate(-50%, -50%) scale(${slide.ssTextScale || 1})`;
     }
@@ -915,11 +1010,12 @@
             timer = setTimeout(() => { previews.set(p.id, []); ensurePreviews(p); }, 400);
         };
         for (const input of [font, color, outline]) { input.disabled = locked; input.addEventListener('input', apply); input.addEventListener('change', apply); }
+        const swatches = textColorSwatches(color, apply);
         return el('div', { className: 'batch-field' }, [
             el('span', { textContent: 'Text style for all slides' }),
             el('div', { className: 'batch-style-row' }, [
                 font,
-                color,
+                el('div', { className: 'batch-color-pick' }, [color, swatches]),
                 el('label', { className: 'batch-check' }, [outline, el('span', { textContent: 'Outline' })]),
             ]),
         ]);
@@ -986,8 +1082,22 @@
         renderChannels(); syncControls();
         if (!currentId) openPost(reviewable().find((p) => p.status === 'ready')?.id || reviewable()[0]?.id);
         // A reload during the delivery check picks it back up.
+        // Posts refused before the pause existed still carry TikTok's restriction message.
+        // Once per post, or the old message would restart the pause every time it ran out.
+        for (const p of posts) {
+            if (p.status === 'approved' && !p.cooldownApplied && RESTRICTION_PATTERN.test(p.error || '')) {
+                if (!cooldownUntil(p.channelId)) setCooldown(p.channelId);
+                p.cooldownApplied = true; save();
+            }
+        }
+        // Sends from before the daily limit existed still count toward it.
+        if (localStorage.getItem(SLOTS_KEY) === null) {
+            for (const p of posts) if (p.status === 'sent' && (p.scheduledFor || p.sentAt) > Date.now() - DAY_MS) recordSlot(p.channelId, p.scheduledFor || p.sentAt);
+        }
+        syncControls();
         const unchecked = posts.filter((p) => p.status === 'sent' && p.delivery === 'checking' && p.draftId);
         if (unchecked.length) verifyDelivery(unchecked);
+        checkDueScheduled();
     }
 
     document.querySelectorAll('.service-btn[data-service="batch"]').forEach((button) => button.addEventListener('click', () => init()));

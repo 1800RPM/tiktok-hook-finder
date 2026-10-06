@@ -15,6 +15,7 @@ import { generateMemeSlideshow } from "./projects/dbt/meme_slideshow";
 import { generateBfrbMemeSlideshow } from "./projects/bfrb/bfrb_meme_slideshow";
 import { getMemeAssets, startMemeAnalysis, editMemeLabels, selectMemeAssets } from "./projects/dbt/meme_assets";
 import { generateSsBatch, SS_FORMATS } from "./projects/dbt/ss_batch";
+import { usageSummary } from "./claude_usage";
 import { createTikTokDraft, getDraftStatus, listPublishAccounts, publishingStatus, uploadSlideImage } from "./publish";
 import type { SsFormatId } from "./projects/dbt/ss_batch";
 import { generateTheScriptSlideshow } from "./projects/dbt/the_script";
@@ -2959,6 +2960,10 @@ Output ONLY the JSON object.No markdown, no explanation.`
             if (!ANTHROPIC_API_KEY) return sendJSON({ error: 'Anthropic API key is not configured.' }, 503);
             try {
                 const body: any = await req.json();
+        // Claude token totals per tab and model since the server started (see claude_usage.ts).
+        else if (cleanPath === '/usage' && method === 'GET') {
+            return sendJSON(usageSummary());
+        }
         // Batch publishing: post-bridge accounts, slide uploads to Supabase Storage, TikTok drafts.
         else if (cleanPath === '/publish/status' && method === 'GET') {
             return sendJSON(publishingStatus());
@@ -2985,7 +2990,12 @@ Output ONLY the JSON object.No markdown, no explanation.`
                     !Array.isArray(body.imageUrls) || body.imageUrls.some((u: any) => typeof u !== 'string' || !/^https:\/\//.test(u))) {
                     return sendJSON({ error: 'Provide channelId, text and https image URLs.' }, 400);
                 }
-                return sendJSON({ post: await createTikTokDraft({ accountId: body.channelId, caption: body.text, title: typeof body.title === 'string' ? body.title : '', imageUrls: body.imageUrls, autoAddMusic: typeof body.autoAddMusic === 'boolean' ? body.autoAddMusic : undefined }) });
+                // Optional delivery time: in the future, at most 3 days ahead.
+                const scheduledAt = typeof body.scheduledAt === 'string' ? new Date(body.scheduledAt) : null;
+                if (scheduledAt && (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() < Date.now() - 60000 || scheduledAt.getTime() > Date.now() + 3 * 86400000)) {
+                    return sendJSON({ error: 'scheduledAt must be a time within the next 3 days.' }, 400);
+                }
+                return sendJSON({ post: await createTikTokDraft({ accountId: body.channelId, caption: body.text, title: typeof body.title === 'string' ? body.title : '', imageUrls: body.imageUrls, autoAddMusic: typeof body.autoAddMusic === 'boolean' ? body.autoAddMusic : undefined, scheduledAt: scheduledAt?.toISOString() }) });
             } catch (error: any) { console.error('[Publish] draft:', error); return sendJSON({ error: error.message || 'Draft failed.' }, 502); }
         }
                 if (!Array.isArray(body?.slides) || body.slides.length < 1 || body.slides.length > 6 ||
@@ -3089,10 +3099,10 @@ Output ONLY the JSON object.No markdown, no explanation.`
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("Anthropic API Key missing");
                 const body = await req.json() as any;
-                const requestedModel = String(body?.model || 'claude-fable-5').trim();
-                const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(requestedModel)
+                const requestedModel = String(body?.model || 'claude-sonnet-5-5').trim();
+                const model = ['claude-sonnet-5-5', 'claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(requestedModel)
                     ? requestedModel
-                    : 'claude-fable-5';
+                    : 'claude-sonnet-5-5';
                 const result = await generateSsTopicSeeds({
                     model,
                     usedSeeds: Array.isArray(body?.usedSeeds) ? body.usedSeeds : [],
@@ -3109,10 +3119,10 @@ Output ONLY the JSON object.No markdown, no explanation.`
             try {
                 if (!ANTHROPIC_API_KEY) throw new Error("Anthropic API Key missing");
                 const body = await req.json() as any;
-                const requestedModel = String(body?.model || 'claude-fable-5').trim();
-                const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(requestedModel)
+                const requestedModel = String(body?.model || 'claude-sonnet-5-5').trim();
+                const model = ['claude-sonnet-5-5', 'claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(requestedModel)
                     ? requestedModel
-                    : 'claude-fable-5';
+                    : 'claude-sonnet-5-5';
                 const result = await generateSsSlideshow({
                     theme: typeof body?.theme === 'string' ? body.theme : undefined,
                     language: body?.language === 'de' ? 'de' : 'en',
