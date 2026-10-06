@@ -95,7 +95,10 @@
         constructor(onChange, options = {}) {
             this.onChange = onChange;
             this.cfg = { ...DEFAULTS, ...options };
-            this.$ = (name) => document.getElementById(`${this.cfg.prefix}-${name}`);
+            // Headless instances (batch posts) have no editor markup: every control they would
+            // touch is a detached stand-in, so arrange, draw and png run without changing the page.
+            this.stubs = new Map();
+            this.$ = (name) => document.getElementById(`${this.cfg.prefix}-${name}`) || (this.cfg.headless ? this.stub(name) : null);
             this.canvas = this.$('canvas'); this.ctx = this.canvas.getContext('2d');
             this.slides = []; this.scenes = []; this.index = 0; this.selected = null;
             this.images = new Map(); this.pending = new Map(); this.errors = new Set(); this.drag = null;
@@ -109,6 +112,16 @@
                 document.fonts.load('800 76px "Meme TikTok"'),
             ]).then(() => { this.fontsReady = true; this.draw(); }).catch(() => this.message('The font could not load. Reload before exporting.'));
             this.bind(); this.loadLibrary();
+        }
+        stub(name) {
+            if (!this.stubs.has(name)) {
+                const tag = name === 'canvas' ? 'canvas' : name === 'selection' ? 'select'
+                    : ['x', 'y', 'size', 'angle', 'search', 'label-edit'].includes(name) ? 'input' : 'div';
+                const element = document.createElement(tag);
+                if (tag === 'canvas') { element.width = W; element.height = H; }
+                this.stubs.set(name, element);
+            }
+            return this.stubs.get(name);
         }
         message(text) { this.$('status').textContent = text; }
         scene() { return this.scenes[this.index]; }
@@ -139,7 +152,8 @@
                 if (this.slides[i].role === 'cta' && this.scenes[i].images[0]?.src !== this.cfg.cta) this.defaultTemplate(i);
                 for (const image of this.scenes[i].images) this.loadImage(image.src).catch(() => {});
             }
-            document.getElementById(this.cfg.artwork).hidden = !this.slides.length;
+            const artwork = document.getElementById(this.cfg.artwork);
+            if (artwork) artwork.hidden = !this.slides.length;
             this.$('nav').replaceChildren();
             this.slides.forEach((slide, i) => {
                 const button = document.createElement('button'); button.type = 'button'; button.className = 'btn btn-secondary';
@@ -366,6 +380,8 @@
             }
         }
         renderLibrary() {
+            // Nobody sees a headless library, and building it would load every thumbnail.
+            if (this.cfg.headless) return;
             const query = this.$('search').value.trim().toLowerCase(), list = this.$('library'); list.replaceChildren();
             for (const cat of (this.library || []).filter((cat) => [cat.name, cat.override, cat.labels?.description, cat.labels?.meaning, cat.labels?.emotion, ...(cat.labels?.tags || [])].join(' ').toLowerCase().includes(query))) {
                 const button = document.createElement('button'); button.type = 'button'; button.title = cat.name;
@@ -489,7 +505,8 @@
                 staged.forEach((images, index) => { if (images) this.scenes[index].images = images; });
                 this.selected = null; this.refresh(); this.save();
                 this.message(`${only === null ? 'AI images placed' : `Slide ${only + 1} re-imaged`}. All objects remain editable.${skipped ? ` ${skipped} placements skipped to preserve your manual images.` : ''}`);
-            } catch (error) { this.message(`${error.message} Existing artwork was kept.`); }
+                return true;
+            } catch (error) { this.message(`${error.message} Existing artwork was kept.`); return false; }
             finally { this.aiBusy = false; controls.forEach(([element, disabled]) => { element.disabled = disabled; }); this.renderLibrary(); this.controls(); }
         }
         async suggestAlternatives() {

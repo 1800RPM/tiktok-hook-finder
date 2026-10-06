@@ -25,11 +25,54 @@
                 <button class="service-btn" data-service="bfrb">BFRB Memes</button>
                 <button class="service-btn service-btn-ts" data-service="the_script">The Script</button>
                 <button class="service-btn service-btn-stickman" data-service="stickman">Stickman</button>
+                <button class="service-btn" data-service="batch">Batch → TikTok</button>
             </div>
         </header>
 
         <main class="main-content">
             <div id="panel-meme" class="service-panel">
+            <div id="panel-batch" class="service-panel">
+                <section class="panel-section batch-workspace">
+                    <h2>Batch → TikTok</h2>
+                    <p class="section-hint">Generate several posts for one account, review them one by one, then send the approved ones through post-bridge straight into the account's TikTok drafts. Photo folders come from the Slideshows tab.</p>
+                    <div class="batch-setup">
+                        <label>TikTok account<select id="batch-account" class="select-input"><option value="">Loading…</option></select></label>
+                        <label>Format<select id="batch-format" class="select-input"></select></label>
+                        <label>Posts<select id="batch-count" class="select-input"><option>1</option><option>3</option><option selected>5</option><option>10</option></select></label>
+                        <label>Language<select id="batch-language" class="select-input"><option value="en">English</option><option value="de">German</option></select></label>
+                        <button id="batch-generate" type="button" class="btn btn-primary">Generate batch</button>
+                    </div>
+                    <p id="batch-connection" class="section-hint batch-connection" aria-live="polite"></p>
+
+                    <div class="batch-layout">
+                        <aside class="batch-sidebar" aria-label="Posts in this batch">
+                            <div class="batch-sidebar-head">
+                                <span id="batch-summary" class="batch-summary" aria-live="polite"></span>
+                                <button id="batch-clear" type="button" class="btn ss-btn-quiet btn-sm">Clear sent and rejected</button>
+                            </div>
+                            <div id="batch-queue" class="batch-queue"></div>
+                            <button id="batch-send" type="button" class="btn btn-success full-width" disabled>Send as drafts</button>
+                        </aside>
+
+                        <section class="batch-review" aria-label="Review">
+                            <div class="batch-review-nav">
+                                <button id="batch-prev" type="button" class="btn btn-secondary btn-sm" aria-label="Previous post">← Prev</button>
+                                <span id="batch-position" class="batch-position"></span>
+                                <button id="batch-next" type="button" class="btn btn-secondary btn-sm" aria-label="Next post">Next →</button>
+                            </div>
+                            <div class="batch-review-body">
+                                <div class="batch-preview">
+                                    <div id="batch-stage" class="batch-stage"></div>
+                                    <div id="batch-strip" class="batch-strip"></div>
+                                    <p class="section-hint batch-keys">← → post · ↑ ↓ slide · A approve · X reject</p>
+                                </div>
+                                <div id="batch-editor" class="batch-editor"></div>
+                            </div>
+                        </section>
+                    </div>
+                </section>
+            </div>
+
                 <section class="panel-section meme-workspace">
                     <h2>Meme Slides</h2>
                     <p class="section-hint">Generate the copy, then arrange your cats on white slides. Cover + five comparisons + the app slide, exported at 1080 × 1350.</p>
@@ -2042,9 +2085,10 @@ INSIDE: ..."></textarea>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="app.js?v=20260827g"></script>
-    <script src="meme-canvas.js?v=20260916a"></script>
-    <script src="meme-slides.js?v=20260916a"></script>
+    <script src="app.js?v=20261005b"></script>
+    <script src="meme-canvas.js?v=20261005b"></script>
+    <script src="meme-slides.js?v=20261005b"></script>
+    <script src="batch.js?v=20261005b"></script>
     <script src="bfrb-slides.js?v=20260916a"></script>
 </body>
 

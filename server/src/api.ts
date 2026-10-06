@@ -15,6 +15,7 @@ import { generateMemeSlideshow } from "./projects/dbt/meme_slideshow";
 import { generateBfrbMemeSlideshow } from "./projects/bfrb/bfrb_meme_slideshow";
 import { getMemeAssets, startMemeAnalysis, editMemeLabels, selectMemeAssets } from "./projects/dbt/meme_assets";
 import { generateSsBatch, SS_FORMATS } from "./projects/dbt/ss_batch";
+import { createTikTokDraft, listPublishAccounts, publishingStatus, uploadSlideImage } from "./publish";
 import type { SsFormatId } from "./projects/dbt/ss_batch";
 import { generateTheScriptSlideshow } from "./projects/dbt/the_script";
 import { getAnchorImage, buildUGCSlide1Prompt } from "./common/prompt_utils";
@@ -2958,6 +2959,31 @@ Output ONLY the JSON object.No markdown, no explanation.`
             if (!ANTHROPIC_API_KEY) return sendJSON({ error: 'Anthropic API key is not configured.' }, 503);
             try {
                 const body: any = await req.json();
+        // Batch publishing: post-bridge accounts, slide uploads to Supabase Storage, TikTok drafts.
+        else if (cleanPath === '/publish/status' && method === 'GET') {
+            return sendJSON(publishingStatus());
+        }
+        else if (cleanPath === '/publish/channels' && method === 'GET') {
+            try { return sendJSON({ channels: await listPublishAccounts() }); }
+            catch (error: any) { console.error('[Publish] channels:', error); return sendJSON({ error: error.message || 'Could not load the publishing accounts.' }, 502); }
+        }
+        else if (cleanPath === '/publish/upload' && method === 'POST') {
+            try {
+                const imagePath = url.searchParams.get('path') || '';
+                const contentType = req.headers.get('content-type') === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+                return sendJSON({ url: await uploadSlideImage(imagePath, await req.arrayBuffer(), contentType) });
+            } catch (error: any) { console.error('[Publish] upload:', error); return sendJSON({ error: error.message || 'Upload failed.' }, 500); }
+        }
+        else if (cleanPath === '/publish/draft' && method === 'POST') {
+            try {
+                const body: any = await req.json();
+                if (typeof body?.channelId !== 'string' || typeof body?.text !== 'string' || body.text.length > 4000 ||
+                    !Array.isArray(body.imageUrls) || body.imageUrls.some((u: any) => typeof u !== 'string' || !/^https:\/\//.test(u))) {
+                    return sendJSON({ error: 'Provide channelId, text and https image URLs.' }, 400);
+                }
+                return sendJSON({ post: await createTikTokDraft({ accountId: body.channelId, caption: body.text, title: typeof body.title === 'string' ? body.title : '', imageUrls: body.imageUrls }) });
+            } catch (error: any) { console.error('[Publish] draft:', error); return sendJSON({ error: error.message || 'Draft failed.' }, 502); }
+        }
                 if (!Array.isArray(body?.slides) || body.slides.length < 1 || body.slides.length > 6 ||
                     body.slides.some((s: any) => !s || !['hook', 'point'].includes(s.role) || ['headline', 'body', 'leftLabel', 'rightLabel'].some((k) => typeof s[k] !== 'string' || s[k].length > 3000))) return sendJSON({ error: 'Provide one to six cover/point slides.' }, 400);
                 if (body.alternative && (typeof body.alternative.id !== 'string' || !['left', 'right', 'accentLeft', 'accentRight'].includes(body.alternative.side))) return sendJSON({ error: 'Invalid alternative request.' }, 400);

@@ -1800,7 +1800,7 @@ export async function generateSsSlideshow(params: {
     const meme = params.format === 'meme';
     // Simple + dbt share the same skeleton: hook + 5-7 numbered points + bonus app slide.
     const listicle = simple || dbt;
-    const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(String(params.model))
+    const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-sonnet-5-5'].includes(String(params.model))
         ? String(params.model)
         : 'claude-fable-5';
 
@@ -1970,7 +1970,8 @@ export async function generateSsSlideshow(params: {
                 'anthropic-version': '2023-06-01',
                 // Fable 5 and Opus 5 can decline a request outright; the fallback lets the
                 // API finish it on Opus 4.8 in the same call instead of returning nothing.
-                'anthropic-beta': 'server-side-fallback-2026-06-01',
+                // Sonnet 5.5 takes only the newer "default" form, which routes by refusal category.
+                'anthropic-beta': model === 'claude-sonnet-5-5' ? 'server-side-fallback-2026-07-01' : 'server-side-fallback-2026-06-01',
                 'content-type': 'application/json'
             },
             body: JSON.stringify({
@@ -1979,6 +1980,7 @@ export async function generateSsSlideshow(params: {
                 model,
                 max_tokens: 16000,
                 ...(model === 'claude-fable-5' || model === 'claude-opus-5' ? { fallbacks: [{ model: 'claude-opus-4-8' }] } : {}),
+                ...(model === 'claude-sonnet-5-5' ? { fallbacks: 'default' } : {}),
                 system: hacks
                     ? buildHacksSystemPrompt(language, listicleHook, listicleTerritory, hacksCtaAngle, hacksProofBracket, hacksPlan)
                     : legacy

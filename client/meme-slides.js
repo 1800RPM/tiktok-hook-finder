@@ -337,9 +337,18 @@ window.createMemeSlides = (cfg) => {
         document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
         status('Draft exported as JSON.');
     });
+    // The batch tab writes posts outside this editor, but its topics must still count as used
+    // here, or the next single post repeats one. Settings come from this tab's own fields.
+    return {
+        endpoint: cfg.endpoint,
+        canvas: cfg.canvas,
+        settings,
+        previousTopics: () => [...previousTopics],
+        rememberTopic: (topic) => { rememberTopic(topic); save(); },
+    };
 };
 
-createMemeSlides({
+window.dbtMemeSlides = createMemeSlides({
     prefix: 'meme', storageKey: 'dbt-meme-slides-v1', endpoint: '/generate-meme-slideshow',
     settingNames: ['theme', 'notes', 'language', 'model'], exportName: 'meme-slides',
     migrateCats: true, example: true,

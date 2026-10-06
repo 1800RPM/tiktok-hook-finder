@@ -184,7 +184,10 @@ const AXES_FOR_PROMISE: Record<string, number[]> = {
 };
 
 export async function generateMemeSlideshow(params: { topic?: string; theme?: string; notes?: string; previousTopics?: string[]; language?: string; model?: string; axis?: string; promise?: string; ANTHROPIC_API_KEY: string }) {
-    const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(params.model || '') ? params.model! : 'claude-sonnet-4-6';
+    const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-sonnet-5-5'].includes(params.model || '') ? params.model! : 'claude-sonnet-4-6';
+    // Sonnet 5.5 thinks before it answers (adaptive by default), so it needs room beyond the
+    // 4000 tokens the copy itself takes, and a decline is finished by a fallback model.
+    const sonnet55 = model === 'claude-sonnet-5-5';
     const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)]!;
     const promise = params.promise && MEME_PROMISES.includes(params.promise) ? params.promise : pick(MEME_PROMISES);
     const allowed = (AXES_FOR_PROMISE[promise] || MEME_AXES.map((_, i) => i)).map((i) => MEME_AXES[i]!);
@@ -203,8 +206,8 @@ export async function generateMemeSlideshow(params: { topic?: string; theme?: st
     for (let attempt = 0; attempt < 2; attempt++) {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST', signal: AbortSignal.timeout(150000),
-            headers: { 'x-api-key': params.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-            body: JSON.stringify({ model, max_tokens: 4000, system: SYSTEM_PROMPT, messages }),
+            headers: { 'x-api-key': params.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', ...(sonnet55 ? { 'anthropic-beta': 'server-side-fallback-2026-07-01' } : {}) },
+            body: JSON.stringify({ model, max_tokens: sonnet55 ? 16000 : 4000, system: SYSTEM_PROMPT, messages, ...(sonnet55 ? { fallbacks: 'default' } : {}) }),
         });
         if (!response.ok) throw new Error(`Text provider returned ${response.status}. Please retry.`);
         const data = await response.json() as any;
