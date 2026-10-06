@@ -15,7 +15,7 @@ import { generateMemeSlideshow } from "./projects/dbt/meme_slideshow";
 import { generateBfrbMemeSlideshow } from "./projects/bfrb/bfrb_meme_slideshow";
 import { getMemeAssets, startMemeAnalysis, editMemeLabels, selectMemeAssets } from "./projects/dbt/meme_assets";
 import { generateSsBatch, SS_FORMATS } from "./projects/dbt/ss_batch";
-import { createTikTokDraft, listPublishAccounts, publishingStatus, uploadSlideImage } from "./publish";
+import { createTikTokDraft, getDraftStatus, listPublishAccounts, publishingStatus, uploadSlideImage } from "./publish";
 import type { SsFormatId } from "./projects/dbt/ss_batch";
 import { generateTheScriptSlideshow } from "./projects/dbt/the_script";
 import { getAnchorImage, buildUGCSlide1Prompt } from "./common/prompt_utils";
@@ -2974,6 +2974,10 @@ Output ONLY the JSON object.No markdown, no explanation.`
                 return sendJSON({ url: await uploadSlideImage(imagePath, await req.arrayBuffer(), contentType) });
             } catch (error: any) { console.error('[Publish] upload:', error); return sendJSON({ error: error.message || 'Upload failed.' }, 500); }
         }
+        else if (cleanPath === '/publish/draft-status' && method === 'GET') {
+            try { return sendJSON(await getDraftStatus(url.searchParams.get('id') || '')); }
+            catch (error: any) { return sendJSON({ error: error.message || 'Status unavailable.' }, 502); }
+        }
         else if (cleanPath === '/publish/draft' && method === 'POST') {
             try {
                 const body: any = await req.json();
@@ -2981,7 +2985,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                     !Array.isArray(body.imageUrls) || body.imageUrls.some((u: any) => typeof u !== 'string' || !/^https:\/\//.test(u))) {
                     return sendJSON({ error: 'Provide channelId, text and https image URLs.' }, 400);
                 }
-                return sendJSON({ post: await createTikTokDraft({ accountId: body.channelId, caption: body.text, title: typeof body.title === 'string' ? body.title : '', imageUrls: body.imageUrls }) });
+                return sendJSON({ post: await createTikTokDraft({ accountId: body.channelId, caption: body.text, title: typeof body.title === 'string' ? body.title : '', imageUrls: body.imageUrls, autoAddMusic: typeof body.autoAddMusic === 'boolean' ? body.autoAddMusic : undefined }) });
             } catch (error: any) { console.error('[Publish] draft:', error); return sendJSON({ error: error.message || 'Draft failed.' }, 502); }
         }
                 if (!Array.isArray(body?.slides) || body.slides.length < 1 || body.slides.length > 6 ||

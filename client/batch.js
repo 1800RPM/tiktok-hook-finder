@@ -39,7 +39,9 @@
         try {
             const list = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
             // A reload mid-generation leaves posts that will never finish.
-            return Array.isArray(list) ? list.map((p) => (['queued', 'generating', 'sending'].includes(p.status) ? { ...p, status: p.status === 'sending' ? 'approved' : 'failed', error: p.status === 'sending' ? '' : 'Interrupted by a page reload.' } : p)) : [];
+            // A post caught mid-send may already have reached post-bridge, so it comes back with a
+            // warning to check the inbox first rather than silently re-queued for a second copy.
+            return Array.isArray(list) ? list.map((p) => (['queued', 'generating', 'sending'].includes(p.status) ? { ...p, status: p.status === 'sending' ? 'approved' : 'failed', error: p.status === 'sending' ? 'Interrupted while sending. Check the TikTok inbox before sending it again.' : 'Interrupted by a page reload.' } : p)) : [];
         } catch { return []; }
     }
     function save() {
@@ -299,6 +301,7 @@
 
     // ---- Review -------------------------------------------------------------------------------
     function openPost(id) {
+        if (id !== currentId) stopSound();
         currentId = id || null; currentSlide = 0;
         renderAll();
         const p = post(currentId);
@@ -466,17 +469,39 @@
     }
 
     // ---- Sending ------------------------------------------------------------------------------
+    // One send run at a time. The button used to come back on during a run (every status change
+    // re-enabled it), and each extra click started a second loop over the same posts: five posts
+    // went out fifteen times, and TikTok answered the flood with 429s.
+    let sendRun = null;
+    // TikTok accepts only a few inbox uploads per minute per account, so posts go out spaced.
+    const SEND_GAP_MS = 12000;
     async function sendApproved() {
+        if (sendRun) return;
         const queue = posts.filter((p) => p.status === 'approved');
         if (!queue.length) return notify('Approve at least one post first.', 'error');
-        const status = await api('/publish/status').catch(() => ({}));
-        if (!status.storage) return notify('Image hosting is not set up: add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to server/.env and restart the server.', 'error');
-        $('send').disabled = true;
-        let sent = 0;
-        for (const p of queue) {
-            p.status = 'sending'; save(); renderAll();
-            try {
-                const folder = `batch/${new Date().toISOString().slice(0, 10)}/${p.id}`;
+        sendRun = { done: 0, total: queue.length };
+        syncControls();
+        try {
+            const status = await api('/publish/status').catch(() => ({}));
+            if (!status.storage) return notify('Image hosting is not set up: add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to server/.env and restart the server.', 'error');
+            const sentNow = [];
+            for (const [n, p] of queue.entries()) {
+                // Re-read: the post may have been removed or rejected while earlier ones were sending.
+                if (!post(p.id) || p.status !== 'approved') continue;
+                if (n > 0) await new Promise((resolve) => setTimeout(resolve, SEND_GAP_MS));
+                if (await sendOne(p)) sentNow.push(p);
+                sendRun.done = n + 1; syncControls();
+            }
+            notify(`${sentNow.length} of ${queue.length} posts sent. Checking that TikTok accepted them…`, sentNow.length ? 'success' : 'error');
+            verifyDelivery(sentNow);
+        } finally { sendRun = null; syncControls(); }
+    }
+    async function sendOne(p) {
+        p.status = 'sending'; save(); renderAll();
+        try {
+                // A fresh folder per attempt: re-uploading over the same files while TikTok was still
+                // fetching them is how a draft arrived with images missing.
+                const folder = `batch/${new Date().toISOString().slice(0, 10)}/${p.id}/${Date.now()}`;
                 const urls = [];
                 for (let i = 0; i < p.slides.length; i++) {
                     const blob = p.kind === 'ss'
@@ -485,19 +510,46 @@
                     const { url } = await api(`/publish/upload?path=${encodeURIComponent(`${folder}/slide-${i + 1}.png`)}`, { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: blob });
                     urls.push(url);
                 }
-                // The title travels in its own TikTok field, so the caption is description + tags.
-                const text = [p.description, (p.hashtags || []).join(' ')].filter(Boolean).join('\n\n');
+                // The title travels in its own TikTok field, so the caption is description + tags,
+                // plus the chosen sound as a last line to add by hand and delete before posting.
+                const text = [p.description, (p.hashtags || []).join(' '), soundLine(p.sound)].filter(Boolean).join('\n\n');
                 const { post: draft } = await api('/publish/draft', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ channelId: p.channelId, text: text || p.title || ' ', title: p.title, imageUrls: urls }),
+                    // With a sound chosen, TikTok must not add its own; without one it may.
+                    body: JSON.stringify({ channelId: p.channelId, text: text || p.title || ' ', title: p.title, imageUrls: urls, autoAddMusic: !p.sound }),
                 });
-                Object.assign(p, { status: 'sent', draftId: draft.id, sentAt: Date.now() }); delete p.error;
-                sent++;
-            } catch (error) { p.status = 'approved'; p.error = `Not sent: ${error.message}`; }
+                Object.assign(p, { status: 'sent', draftId: draft.id, sentAt: Date.now(), delivery: 'checking' }); delete p.error;
             save(); renderAll();
+            return true;
+        } catch (error) {
+            p.status = 'approved'; p.error = `Not sent: ${error.message}`;
+            save(); renderAll();
+            return false;
         }
-        $('send').disabled = false;
-        notify(`${sent} of ${queue.length} posts sent as drafts.`, sent === queue.length ? 'success' : 'error');
+    }
+    // post-bridge hands the draft to TikTok in the background (about 40 s). A post TikTok refuses
+    // goes back to "approved" with the reason, so it can simply be sent again.
+    async function verifyDelivery(list) {
+        const pending = new Set(list.filter((p) => p.draftId));
+        for (let round = 0; round < 24 && pending.size; round++) {
+            await new Promise((resolve) => setTimeout(resolve, 10000));
+            for (const p of [...pending]) {
+                if (!post(p.id)) { pending.delete(p); continue; }
+                try {
+                    const result = await api(`/publish/draft-status?id=${encodeURIComponent(p.draftId)}`);
+                    if (result.status === 'processing' || result.status === 'scheduled') continue;
+                    pending.delete(p);
+                    if (result.delivered) p.delivery = 'delivered';
+                    else {
+                        Object.assign(p, { status: 'approved', error: `TikTok did not take the draft: ${result.error || result.status}. Send it again.` });
+                        delete p.delivery; delete p.draftId;
+                    }
+                    save(); renderAll();
+                } catch { /* try again next round */ }
+            }
+        }
+        const failed = list.filter((p) => post(p.id) && p.status === 'approved').length;
+        if (list.length) notify(failed ? `${failed} post${failed === 1 ? '' : 's'} not accepted by TikTok and back in the queue to send again.` : 'All sent posts arrived in the TikTok inbox.', failed ? 'error' : 'success');
     }
 
     function clearFinished() {
@@ -519,8 +571,10 @@
         $('generate').disabled = running || !channels.length;
         $('generate').textContent = running ? 'Generating…' : 'Generate batch';
         const approved = posts.filter((p) => p.status === 'approved').length;
-        $('send').disabled = !approved || running;
-        $('send').textContent = approved ? `Send ${approved} as drafts` : 'Send as drafts';
+        $('send').disabled = Boolean(sendRun) || !approved || running;
+        $('send').textContent = sendRun
+            ? `Sending ${Math.min(sendRun.done + 1, sendRun.total)} of ${sendRun.total}…`
+            : approved ? `Send ${approved} as drafts` : 'Send as drafts';
     }
     function renderQueue() {
         const counts = posts.reduce((acc, p) => ({ ...acc, [p.status]: (acc[p.status] || 0) + 1 }), {});
@@ -538,7 +592,7 @@
             item.disabled = ['queued', 'generating'].includes(p.status);
             item.append(el('span', { className: 'batch-chip-n', textContent: String(i + 1) }),
                 el('span', { className: 'batch-chip-text', textContent: p.slides?.[0] ? (p.kind === 'ss' ? p.slides[0].text.split('\n')[0] : p.slides[0].headline) : p.formatLabel }),
-                el('span', { className: 'batch-chip-status', textContent: STATUS_LABEL[p.status] || p.status }));
+                el('span', { className: 'batch-chip-status', textContent: p.status === 'sent' ? (p.delivery === 'delivered' ? 'In TikTok inbox' : p.delivery === 'checking' ? 'Sent, checking…' : STATUS_LABEL.sent) : STATUS_LABEL[p.status] || p.status }));
             item.addEventListener('click', () => openPost(p.id));
             // The remove button sits beside the chip, not inside it: a button cannot hold a button.
             const remove = el('button', { type: 'button', className: 'batch-chip-remove', textContent: '×', title: 'Remove this post' });
@@ -702,6 +756,7 @@
             panel.append(el('label', { className: 'batch-field' }, [el('span', { textContent: 'Photo theme for slides 2 onwards' }), theme]));
         }
         if (p.kind === 'ss') panel.append(textStylePicker(p, locked));
+        panel.append(soundPicker(p, locked));
         panel.append(field('Title', p.title, (v) => { p.title = v; save(); }, 1));
         panel.append(field('Description', p.description, (v) => { p.description = v; save(); }, 3));
         panel.append(field('Hashtags', (p.hashtags || []).join(' '), (v) => { p.hashtags = v.split(/\s+/).filter(Boolean); save(); }, 1));
@@ -757,6 +812,88 @@
         wrap.append(el('label', { className: 'batch-field' }, [el('span', { textContent: 'Hook photo folder' }), select]), grid, more);
         return wrap;
     }
+    // ---- Sound ----------------------------------------------------------------------------------
+    // TikTok's posting API cannot attach a sound, so the pick travels as a caption line (name,
+    // artist, link) to the inbox draft, where it is added by hand and the line deleted. Slideshow
+    // posts draw from the Slideshows tab's pool, meme posts from the meme pool.
+    const soundShown = new Map();   // post id -> suggestions on screen
+    let soundAudio = null;
+    function stopSound() {
+        if (soundAudio) { soundAudio.pause(); soundAudio = null; }
+        document.querySelectorAll('.batch-sound .ss-sound-play').forEach((b) => { b.textContent = '▶'; b.dataset.playing = 'false'; });
+    }
+    function playSound(sound, button) {
+        const wasPlaying = soundAudio?.dataset.soundId === sound.id && !soundAudio.paused;
+        stopSound();
+        if (wasPlaying) return;
+        // An <audio> element cannot send headers, so the key rides in the query string.
+        const key = (localStorage.getItem('TIKTOK_API_KEY') || localStorage.getItem('TIKTOK_API_PASSWORD') || '').trim();
+        const audio = new Audio(`${API_BASE}/ss-sounds/audio?id=${encodeURIComponent(sound.id)}${key ? `&key=${encodeURIComponent(key)}` : ''}`);
+        audio.dataset.soundId = sound.id;
+        audio.addEventListener('ended', stopSound);
+        audio.addEventListener('error', () => { stopSound(); notify('This sound cannot be played. Pick another one.', 'error'); });
+        soundAudio = audio; button.textContent = '❚❚'; button.dataset.playing = 'true';
+        audio.play().catch(() => stopSound());
+    }
+    const soundLine = (sound) => (sound ? `🎵 Sound: ${[sound.title, sound.artist].filter(Boolean).join(' – ')}${sound.link ? `\n${sound.link}` : ''}` : '');
+    function soundPicker(p, locked) {
+        const wrap = el('div', { className: 'batch-field batch-sound' });
+        const status = el('span', { className: 'batch-hint' });
+        const list = el('div', { className: 'ss-sound-list' });
+        const more = el('button', { type: 'button', className: 'btn ss-btn-quiet btn-sm', textContent: 'Other suggestions' });
+        more.disabled = locked;
+        const card = (sound) => {
+            const selected = p.sound?.id === sound.id;
+            const item = el('div', { className: 'ss-sound-card', tabIndex: locked ? -1 : 0 });
+            item.dataset.selected = String(selected);
+            item.setAttribute('role', 'button'); item.setAttribute('aria-pressed', String(selected));
+            const play = el('button', { type: 'button', className: 'ss-sound-play', textContent: '▶' });
+            play.setAttribute('aria-label', `Play ${sound.title}`);
+            play.addEventListener('click', (event) => { event.stopPropagation(); playSound(sound, play); });
+            const main = el('div', { className: 'ss-sound-main' }, [
+                el('div', { className: 'ss-sound-title', textContent: sound.title }),
+                el('div', { className: 'ss-sound-meta', textContent: [sound.artist, sound.duration ? `${sound.duration}s` : ''].filter(Boolean).join(' · ') }),
+            ]);
+            const pick = () => {
+                if (locked) return;
+                // Clicking the chosen sound again clears it.
+                p.sound = selected ? null : { id: sound.id, title: sound.title, artist: sound.artist || '', link: sound.link || '' };
+                save(); render();
+            };
+            item.append(play, main, el('span', { className: 'ss-sound-check', textContent: selected ? '✓' : '' }));
+            item.addEventListener('click', pick);
+            item.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); pick(); } });
+            return item;
+        };
+        const render = () => {
+            const shown = soundShown.get(p.id) || [];
+            // The chosen sound stays on screen even when it is not in the current suggestions.
+            const cards = p.sound && !shown.some((s) => s.id === p.sound.id) ? [p.sound, ...shown] : shown;
+            list.replaceChildren(...cards.map(card));
+            status.textContent = p.sound
+                ? 'Goes to the end of the caption as a line with name, artist and link. Add it in TikTok, then delete the line.'
+                : 'No sound chosen yet. Pick one to put it in the caption.';
+        };
+        const load = async (refresh = false) => {
+            more.disabled = true;
+            try {
+                const query = new URLSearchParams({ count: '3' });
+                if (p.kind === 'meme') query.set('flow', 'meme');
+                const exclude = (soundShown.get(p.id) || []).map((s) => s.id).join(',');
+                if (refresh && exclude) query.set('exclude', exclude);
+                const data = await api(`/ss-sounds?${query}`);
+                soundShown.set(p.id, data.sounds || []);
+                render();
+            } catch (error) { status.textContent = `Sounds could not load: ${error.message}`; }
+            finally { more.disabled = locked; }
+        };
+        more.addEventListener('click', () => load(true));
+        wrap.append(el('span', { textContent: 'Sound' }), list, el('div', { className: 'batch-sound-foot' }, [status, more]));
+        render();
+        if (!soundShown.has(p.id)) load();
+        return wrap;
+    }
+
     // Font, colour and outline for every slide of this post, with the Slideshows tab's font list.
     function textStylePicker(p, locked) {
         const style = styleOf(p);
@@ -848,6 +985,9 @@
         } catch (error) { $('connection').textContent = `Accounts could not load: ${error.message}`; }
         renderChannels(); syncControls();
         if (!currentId) openPost(reviewable().find((p) => p.status === 'ready')?.id || reviewable()[0]?.id);
+        // A reload during the delivery check picks it back up.
+        const unchecked = posts.filter((p) => p.status === 'sent' && p.delivery === 'checking' && p.draftId);
+        if (unchecked.length) verifyDelivery(unchecked);
     }
 
     document.querySelectorAll('.service-btn[data-service="batch"]').forEach((button) => button.addEventListener('click', () => init()));

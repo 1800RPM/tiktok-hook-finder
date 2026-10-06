@@ -31,7 +31,7 @@ export async function listPublishAccounts() {
     return accounts;
 }
 
-export async function createTikTokDraft(input: { accountId: string; caption: string; title?: string; imageUrls: string[] }) {
+export async function createTikTokDraft(input: { accountId: string; caption: string; title?: string; imageUrls: string[]; autoAddMusic?: boolean }) {
     if (!/^\d+$/.test(input.accountId)) throw new Error('Unknown account. Pick the account again in the Batch tab.');
     if (!input.imageUrls.length || input.imageUrls.length > 35) throw new Error('A TikTok photo post needs 1 to 35 images.');
     const data = await postBridge('/posts', {
@@ -41,10 +41,28 @@ export async function createTikTokDraft(input: { accountId: string; caption: str
             social_accounts: [Number(input.accountId)],
             media_urls: input.imageUrls,
             // No scheduled_at: handed to TikTok right away, and draft keeps it out of the feed.
-            platform_configurations: { tiktok: { draft: true, ...(input.title ? { title: input.title.slice(0, 90) } : {}) } },
+            // TikTok's API cannot attach a chosen sound. When one was picked it rides in the caption,
+            // and auto_add_music: false stops TikTok from putting a random track in its place.
+            platform_configurations: { tiktok: {
+                draft: true,
+                ...(input.title ? { title: input.title.slice(0, 90) } : {}),
+                ...(typeof input.autoAddMusic === 'boolean' ? { auto_add_music: input.autoAddMusic } : {}),
+            } },
         }),
     });
     return { id: String(data?.id ?? data?.data?.id ?? ''), status: String(data?.status ?? data?.data?.status ?? 'created') };
+}
+
+// post-bridge accepts a post right away and hands it to TikTok in the background, so a
+// "created" answer says nothing about delivery. TikTok can still refuse it (e.g. 429 when too
+// many uploads arrive at once); this reads what actually happened.
+export async function getDraftStatus(id: string) {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error('Invalid draft id.');
+    const post = await postBridge(`/posts/${id}`);
+    const results = await postBridge(`/post-results?post_id=${id}`);
+    const result = (results?.data || [])[0];
+    const status = String(post?.status || 'processing');
+    return { status, delivered: status === 'posted' && result?.success !== false, error: result?.error ? String(result.error) : '' };
 }
 
 function supabaseConfig() {

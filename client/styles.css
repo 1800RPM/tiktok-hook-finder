@@ -142,6 +142,10 @@ body[data-service="batch"] #floating-download-btn { display: none !important; }
 .batch-meme-canvas { display: block; width: 100%; max-width: 380px; height: auto; aspect-ratio: 4 / 5; border-radius: var(--radius-md); background: #ffffff; cursor: move; touch-action: none; }
 .batch-meme-canvas:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 3px; }
 .batch-canvas-tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.batch-sound .ss-sound-list { margin-top: 2px; }
+.batch-sound-foot { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.batch-sound-foot .batch-hint { margin: 0; }
+.batch-sound-foot .btn { width: auto; flex: 0 0 auto; }
 .batch-meme-ai { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .batch-field-label { font-size: .8rem; color: var(--text-secondary); margin-top: 4px; }
 .batch-placed { display: flex; flex-wrap: wrap; gap: 6px; }
