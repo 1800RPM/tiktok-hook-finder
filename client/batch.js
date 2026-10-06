@@ -77,6 +77,61 @@
         editorLock = run.catch(() => {});
         return run;
     }
+    // Every scene change made outside the live canvas goes through here. The revision tells the
+    // live canvas to reload; changes made on the canvas itself never bump it, so a drag in
+    // progress is never pulled out from under the pointer.
+    function setScenes(p, scenes) {
+        p.scenes = JSON.parse(JSON.stringify(scenes || []));
+        p.scenesRev = (p.scenesRev || 0) + 1;
+    }
+
+    // The live canvas: the same MemeCanvasEditor as the Meme Slides tab, on a real canvas, so
+    // images and text drag, rotate and resize the same way. Its other controls are detached
+    // stand-ins (headless), and the toolbar below the canvas clicks those.
+    let liveEditor = null, liveCanvas = null, liveKey = '', livePost = null, liveTimer = null;
+    function ensureLiveEditor() {
+        if (liveEditor) return liveEditor;
+        liveCanvas = el('canvas', { id: 'batch-meme-live-canvas', className: 'batch-meme-canvas', width: 1080, height: 1350, tabIndex: 0 });
+        liveCanvas.setAttribute('aria-label', 'Meme slide. Drag images or text to move them, the dot rotates, the square resizes, arrow keys nudge, Delete removes an image.');
+        // Construction looks the canvas up by id, so it has to be in the document for that moment.
+        liveCanvas.hidden = true; document.body.append(liveCanvas);
+        liveEditor = new MemeCanvasEditor(() => {
+            if (!livePost) return;
+            livePost.scenes = JSON.parse(JSON.stringify(liveEditor.serialize().scenes));
+            save();
+            clearTimeout(liveTimer);
+            const p = livePost, index = liveEditor.index;
+            liveTimer = setTimeout(() => ensurePreviews(p, index), 300);
+            if (p.id === currentId) renderLivePlaced();
+        }, { prefix: 'batch-meme-live', artwork: 'batch-meme-live-artwork', panel: '#batch-no-panel', headless: true });
+        liveCanvas.hidden = false;
+        return liveEditor;
+    }
+    function showLiveStage(p, stage) {
+        const editor = ensureLiveEditor();
+        const key = `${p.id}|${currentSlide}|${p.scenesRev || 0}`;
+        if (key !== liveKey || livePost !== p) {
+            liveKey = key; livePost = p;
+            editor.scenes = JSON.parse(JSON.stringify(p.scenes || []));
+            editor.index = currentSlide; editor.selected = null;
+            editor.setSlides(p.slides);
+        } else editor.refresh();
+        if (liveCanvas.parentElement !== stage || stage.children.length !== 1) stage.replaceChildren(liveCanvas);
+    }
+    // Text edits change the slide objects the live canvas already holds; it only needs a redraw.
+    function refreshLive() { if (liveEditor && livePost?.id === currentId) liveEditor.refresh(); }
+    function liveAction(name) {
+        if (!liveEditor || livePost?.id !== currentId) return;
+        liveEditor.$(name).click();
+        liveEditor.canvas.focus();
+    }
+    // The "Images on this slide" list follows canvas edits (a Delete key press removes one).
+    function renderLivePlaced() {
+        const list = document.querySelector('.batch-meme-tools .batch-placed-host');
+        const p = post(currentId);
+        if (list && p) list.replaceChildren(placedList(p, currentSlide, ['sent', 'sending'].includes(p.status)));
+    }
+
     function loadIntoEditor(editor, p) {
         editor.scenes = JSON.parse(JSON.stringify(p.scenes || []));
         editor.index = 0;
@@ -137,8 +192,8 @@
         await withEditor(async (editor) => {
             editor.setSlides(p.slides, true);
             const ok = await editor.autoArrange();
-            p.scenes = editor.serialize().scenes;
-            if (!ok) p.warning = `Images were not placed: ${editor.$('status').textContent} Use "New images" in the review.`;
+            setScenes(p, editor.serialize().scenes);
+            if (!ok) p.warning = `Images were not placed: ${editor.$('status').textContent} Use "AI: all slides" in the review.`;
         });
     }
 
@@ -282,19 +337,132 @@
                 const options = (await folderImages(set)).filter((name) => name !== slide.imageRef?.name);
                 if (!options.length) throw new Error('No other photo in this folder.');
                 slide.imageRef = { set, name: options[Math.floor(Math.random() * options.length)] };
-            } else {
-                if (p.slides[currentSlide].role === 'cta') throw new Error('The app slide is fixed artwork.');
-                await withEditor(async (editor) => {
-                    loadIntoEditor(editor, p);
-                    const ok = await editor.autoArrange(currentSlide);
-                    if (!ok) throw new Error(editor.$('status').textContent || 'Image selection failed.');
-                    p.scenes = editor.serialize().scenes;
-                });
-                delete p.warning;
             }
             save(); await ensurePreviews(p, currentSlide);
         } catch (error) { notify(error.message, 'error'); }
         finally { button.disabled = false; }
+    }
+
+    // ---- Meme images ------------------------------------------------------------------------
+    // The same three ways the Meme Slides tab offers: AI for the whole post, AI for one slide,
+    // and picking from the library by hand. All of it runs on the headless editor.
+    let memeLibrary = null;
+    async function memeAssets() {
+        memeLibrary ??= api('/meme-assets').then((data) => (data.cats || []).filter((cat) => typeof cat.src === 'string' && /^assets\/meme-slides\//.test(cat.src)))
+            .catch((error) => { memeLibrary = null; throw error; });
+        return memeLibrary;
+    }
+    async function arrangeMeme(p, only, button) {
+        if (button) { button.disabled = true; button.textContent = 'Choosing images…'; }
+        try {
+            await withEditor(async (editor) => {
+                loadIntoEditor(editor, p);
+                const ok = await editor.autoArrange(only);
+                if (!ok) throw new Error(editor.$('status').textContent || 'Image selection failed.');
+                setScenes(p, editor.serialize().scenes);
+            });
+            delete p.warning; save();
+            if (only === null) previews.set(p.id, []);
+            renderReview(); await ensurePreviews(p, only);
+        } catch (error) { notify(error.message, 'error'); renderReview(); }
+    }
+    const SLOT_LABEL = { left: 'Left', right: 'Right', accentLeft: 'Small left', accentRight: 'Small right' };
+    function slotOf(image) {
+        if (image.slot) return image.slot;
+        return image.x < 540 ? 'left' : 'right';
+    }
+    async function placeMemeImage(p, index, asset, slot) {
+        try {
+            await withEditor(async (editor) => {
+                loadIntoEditor(editor, p);
+                await editor.loadImage(asset.src);
+                const object = { ...editor.placement(asset, slot, index), ai: false };
+                // One image per spot: picking a new one replaces whatever sat there.
+                editor.scenes[index].images = editor.scenes[index].images.filter((o) => o.gauge || o.template || slotOf(o) !== slot);
+                editor.scenes[index].images.push(object);
+                setScenes(p, editor.serialize().scenes);
+            });
+            delete p.warning; save(); renderReview(); await ensurePreviews(p, index);
+        } catch (error) { notify(error.message, 'error'); }
+    }
+    function removeMemeImage(p, index, id) {
+        const scene = p.scenes?.[index];
+        if (!scene) return;
+        scene.images = scene.images.filter((o) => o.id !== id);
+        p.scenesRev = (p.scenesRev || 0) + 1;
+        save(); renderReview(); ensurePreviews(p, index);
+    }
+    function placedList(p, index, locked, placed = (p.scenes?.[index]?.images || []).filter((o) => !o.gauge && !o.template)) {
+        if (!placed.length) return el('p', { className: 'batch-hint', textContent: 'No images yet. Let the AI choose, or pick some below.' });
+        return el('div', { className: 'batch-placed' }, placed.map((o) => {
+            const remove = el('button', { type: 'button', className: 'batch-placed-remove', textContent: '×', title: 'Remove this image' });
+            remove.setAttribute('aria-label', `Remove ${o.name}`);
+            remove.disabled = locked;
+            remove.addEventListener('click', () => removeMemeImage(p, index, o.id));
+            return el('div', { className: 'batch-placed-item' }, [
+                el('img', { src: o.src, alt: o.name }),
+                el('span', { textContent: SLOT_LABEL[slotOf(o)] || '' }),
+                remove,
+            ]);
+        }));
+    }
+    function memeImageTools(p, slide, locked) {
+        const wrap = el('div', { className: 'batch-meme-tools' });
+        const allButton = el('button', { type: 'button', className: 'btn btn-secondary', textContent: 'AI: all slides' });
+        const oneButton = el('button', { type: 'button', className: 'btn btn-secondary', textContent: 'AI: this slide' });
+        allButton.disabled = locked;
+        oneButton.disabled = locked || slide.role === 'cta';
+        allButton.addEventListener('click', () => arrangeMeme(p, null, allButton));
+        oneButton.addEventListener('click', () => arrangeMeme(p, currentSlide, oneButton));
+        wrap.append(el('div', { className: 'batch-meme-ai' }, [allButton, oneButton]));
+        if (slide.role === 'cta') {
+            wrap.append(el('p', { className: 'batch-hint', textContent: 'The app slide is fixed artwork.' }));
+            return wrap;
+        }
+        const index = currentSlide;
+        const placed = (p.scenes?.[index]?.images || []).filter((o) => !o.gauge && !o.template);
+        // Acts on whatever is selected on the canvas, like the Meme Slides tab's object controls.
+        const toolbar = el('div', { className: 'batch-canvas-tools' }, [['front', 'Forward'], ['back', 'Back'], ['reset-one', 'Reset'], ['remove', 'Remove']].map(([name, label]) => {
+            const button = el('button', { type: 'button', className: 'btn ss-btn-quiet btn-sm', textContent: label });
+            button.disabled = locked;
+            button.addEventListener('click', () => liveAction(name));
+            return button;
+        }));
+        wrap.append(el('span', { className: 'batch-field-label', textContent: 'Selected on the slide' }), toolbar,
+            el('p', { className: 'batch-hint', textContent: 'Click an image or text on the slide, then drag it. The dot rotates, the square resizes, arrow keys nudge, Delete removes.' }));
+        wrap.append(el('span', { className: 'batch-field-label', textContent: 'Images on this slide' }));
+        wrap.append(el('div', { className: 'batch-placed-host' }, [placedList(p, index, locked, placed)]));
+        const slots = slide.role === 'hook' ? ['left', 'right', 'accentLeft', 'accentRight'] : ['left', 'right'];
+        const slotSelect = el('select', { className: 'select-input' });
+        slotSelect.append(...slots.map((s) => new Option(SLOT_LABEL[s], s)));
+        // Default to the first empty spot so clicking a few images in a row fills the slide.
+        slotSelect.value = slots.find((s) => !placed.some((o) => slotOf(o) === s)) || 'left';
+        const search = el('input', { type: 'search', className: 'text-input', placeholder: 'Search cats and stickers' });
+        const grid = el('div', { className: 'ss-library-grid batch-meme-grid' });
+        const more = el('button', { type: 'button', className: 'btn ss-btn-quiet btn-sm', hidden: true });
+        let expanded = false;
+        const fill = async () => {
+            const query = search.value.trim().toLowerCase();
+            const cats = (await memeAssets()).filter((cat) => !query || [cat.name, cat.override, cat.labels?.description, cat.labels?.meaning, cat.labels?.emotion, ...(cat.labels?.tags || [])].join(' ').toLowerCase().includes(query));
+            const visible = expanded ? cats : cats.slice(0, 24);
+            grid.replaceChildren(...visible.map((cat) => {
+                const button = el('button', { type: 'button', className: 'ss-library-thumb-wrap batch-meme-thumb', title: cat.labels?.meaning || cat.name });
+                button.disabled = locked;
+                button.append(el('img', { className: 'ss-library-thumb', loading: 'lazy', src: cat.src, alt: cat.name }));
+                button.addEventListener('click', () => placeMemeImage(p, index, cat, slotSelect.value));
+                return button;
+            }));
+            if (!cats.length) grid.append(el('p', { className: 'batch-hint', textContent: 'No images match.' }));
+            more.hidden = cats.length <= 24;
+            more.textContent = expanded ? 'Show fewer' : `Show all ${cats.length}`;
+        };
+        let searchTimer = null;
+        search.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { expanded = false; fill().catch(() => {}); }, 200); });
+        more.addEventListener('click', () => { expanded = !expanded; fill().catch(() => {}); });
+        slotSelect.disabled = search.disabled = locked;
+        fill().catch(() => grid.append(el('p', { className: 'batch-hint', textContent: 'The image library could not load.' })));
+        wrap.append(el('label', { className: 'batch-field' }, [el('span', { textContent: 'Add from library to' }), slotSelect]), search, grid, more);
+        return wrap;
     }
 
     // ---- Sending ------------------------------------------------------------------------------
@@ -473,9 +641,9 @@
         if (p.kind === 'ss') renderSsStage(p);
         else {
             stageKey = '';
-            stage.replaceChildren(url
-                ? el('img', { src: url, alt: `Slide ${currentSlide + 1} of post`, className: 'batch-stage-img is-meme' })
-                : el('div', { className: 'batch-stage-skeleton is-meme', textContent: url === '' ? 'Preview failed' : 'Rendering…' }));
+            showLiveStage(p, stage);
+            // A sent post is final: its canvas stays visible but no longer takes edits.
+            liveEditor.exporting = ['sent', 'sending'].includes(p.status);
         }
         strip.replaceChildren(...p.slides.map((_, i) => {
             const b = el('button', { type: 'button', className: `batch-thumb${i === currentSlide ? ' is-current' : ''}`, title: `Slide ${i + 1}` });
@@ -516,12 +684,14 @@
         } else {
             const keys = [['headline', 'Headline'], ['body', slide.role === 'hook' ? 'Subtitle' : 'Explanation']];
             if (slide.role === 'point') keys.push(['leftLabel', 'Left caption'], ['rightLabel', 'Right caption']);
-            for (const [key, labelText] of keys) panel.append(field(labelText, slide[key], (v) => { slide[key] = v; save(); scheduleRerender(p, currentSlide); }, key === 'body' ? 3 : 2));
+            for (const [key, labelText] of keys) panel.append(field(labelText, slide[key], (v) => { slide[key] = v; save(); refreshLive(); scheduleRerender(p, currentSlide); }, key === 'body' ? 3 : 2));
         }
-        const imageButton = el('button', { type: 'button', id: 'batch-new-image', className: 'btn btn-secondary', textContent: p.kind === 'ss' ? 'New photo' : 'New images' });
-        imageButton.disabled = locked || (p.kind === 'meme' && slide.role === 'cta');
-        imageButton.addEventListener('click', () => newImage());
-        panel.append(imageButton);
+        if (p.kind === 'ss') {
+            const imageButton = el('button', { type: 'button', id: 'batch-new-image', className: 'btn btn-secondary', textContent: 'New photo' });
+            imageButton.disabled = locked;
+            imageButton.addEventListener('click', () => newImage());
+            panel.append(imageButton);
+        } else panel.append(memeImageTools(p, slide, locked));
         panel.append(el('h3', { className: 'batch-subhead', textContent: 'Post details' }));
         if (p.kind === 'ss' && state.ssStepPhotoSets?.length) {
             const theme = el('select', { className: 'select-input' });
@@ -653,7 +823,8 @@
         $('next').addEventListener('click', () => step(1));
         document.addEventListener('keydown', (event) => {
             if (document.body.dataset.service !== 'batch' || event.metaKey || event.ctrlKey || event.altKey) return;
-            if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable]')) return;
+            // The meme canvas uses the arrow keys to nudge and Delete to remove, so it keeps them.
+            if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable], canvas')) return;
             if (event.key === 'ArrowRight') step(1);
             else if (event.key === 'ArrowLeft') step(-1);
             else if (event.key === 'ArrowDown') { const p = post(currentId); if (p) { currentSlide = Math.min(p.slides.length - 1, currentSlide + 1); renderReview(); } }

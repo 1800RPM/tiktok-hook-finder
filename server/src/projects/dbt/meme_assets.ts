@@ -86,10 +86,28 @@ async function ask(key: string, content: any[], system: string) {
     return parseAssetJson(raw);
 }
 export function parseAssetJson(raw: string) {
-    // Some responses include a short preamble even when asked for JSON only.
-    const start = raw.indexOf('{'), end = raw.lastIndexOf('}');
-    if (start < 0 || end < start) throw new Error('Asset AI did not return JSON. Retry.');
-    return JSON.parse(raw.slice(start, end + 1));
+    // Some responses include a preamble, a code fence, or a second block (a corrected answer, a
+    // note) even when asked for JSON only. Slicing from the first "{" to the last "}" then swept
+    // the fence markers in between into the parse, so each candidate is tried on its own.
+    const candidates: string[] = [];
+    for (const match of raw.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi)) candidates.push(match[1]!.trim());
+    for (let start = raw.indexOf('{'); start >= 0 && candidates.length < 12; start = raw.indexOf('{', start + 1)) {
+        // The balanced top-level object starting here, skipping braces inside strings. The scan
+        // resumes after its end, so nested objects (one image, one slide) never become candidates.
+        let depth = 0, inString = false, escaped = false;
+        for (let i = start; i < raw.length; i++) {
+            const ch = raw[i];
+            if (inString) { if (escaped) escaped = false; else if (ch === '\\') escaped = true; else if (ch === '"') inString = false; continue; }
+            if (ch === '"') inString = true;
+            else if (ch === '{') depth++;
+            else if (ch === '}' && --depth === 0) { candidates.push(raw.slice(start, i + 1)); start = i; break; }
+        }
+    }
+    // A later block is usually the corrected one, so the last valid candidate wins.
+    let parsed: any;
+    for (const text of candidates) { try { parsed = JSON.parse(text); } catch { /* try the next one */ } }
+    if (parsed === undefined) throw new Error('Asset AI did not return JSON. Retry.');
+    return parsed;
 }
 export function validateLabels(value: any): Labels {
     if (!value || !['description', 'emotion', 'meaning'].every((key) => typeof value[key] === 'string' && value[key].trim()) ||
@@ -258,8 +276,9 @@ export async function selectMemeAssets(key: string, slides: any[], alternative?:
     let selection: any;
     let feedback = '';
     for (let attempt = 0; attempt < 2; attempt++) {
-        const result = await ask(key, [{ type: 'text', text: library, cache_control: { type: 'ephemeral' } }, { type: 'text', text: request + feedback }], SELECT_SYSTEM);
         try {
+            // Inside the try: an unreadable answer gets the same one retry as an invalid one.
+            const result = await ask(key, [{ type: 'text', text: library, cache_control: { type: 'ephemeral' } }, { type: 'text', text: request + feedback }], SELECT_SYSTEM);
             selection = validateSelection(alternative ? result : repairDuplicateAssets(result, valid, roleOf), valid, roles, !!alternative);
             break;
         } catch (error: any) {
