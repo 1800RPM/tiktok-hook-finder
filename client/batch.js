@@ -188,12 +188,14 @@
     async function generateMeme(p, language, batchTopics) {
         const tab = window.dbtMemeSlides;
         if (!tab) throw new Error('The Meme Slides tab did not load.');
-        const settings = { ...tab.settings(), language, model: BATCH_MODEL };
+        // Each post carries its own CTA mode (drawn when the batch started), never the Meme Slides tab's.
+        const settings = { ...tab.settings(), language, model: BATCH_MODEL, cta: p.cta || 'slide' };
         const data = await api(tab.endpoint, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...settings, previousTopics: [...tab.previousTopics(), ...batchTopics].slice(-50) }),
         });
-        if (!Array.isArray(data.slides) || data.slides.length !== 7) throw new Error('The meme generator did not return seven slides.');
+        const expected = settings.cta === 'native' || settings.cta === 'none' ? 6 : 7;
+        if (!Array.isArray(data.slides) || data.slides.length !== expected) throw new Error(`The meme generator did not return ${expected} slides.`);
         batchTopics.push(data.slides[0].headline);
         tab.rememberTopic(data.slides[0].headline);
         Object.assign(p, { title: data.title || '', description: data.description || '', hashtags: Array.isArray(data.hashtags) ? data.hashtags : [], slides: data.slides });
@@ -205,14 +207,28 @@
         });
     }
 
+    // "Mixed" deals the three CTA modes out evenly and shuffles them, so a batch of 24 gets eight
+    // of each in random order rather than whatever a coin flip per post happens to produce.
+    const CTA_LABEL = { slide: 'app slide', native: 'native CTA', none: 'no CTA' };
+    function ctaModes(count) {
+        const choice = $('cta').value;
+        if (choice !== 'mixed') return Array(count).fill(choice);
+        // A random starting mode, so the leftover post of an uneven batch is not always the app slide.
+        const start = Math.floor(Math.random() * 3);
+        return shuffle(Array.from({ length: count }, (_, i) => ['slide', 'native', 'none'][(start + i) % 3]));
+    }
+
     async function startBatch() {
         if (running) return;
         const channelId = $('account').value, formatDef = FORMATS.find((f) => f.id === $('format').value);
         const count = Number($('count').value), language = $('language').value;
         if (!channelId) return notify('Pick a TikTok account first.', 'error');
         running = true; syncControls();
-        const fresh = Array.from({ length: count }, () => ({
-            id: crypto.randomUUID(), kind: formatDef.kind, formatId: formatDef.id, formatLabel: formatDef.label,
+        const ctas = ctaModes(count);
+        const fresh = Array.from({ length: count }, (_, i) => ({
+            id: crypto.randomUUID(), kind: formatDef.kind, formatId: formatDef.id,
+            ...(formatDef.kind === 'meme' ? { cta: ctas[i] } : {}),
+            formatLabel: formatDef.kind === 'meme' ? `${formatDef.label} · ${CTA_LABEL[ctas[i]]}` : formatDef.label,
             channelId, language, status: 'queued', createdAt: Date.now(), slides: [],
         }));
         posts = [...posts, ...fresh]; save(); renderAll();
@@ -1039,6 +1055,12 @@
         $('format').replaceChildren(...FORMATS.map((f) => new Option(f.label, f.id)));
         try { const savedFormat = localStorage.getItem('batch_format'); if (FORMATS.some((f) => f.id === savedFormat)) $('format').value = savedFormat; } catch { /* storage blocked */ }
         $('format').addEventListener('change', () => { try { localStorage.setItem('batch_format', $('format').value); } catch { /* storage blocked */ } });
+        // App CTA only matters for meme posts: slideshows mention the app in their own copy.
+        const syncCtaField = () => { $('cta-field').hidden = FORMATS.find((f) => f.id === $('format').value)?.kind !== 'meme'; };
+        try { const savedCta = localStorage.getItem('batch_cta'); if (['mixed', 'slide', 'native', 'none'].includes(savedCta)) $('cta').value = savedCta; } catch { /* storage blocked */ }
+        $('cta').addEventListener('change', () => { try { localStorage.setItem('batch_cta', $('cta').value); } catch { /* storage blocked */ } });
+        $('format').addEventListener('change', syncCtaField);
+        syncCtaField();
         $('account').addEventListener('change', () => { try { localStorage.setItem('batch_channel', $('account').value); } catch { /* storage blocked */ } });
         $('generate').addEventListener('click', startBatch);
         $('send').addEventListener('click', sendApproved);

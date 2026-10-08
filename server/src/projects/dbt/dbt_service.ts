@@ -1,15 +1,69 @@
 import { ART_STYLES } from './art_styles';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { Database } from 'bun:sqlite';
 import type { ArtStyle } from './art_styles';
+
+export type DbtContentLanguage = 'en' | 'de';
 
 export interface DbtGenerateParams {
     format?: 'relatable' | 'pov' | 'tips';
     topic?: string;
-    slideType?: 'weird_hack' | 'weird_hack_v2' | 'three_tips' | 'story_telling_bf' | 'story_telling_gf' | 'i_say_they_say' | 'permission_v1';
+    slideType?: 'weird_hack' | 'weird_hack_v2' | 'three_tips' | 'story_telling_bf' | 'story_telling_gf' | 'story_telling_gf_v2' | 'i_say_they_say' | 'permission_v1' | 'vent_now_style' | 'little_habits';
     ANTHROPIC_API_KEY: string;
     includeBranding?: boolean;
     artStyle?: string;
+    language?: DbtContentLanguage;
+    model?: string;
+    KIMI_API_KEY?: string;
+    KIMI_API_BASE?: string;
+    KIMI_MODEL?: string;
+}
+
+export interface DbtCarouselTextParams {
+    topic: string;
+    angle?: string;
+    targetAudience?: string;
+    tone?: string;
+    slideCount?: number;
+    allowEmojis?: boolean;
+    ANTHROPIC_API_KEY: string;
+}
+
+export type DbtCarouselSlideRole = 'hook' | 'context' | 'explanation' | 'contrast' | 'reframe' | 'skill' | 'takeaway';
+
+export interface DbtCarouselTextSlide {
+    slideNumber: number;
+    role: DbtCarouselSlideRole;
+    headline: string;
+    subtitle: string;
+    bubbleText: {
+        left: string[];
+        right: string[];
+    };
+    takeaway: string;
+    visualNotes: string;
+}
+
+export interface DbtCarouselTextResult {
+    topic: string;
+    angle: string;
+    slideCount: number;
+    slides: DbtCarouselTextSlide[];
+    preview: string;
+}
+
+export interface StoryTellingHookParams {
+    slides: string[];
+    slideType: 'story_telling_bf' | 'story_telling_gf' | 'story_telling_gf_v2';
+    ANTHROPIC_API_KEY: string;
+    language?: DbtContentLanguage;
+}
+
+export interface StoryTellingHookResult {
+    hooks: string[];
+    styleExamples: string[];
+    styleInfluences: string[];
 }
 
 type WeirdHackV2Topic = {
@@ -28,16 +82,170 @@ type PermissionV1Topic = {
     inGroupTerms?: string[] | null;
 };
 
-const STORY_TELLING_FIXED_CTA = "it's called DBT-Mind. if DBT is something for you - it's free. just search for it on the app store 🖤";
+const STORY_TELLING_CTA_OPTIONS = [
+    "it's called DBT-Mind and i'm still not over the fact that it exists. you can find it on the app store 🖤",
+    "oh and it's called DBT-Mind. it's on the app store if you want it. 🖤",
+    "he actually built it. it's real. DBT-Mind on the app store btw 🖤"
+];
 const STORY_TELLING_FIXED_COMPANION = "you can even choose your own little companion for your journey 🥹";
+const LOVE_STORY_V2_FIXED_COMPANION = "you can even choose your own companion for your journey 🥹";
+const LOVE_STORY_V2_FIXED_CTA = "it's called DBT-Mind and I'm still not over the fact that it exists 🧡";
 const WEIRD_HACK_V2_FIXED_SLIDE8 = "one of these will actually work for you\n\nyou already know which one";
-const PERMISSION_V1_FIXED_SLIDE8 = "if this hit, save it for the next time your brain tries to tell you you're the problem.";
+const WEIRD_HACK_V2_CTA_FALLBACK = "3. have a backup for the loud-brain part\n\nI recommend an app called DBT-Mind for this - it's helped tons of people";
+const PERMISSION_V1_CTA_SLIDE6 = "I recommend an app called DBT-Mind for this - it's helped tons of people";
 
+const STORY_TELLING_CTA_OPTIONS_DE = [
+    "es heißt DBT-Mind und ich bin immer noch nicht drüber hinweg, dass es das gibt. du findest es im app store 🖤",
+    "ach und, es heißt DBT-Mind. gibt's im app store, falls du es willst 🖤",
+    "er hat es wirklich gebaut. es existiert. DBT-Mind im app store btw 🖤"
+];
+const STORY_TELLING_FIXED_COMPANION_DE = "du kannst dir sogar deinen eigenen kleinen companion für deine journey aussuchen 🥹";
+const LOVE_STORY_V2_FIXED_COMPANION_DE = "du kannst dir sogar deinen eigenen companion für deine journey aussuchen 🥹";
+const LOVE_STORY_V2_FIXED_CTA_DE = "es heißt DBT-Mind und ich bin immer noch nicht drüber hinweg, dass es das gibt 🧡";
+const WEIRD_HACK_V2_FIXED_SLIDE8_DE = "eins davon wird bei dir funktionieren\n\ndu weißt schon welches";
+const WEIRD_HACK_V2_CTA_FALLBACK_DE = "3. ein backup für den lauten kopf\n\nich empfehle dafür die app DBT-Mind - die hat schon mega vielen geholfen";
+
+const WEIRD_HACK_V2_GERMAN_BLOCK = `## SPRACHE: DEUTSCH (überschreibt alle englischen Output-Regeln oben)
+Du schreibst die komplette Slideshow auf Deutsch — so wie deutsche BPD/DBT-TikTok-Creator wirklich tippen. KEINE Übersetzung aus dem Englischen, sondern native deutsche Umgangssprache mit den Anglizismen, die deutsche Gen-Z sowieso benutzt (cringe, literally, safe, btw, random, mood, cycle, fp, splitting, rsd, therapy).
+
+VOICE auf Deutsch:
+- lowercase überall (außer DBT-Mind und die Slide-5-CTA), du-Form, keine Emojis
+- kurze Sätze, Fragmente, müde-trockener Ton. Kein Pathos, keine Coach-Sprache ("Selbstfürsorge", "Heilungsweg", "setze Grenzen" = verboten)
+- hyper-spezifisch statt allgemein: "die 4-minuten-antwort" statt "wenn er zu lange braucht"
+
+HOOK-FORMELN auf Deutsch (ersetzen Formula A und B):
+**Formel A — "ich, wie ich realisiere":**
+Block 1 (3-4 Zeilen): "ich, wie ich realisiere, dass ich [verhalten]\\n[spezifische reframe-phrase]\\n[optionaler klärender teil]"
+Block 2: beginnt IMMER mit "anyway" — z.B. "anyway, hier ist was ich dagegen mache" / "anyway. das hab ich geändert." / "anyway lol, hier ist der fix"
+Beispiel: "ich, wie ich realisiere, dass ich eine person\\nwie ein nervensystem behandle\\nstatt sie einfach zu daten\\n\\nanyway, hier ist was ich dagegen mache"
+
+**Formel B — "wdym":**
+"wdym" bleibt "wdym" (deutsche Creator benutzen es genau so).
+Block 1: "wdym ich hab [verhalten im Perfekt oder Präsens]\\n[spezifisches detail]\\n[optionale dritte zeile]"
+Block 2: beginnt IMMER mit "like" — z.B. "like, das ist keine person\\ndas ist eine reiz-reaktion" oder "like, das ist ein symptom\\nkeine lovestory"
+
+FESTE FORMULIERUNGEN auf Deutsch:
+- Slide 2 Zeile 1: "du kennst den cycle:"
+- Slide 5 Block 2: lockere Empfehlung wie "ich empfehle dafür die app DBT-Mind - die hat schon mega vielen geholfen" (nicht exakt dieser Satz, aber DBT-Mind muss vorkommen, peer-Ton statt Werbung)
+- DBT-Skills heißen auch auf Deutsch: TIPP, Wise Mind, STOP, Opposite Action, Check the Facts, Radikale Akzeptanz, Self-Soothe, PLEASE
+
+Die In-group-Terms aus der User-Message (fp, splitting, rsd, ...) benutzen deutsche BPD-Leute genau so auf Englisch — baue sie natürlich in deutsche Sätze ein.`;
+
+const STORY_TELLING_GERMAN_HOOKS_BLOCK = `SPRACHE: DEUTSCH (wichtigste Regel, überschreibt alles)
+- Schreibe alle Hooks auf Deutsch, so wie deutsche Gen-Z-TikTok-Creator wirklich tippen: lowercase, lockere Satzstellung, natürliche Anglizismen (cringe, literally, safe, btw, random, waitlist, app).
+- KEINE steifen Übersetzungen aus dem Englischen. "mein freund hat mir um 1 uhr nachts eine app gebaut" klingt echt — alles, was nach Hochdeutsch-Sachbuch klingt, ist sofort raus.
+- Die Story-Fakten auf Deutsch: "8 monate warteliste", "die diagnose", "1 uhr nachts", "therapieplatz".
+- Die englischen Beispiel-Hooks oben zeigen NUR das Register. Übersetze sie nicht wörtlich, erfinde deutsche Hooks im selben Geist.
+- Deutsche Beispiele im richtigen Register:
+  gf: "die klinik meinte 8 monate warteliste und mein freund so: bet"
+  gf: "er ist jede nacht um 1 wach geblieben und hat mir eine dbt app gebaut, nachdem therapie 8 monate gesagt hat"
+  bf: "meine freundin kam auf eine 8-monats-warteliste, also hab ich was dagegen gemacht"`;
+
+function getRandomStoryTellingCta(language: DbtContentLanguage = 'en') {
+    const options = language === 'de' ? STORY_TELLING_CTA_OPTIONS_DE : STORY_TELLING_CTA_OPTIONS;
+    return options[Math.floor(Math.random() * options.length)] || options[0]!;
+}
 const WEIRD_HACK_V2_RECENT_TOPICS_LIMIT = 10;
 const PERMISSION_V1_RECENT_TOPICS_LIMIT = 10;
+const VENT_NOW_RECENT_TOPICS_LIMIT = 8;
 const SERVER_ROOT = join(import.meta.dir, '..', '..', '..');
+const PROJECT_ROOT = join(SERVER_ROOT, '..');
+const HOOKS_DB_PATH = join(SERVER_ROOT, 'data', 'hooks.db');
 const WEIRD_HACK_V2_RECENT_TOPICS_PATH = join(SERVER_ROOT, 'data', 'weird_hack_v2_recent_topics.json');
 const PERMISSION_V1_RECENT_TOPICS_PATH = join(SERVER_ROOT, 'data', 'permission_v1_recent_topics.json');
+const VENT_NOW_RECENT_TOPICS_PATH = join(SERVER_ROOT, 'data', 'vent_now_recent_topics.json');
+const VENT_NOW_HOOK_STYLES_PATH = join(PROJECT_ROOT, 'client', 'assets', 'dbt-templates', 'vent-now', 'hook_styles.txt');
+
+function isReusableStoryHookStyleExample(hook: string) {
+    const text = String(hook || '').replace(/\s+/g, ' ').trim();
+    if (!text) return false;
+    if (/[^\x00-\x7F]/.test(text)) return false;
+    if (text.length < 24 || text.length > 130) return false;
+    if (/[?:]\s*$/.test(text)) return false;
+    if (/(\.\.\.|…)\s*$/.test(text)) return false;
+    if (/^["'].*["']$/.test(text) && text.split(/\s+/).length < 7) return false;
+    if (/^\*.*\*$/.test(text)) return false;
+    if (/^(for the|loving someone with|anxious attachment style|how no contact feels|what it's like)\b/i.test(text)) return false;
+    if (/^(should|can|what|why|how|is|are|do|does|did|would|could)\b/i.test(text)) return false;
+
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length < 7) return false;
+    if (!/\b(i|me|my|he|she|him|her|they|you|someone|boyfriend|girlfriend|relationship|bpd|attachment|mom|dad|ex)\b/i.test(text)) {
+        return false;
+    }
+
+    return true;
+}
+
+function getViralSlideshowHookStyleExamples(limit = 12): string[] {
+    try {
+        if (!existsSync(HOOKS_DB_PATH)) return [];
+
+        const db = new Database(HOOKS_DB_PATH, { readonly: true });
+        const curatedRows = db.query(`
+            SELECT vh.hook_text
+            FROM viral_hooks vh
+            JOIN hook_style_evaluations hse ON hse.hook_id = vh.id
+            WHERE vh.content_type = 'slideshow'
+              AND vh.hook_text IS NOT NULL
+              AND trim(vh.hook_text) != ''
+              AND length(vh.hook_text) BETWEEN 24 AND 130
+              AND hse.mental_health_fit >= 7
+              AND hse.tiktok_native_score >= 7
+              AND hse.curiosity_gap_score >= 6
+              AND hse.relationship_relevance >= 5
+            ORDER BY
+              (hse.mental_health_fit + hse.tiktok_native_score + hse.curiosity_gap_score + hse.relationship_relevance) DESC,
+              vh.share_count DESC,
+              vh.view_count DESC
+            LIMIT 120
+        `).all() as Array<{ hook_text: string }>;
+
+        const rows = curatedRows.length >= limit ? curatedRows : db.query(`
+            SELECT hook_text, view_count, share_count, like_count
+            FROM viral_hooks
+            WHERE content_type = 'slideshow'
+              AND hook_text IS NOT NULL
+              AND trim(hook_text) != ''
+              AND length(hook_text) BETWEEN 8 AND 120
+              AND hook_text NOT LIKE '%#%'
+            ORDER BY share_count DESC, view_count DESC, like_count DESC
+            LIMIT 80
+        `).all() as Array<{ hook_text: string }>;
+        db.close();
+
+        const seen = new Set<string>();
+        return rows
+            .map(row => String(row.hook_text || '').replace(/\s+/g, ' ').trim())
+            .filter(hook => {
+                const key = hook.toLowerCase();
+                const letters = hook.replace(/[^a-z]/gi, '');
+                const upperLetters = hook.replace(/[^A-Z]/g, '');
+                if (!key || seen.has(key)) return false;
+                if (letters.length > 4 && upperLetters.length / letters.length > 0.65) return false;
+                if (!isReusableStoryHookStyleExample(hook)) return false;
+                seen.add(key);
+                return true;
+            })
+            .sort(() => Math.random() - 0.5)
+            .slice(0, limit);
+    } catch (error) {
+        console.warn('[Story Telling Hooks] Failed to load viral hook style examples:', error);
+        return [];
+    }
+}
+
+function readVentNowHookStyleBank(): string {
+    try {
+        if (!existsSync(VENT_NOW_HOOK_STYLES_PATH)) {
+            return '';
+        }
+        return readFileSync(VENT_NOW_HOOK_STYLES_PATH, 'utf8').trim();
+    } catch (error) {
+        console.warn('[Vent Now] Failed to load hook style bank:', error);
+        return '';
+    }
+}
 
 function normalizeWeirdHackV2TopicKey(value: string) {
     return String(value || '').trim().toLowerCase();
@@ -149,6 +357,61 @@ function pickPermissionV1Topic(topics: PermissionV1Topic[]) {
     return selectedTopic;
 }
 
+function normalizeVentNowTopicKey(value: string) {
+    return String(value || '').trim().toLowerCase();
+}
+
+function readVentNowRecentTopics() {
+    try {
+        if (!existsSync(VENT_NOW_RECENT_TOPICS_PATH)) return [];
+        const raw = JSON.parse(readFileSync(VENT_NOW_RECENT_TOPICS_PATH, 'utf8'));
+        const topics = Array.isArray(raw?.topics) ? raw.topics : [];
+        return topics
+            .map((topic: unknown) => String(topic || '').trim())
+            .filter(Boolean)
+            .slice(-VENT_NOW_RECENT_TOPICS_LIMIT);
+    } catch (error) {
+        console.warn('[Native Slides - DBT] Failed to read Vent Now topic history, continuing without it.', error);
+        return [];
+    }
+}
+
+function writeVentNowRecentTopics(topics: string[]) {
+    try {
+        mkdirSync(dirname(VENT_NOW_RECENT_TOPICS_PATH), { recursive: true });
+        writeFileSync(
+            VENT_NOW_RECENT_TOPICS_PATH,
+            JSON.stringify(
+                {
+                    topics: topics.slice(-VENT_NOW_RECENT_TOPICS_LIMIT),
+                    updatedAt: new Date().toISOString()
+                },
+                null,
+                2
+            ),
+            'utf8'
+        );
+    } catch (error) {
+        console.warn('[Native Slides - DBT] Failed to persist Vent Now topic history.', error);
+    }
+}
+
+function pickVentNowTopic(topics: Array<{ topic: string; struggles: string[] }>) {
+    const recentTopics = readVentNowRecentTopics();
+    const recentSet = new Set(recentTopics.map(normalizeVentNowTopicKey));
+    const availableTopics = topics.filter(topic => !recentSet.has(normalizeVentNowTopicKey(topic.topic)));
+    const pool = availableTopics.length > 0 ? availableTopics : topics;
+    const selectedTopic = pool[Math.floor(Math.random() * pool.length)] || topics[0]!;
+
+    const dedupedHistory = recentTopics.filter(
+        topic => normalizeVentNowTopicKey(topic) !== normalizeVentNowTopicKey(selectedTopic.topic)
+    );
+    dedupedHistory.push(selectedTopic.topic);
+    writeVentNowRecentTopics(dedupedHistory);
+
+    return selectedTopic;
+}
+
 function stripMarkdownCodeFences(value: string) {
     return String(value || "")
         .replace(/^```(?:json)?\s*/i, "")
@@ -221,6 +484,9 @@ function fallbackParseSlidesObject(value: string) {
 function parseClaudeJsonResponse(resultText: string, logLabel: string, fallbackParser?: (value: string) => any) {
     const extractedJson = extractBalancedJson(resultText);
     if (!extractedJson) {
+        const fallbackParsed = fallbackParser ? fallbackParser(resultText) : null;
+        if (fallbackParsed) return fallbackParsed;
+
         console.error(`${logLabel} No JSON found in AI response:`, resultText);
         throw new Error("No JSON found in AI response");
     }
@@ -238,6 +504,321 @@ function parseClaudeJsonResponse(resultText: string, logLabel: string, fallbackP
     }
 }
 
+function fallbackParseKeyedTextObject(value: string, keys: string[]) {
+    const text = stripMarkdownCodeFences(value);
+    const parsed: Record<string, string> = {};
+
+    keys.forEach((key, index) => {
+        const nextKeyPattern = keys.slice(index + 1).join('|');
+        const pattern = nextKeyPattern
+            ? new RegExp(`(?:^|\\n)\\s*["']?${key}["']?\\s*[:=-]\\s*([\\s\\S]*?)(?=\\n\\s*["']?(?:${nextKeyPattern})["']?\\s*[:=-]|$)`, 'i')
+            : new RegExp(`(?:^|\\n)\\s*["']?${key}["']?\\s*[:=-]\\s*([\\s\\S]*?)$`, 'i');
+        const match = text.match(pattern);
+        if (!match?.[1]) return;
+
+        parsed[key] = match[1]
+            .replace(/^[-*]\s*/, '')
+            .replace(/^["']|["',\s]+$/g, '')
+            .trim();
+    });
+
+    return keys.some(key => parsed[key]) ? parsed : null;
+}
+
+function clampDbtCarouselSlideCount(value: unknown) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return 8;
+    return Math.max(1, Math.min(8, Math.round(parsed)));
+}
+
+function normalizeDbtCarouselAngle(topic: string, angle?: string) {
+    const cleanAngle = String(angle || '').trim();
+    if (cleanAngle) return cleanAngle;
+    if (/\b(vs\.?|versus)\b/i.test(topic)) return 'comparison';
+    if (/^what to do when\b/i.test(topic)) return 'what helps';
+    if (/\bsigns?\b/i.test(topic)) return 'signs';
+    if (/\bmyth\b|\breality\b/i.test(topic)) return 'myths vs reality';
+    return 'psychoeducation';
+}
+
+function removeDanglingDbtCarouselEnding(text: string) {
+    const danglingEndings = new Set([
+        'a',
+        'an',
+        'and',
+        'as',
+        'at',
+        'because',
+        'before',
+        'but',
+        'by',
+        'for',
+        'from',
+        'if',
+        'in',
+        'into',
+        'like',
+        'of',
+        'on',
+        'or',
+        'so',
+        'than',
+        'that',
+        'the',
+        'then',
+        'to',
+        'until',
+        'when',
+        'where',
+        'while',
+        'with',
+        'without',
+        'your'
+    ]);
+
+    const words = text.split(/\s+/).filter(Boolean);
+    while (words.length > 1) {
+        const lastWord = words[words.length - 1].replace(/[^\w']+$/g, '').toLowerCase();
+        if (!danglingEndings.has(lastWord)) break;
+        words.pop();
+    }
+    return words.join(' ');
+}
+
+function cleanDbtCarouselText(value: unknown, maxWords?: number) {
+    let text = String(value || '')
+        .replace(/DBT-Mind/gi, '')
+        .replace(/link in bio/gi, '')
+        .replace(/#[a-z0-9_]+/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    if (maxWords && text.split(/\s+/).filter(Boolean).length > maxWords) {
+        text = text.split(/\s+/).filter(Boolean).slice(0, maxWords).join(' ');
+    }
+
+    return removeDanglingDbtCarouselEnding(text);
+}
+
+function normalizeBubbleText(value: unknown) {
+    if (!Array.isArray(value)) return [];
+    return value
+        .map(item => cleanDbtCarouselText(item, 7))
+        .filter(Boolean)
+        .slice(0, 3);
+}
+
+function buildDbtCarouselPreview(result: Omit<DbtCarouselTextResult, 'preview'>) {
+    return result.slides
+        .map(slide => {
+            const subtitle = slide.subtitle ? ` - ${slide.subtitle}` : '';
+            return `Slide ${slide.slideNumber}: ${slide.headline}${subtitle}`;
+        })
+        .join('\n');
+}
+
+function normalizeDbtCarouselTextResult(raw: any, fallback: { topic: string; angle: string; slideCount: number }): DbtCarouselTextResult {
+    const rawSlides = Array.isArray(raw?.slides) ? raw.slides : [];
+    const allowedRoles = new Set<DbtCarouselSlideRole>(['hook', 'context', 'explanation', 'contrast', 'reframe', 'skill', 'takeaway']);
+    const slides = rawSlides
+        .slice(0, fallback.slideCount)
+        .map((slide: any, index: number): DbtCarouselTextSlide => {
+            const slideNumber = index + 1;
+            const role = allowedRoles.has(slide?.role) ? slide.role : (
+                slideNumber === 1 ? 'hook'
+                    : slideNumber === 2 ? 'context'
+                        : slideNumber === fallback.slideCount ? 'takeaway'
+                            : slideNumber === fallback.slideCount - 1 ? 'skill'
+                                : 'explanation'
+            );
+
+            return {
+                slideNumber,
+                role,
+                headline: cleanDbtCarouselText(slide?.headline, 8),
+                subtitle: cleanDbtCarouselText(slide?.subtitle, 14),
+                bubbleText: {
+                    left: normalizeBubbleText(slide?.bubbleText?.left),
+                    right: normalizeBubbleText(slide?.bubbleText?.right)
+                },
+                takeaway: cleanDbtCarouselText(slide?.takeaway, 14),
+                visualNotes: cleanDbtCarouselText(slide?.visualNotes, 16)
+            };
+        })
+        .filter((slide: DbtCarouselTextSlide) => slide.headline);
+
+    const result = {
+        topic: cleanDbtCarouselText(raw?.topic || fallback.topic, 8),
+        angle: cleanDbtCarouselText(raw?.angle || fallback.angle, 5),
+        slideCount: slides.length || fallback.slideCount,
+        slides
+    };
+
+    return {
+        ...result,
+        preview: buildDbtCarouselPreview(result)
+    };
+}
+
+export async function generateDbtCarouselText(params: DbtCarouselTextParams): Promise<DbtCarouselTextResult> {
+    const topic = cleanDbtCarouselText(params.topic, 12);
+    if (!topic) {
+        throw new Error('Topic is required');
+    }
+
+    const slideCount = clampDbtCarouselSlideCount(params.slideCount);
+    const angle = normalizeDbtCarouselAngle(topic, params.angle);
+    const targetAudience = cleanDbtCarouselText(
+        params.targetAudience || 'People who struggle with intense emotions, BPD traits, emotional dysregulation, or are learning DBT.',
+        22
+    );
+    const tone = cleanDbtCarouselText(params.tone || 'Soft, direct, validating, simple, TikTok-native.', 12);
+    const emojiRule = params.allowEmojis
+        ? 'Emojis are allowed only when they genuinely improve clarity, but still keep them rare.'
+        : 'Do not use emojis anywhere.';
+
+    const systemPrompt = `You are a viral TikTok and Instagram psychoeducation carousel writer for mental health topics.
+
+Your job is to create short, generic, high-performing carousel slide text that will later be used by a separate image-prompt generator.
+
+Hard rules:
+- Return ONLY valid JSON. No markdown. No commentary.
+- Maximum 8 slides total, including slide 1.
+- Generate exactly ${slideCount} slides.
+- The content must NOT mention DBT-Mind.
+- No app promotion. No brand mention. No call to action to download anything. No link in bio. No hashtags.
+- ${emojiRule}
+- No medical claims. No diagnosis claims. No "you definitely have BPD" language.
+- No shaming, fearmongering, stigma, or villainizing people with BPD traits.
+- Use "can" and "may" instead of absolute claims.
+- Keep text very simple and phone-readable.
+- No long paragraphs. No clinical walls of text.
+- Avoid jargon unless the topic requires it.
+- Make it validating, clear, useful, and save-worthy.
+
+Return this exact JSON shape:
+{
+  "topic": string,
+  "angle": string,
+  "slideCount": number,
+  "slides": [
+    {
+      "slideNumber": number,
+      "role": "hook" | "context" | "explanation" | "contrast" | "reframe" | "skill" | "takeaway",
+      "headline": string,
+      "subtitle": string,
+      "bubbleText": { "left": string[], "right": string[] },
+      "takeaway": string,
+      "visualNotes": string
+    }
+  ]
+}
+
+Field rules:
+- headline: ideally 2-7 words, TikTok-native, emotionally clear.
+- subtitle: max 1 sentence, ideally under 12 words.
+- bubbleText: each phrase 1-7 words, max 3 items per side. For non-comparison slides, use only left or keep both empty.
+- takeaway: one bottom-box sentence, max 14 words. Do not end by clipping a fixed phrase like "at the same time".
+- visualNotes: short layout or character instruction only. Do not describe full art style.
+
+Slide arc:
+Slide 1: hook. Clear topic headline and curiosity subtitle.
+Slide 2: context. Why it matters or gets misunderstood.
+Slide 3: explanation. First core mechanism or reason.
+Slide 4: contrast or explanation. For comparison, explain the second side.
+Slide 5: reframe. Reduce shame.
+Slide 6: skill. One simple DBT-compatible action.
+Slide 7: reframe, skill, or takeaway depending on the requested slide count.
+Slide 8: takeaway. Save-worthy ending when 8 slides are requested.
+
+For comparison posts:
+Slide 1: X vs Y
+Slide 2: why they get confused
+Slide 3: what it can look like from the outside
+Slide 4: what may be happening underneath in X
+Slide 5: what may be happening underneath in Y
+Slide 6: what helps you tell the difference
+Slide 7: what helps next
+Slide 8: final takeaway, if 8 slides are requested
+
+For "what to do when X" posts:
+Slide 1: hook
+Slide 2: normalize the experience
+Slide 3: what is happening in the body/mind
+Slide 4: what not to do
+Slide 5: one DBT-compatible skill
+Slide 6: tiny next step
+Slide 7: gentler reframe
+Slide 8: final takeaway, if 8 slides are requested
+
+For "signs of X" posts:
+Slide 1: hook
+Slide 2: context / not a diagnosis
+Slide 3: sign 1
+Slide 4: sign 2
+Slide 5: sign 3
+Slide 6: what helps
+Slide 7: what to remember
+Slide 8: final takeaway, if 8 slides are requested
+
+For "myth vs reality" posts:
+Slide 1: hook
+Slide 2: common myth
+Slide 3: what is actually happening
+Slide 4: why it makes sense
+Slide 5: what helps
+Slide 6: gentler reframe
+Slide 7: what to practice
+Slide 8: final takeaway, if 8 slides are requested
+
+Quality check silently before returning:
+- no slide has too much text
+- slide 1 is scroll-stopping
+- the final slide is save-worthy
+- no slide mentions DBT-Mind
+- no slide sounds like an ad
+- no slide diagnoses the viewer
+- no slide uses stigmatizing language
+- the carousel has the arc: hook -> recognition -> explanation -> reframe -> skill -> takeaway`;
+
+    const userPrompt = `Topic: ${topic}
+Angle: ${angle}
+Target audience: ${targetAudience}
+Tone: ${tone}
+Slide count: ${slideCount}
+
+Generate the structured carousel text now.`;
+
+    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'x-api-key': params.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 2200,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: userPrompt }]
+        })
+    });
+
+    if (!claudeResponse.ok) {
+        const errorText = await claudeResponse.text();
+        throw new Error(`Anthropic API Error: ${errorText}`);
+    }
+
+    const rawData = await claudeResponse.json() as any;
+    const resultText = rawData.content?.[0]?.text || '';
+    if (!resultText) {
+        throw new Error('Empty AI response');
+    }
+
+    const parsed = parseClaudeJsonResponse(resultText, '[DBT Carousel Text]');
+    return normalizeDbtCarouselTextResult(parsed, { topic, angle, slideCount });
+}
+
 function isStoryEmojiOnlyFragment(value: string) {
     const text = String(value || '').trim();
     if (!text) return false;
@@ -249,21 +830,39 @@ function isStoryEmojiOnlyFragment(value: string) {
     return stripped.length === 0;
 }
 
-function looksLikeStoryCompanionSlide(value: string) {
+function looksLikeStoryCompanionSlide(value: string, language: DbtContentLanguage = 'en') {
     const text = String(value || '').toLowerCase();
+    if (language === 'de') {
+        return text.includes('companion');
+    }
     return text.includes('little companion') || (text.includes('choose') && text.includes('companion'));
 }
 
-function looksLikeStoryCtaSlide(value: string) {
+function looksLikeStoryCtaSlide(value: string, language: DbtContentLanguage = 'en') {
     const text = String(value || '').toLowerCase();
-    return text.includes("it's called dbt-mind") || text.includes('search for it on the app store');
+    if (language === 'de') {
+        return text.includes('dbt-mind') || text.includes('app store');
+    }
+    return text.includes("it's called dbt-mind") ||
+        text.includes('dbt-mind on the app store') ||
+        text.includes('app store btw') ||
+        text.includes('search for it on the app store');
 }
 
-function normalizeStoryTellingSlides(rawSlides: string[]) {
+function normalizeStoryTellingSlides(rawSlides: string[], language: DbtContentLanguage = 'en') {
     const mergedSlides: string[] = [];
 
+    // The no-dashes voice rule gets a backstop here: convert any surviving dash-pause into
+    // a period before the slide ever reaches the canvas.
+    const stripDashes = (value: string) => value
+        .replace(/\s*[—–]\s*/g, '. ')
+        .replace(/ - /g, '. ')
+        .replace(/\s*[-—–]\s*$/, '.')
+        .replace(/\.\s*\./g, '.')
+        .trim();
+
     for (const rawSlide of rawSlides) {
-        const slide = String(rawSlide || '').trim();
+        const slide = stripDashes(String(rawSlide || '').trim());
         if (!slide) continue;
 
         if (isStoryEmojiOnlyFragment(slide) && mergedSlides.length > 0) {
@@ -274,21 +873,599 @@ function normalizeStoryTellingSlides(rawSlides: string[]) {
         mergedSlides.push(slide);
     }
 
-    const hasTrailingCta = mergedSlides.length > 0 && looksLikeStoryCtaSlide(mergedSlides[mergedSlides.length - 1]);
+    const hasTrailingCta = mergedSlides.length > 0 && looksLikeStoryCtaSlide(mergedSlides[mergedSlides.length - 1], language);
     const bodySlides = hasTrailingCta ? mergedSlides.slice(0, -1) : [...mergedSlides];
 
-    if (bodySlides.length === 7 && !looksLikeStoryCompanionSlide(bodySlides[6])) {
-        bodySlides.push(STORY_TELLING_FIXED_COMPANION);
+    if (bodySlides.length === 7 && !looksLikeStoryCompanionSlide(bodySlides[6], language)) {
+        bodySlides.push(language === 'de' ? STORY_TELLING_FIXED_COMPANION_DE : STORY_TELLING_FIXED_COMPANION);
     }
 
     return hasTrailingCta ? [...bodySlides, mergedSlides[mergedSlides.length - 1]] : bodySlides;
 }
 
-// (Legacy constants and functions removed)
+// The hook carries the whole post, and the POV lock is the thing models break most often
+// ("he found out..." on a gf post). Check it; if it fails, regenerate just slide 1 with the
+// failure spelled out instead of shipping a broken narrator.
+function storyTellingHookProblems(hook: string, pov: 'bf' | 'gf', language: DbtContentLanguage = 'en'): string[] {
+    const h = String(hook || '').trim();
+    const problems: string[] = [];
+    if (!h) return ['empty hook'];
+    const isGerman = language === 'de';
+    if (pov === 'bf' && (isGerman ? /^sie\b/i.test(h) : /^she\b/i.test(h))) problems.push('starts with "she" but the narrator is the boyfriend');
+    if (pov === 'gf' && (isGerman ? /^er\b/i.test(h) : /^he\b/i.test(h))) problems.push('starts with "he" but the narrator is the girlfriend');
+    const hasFirstPerson = isGerman
+        ? /\b(ich|mich|mir|mein|meine|meinen|meiner)\b/i.test(h)
+        : /\b(i|i'm|my|me)\b/i.test(h);
+    if (!hasFirstPerson) problems.push('not first person');
+    if (h.split(/\s+/).filter(Boolean).length > 18) problems.push('over 18 words');
+    // Dangling endings are banned EXCEPT the gatekeep gush: a trailing "..." after a complete
+    // thought is native ("...what my bf did..."). A trailing dash/comma never is, and "..."
+    // after a stopword ("and then...") is still a fragment.
+    const beforeEllipsis = h.replace(/(\.\.\.|…)\s*$/, '');
+    const endsOnStopword = isGerman
+        ? /\b(und|oder|der|die|das|den|dem|ein|eine|einen|mein|meine|sein|seine|ihr|ihre|zu|so|aber|weil|mit|dann|dass|dies|wenn|nach|vor|von|vom|für|an|am|in|im|ist|war|waren|hat|haben|hatte|auf|als|wie|nicht|noch|schon)$/i.test(beforeEllipsis)
+        : /\b(and|the|a|an|my|his|her|to|so|but|because|bc|with|then|that|this|when|after|before|of|for|on|in|at|is|was|were)$/i.test(beforeEllipsis);
+    if (/[-—–,;:]\s*$/.test(h)) problems.push('dangling ending');
+    else if (/(\.\.\.|…)\s*$/.test(h) && endsOnStopword) problems.push('dangling ending');
+    // One caps emphasis word is legal (gatekeep register), a shouty hook is not.
+    const capsWords = h.match(/\b[A-ZÄÖÜ]{3,}\b/g) || [];
+    if (capsWords.length > 1) problems.push('too many caps words');
+    // Screenplay verbs and props nobody says out loud — instant staged smell. The laptop is
+    // a prop; the obsession reads through time and behavior, never objects.
+    if (/opened (his|my|the) laptop|began (his|my|her) journey|\blaptop\b|\bcomputer\b/i.test(h)) problems.push('staged screenplay phrasing');
+    // Semantic POV leaks: the girlfriend never builds/codes/ships, the boyfriend never has
+    // the diagnosis. "not me rage coding" on a gf post is the boyfriend talking.
+    if (pov === 'gf') {
+        if (isGerman) {
+            if (/\bmeine freundin\b|\bihre (therapeutin|diagnose|warteliste|psychiaterin|klinik)\b/i.test(h)) problems.push('boyfriend perspective on a gf post');
+            if (/\bich\b[\s\S]*\b(gebaut|gecoded|gecodet|programmiert|entwickelt|geschrieben)\b/i.test(h)) problems.push('girlfriend hook has her doing the building');
+        } else {
+            if (/\bmy girlfriend\b|\bher (therapist|diagnosis|waitlist|psychiatrist|clinic)\b/i.test(h)) problems.push('boyfriend perspective on a gf post');
+            if (/\b(i|me)\s+(built|build|coded|coding|code|ship|shipped|developed|rage coding)\b/i.test(h)) problems.push('girlfriend hook has her doing the building');
+        }
+    } else {
+        if (isGerman) {
+            if (/\bmein freund\b|\bmeine (therapeutin|diagnose|psychiaterin)\b/i.test(h)) problems.push('girlfriend perspective on a bf post');
+            if (/\ber (hat |hatte )?(gebaut|gecoded|gecodet|programmiert|entwickelt)\b/i.test(h)) problems.push('boyfriend hook narrates him in third person');
+        } else {
+            if (/\bmy boyfriend\b|\bmy (therapist|diagnosis|psychiatrist)\b/i.test(h)) problems.push('girlfriend perspective on a bf post');
+            if (/\bhe (built|coded|stayed up|shipped|started coding)\b/i.test(h)) problems.push('boyfriend hook narrates him in third person');
+        }
+    }
+    return problems;
+}
+
+async function repairStoryTellingHook(params: { pov: 'bf' | 'gf'; badHook: string; problems: string[]; ANTHROPIC_API_KEY: string; language?: DbtContentLanguage }): Promise<string | null> {
+    const { pov, badHook, problems, ANTHROPIC_API_KEY, language = 'en' } = params;
+    const isGerman = language === 'de';
+    const narrator = pov === 'bf'
+        ? (isGerman
+            ? 'der FREUND. Ich-Form: "ich" / "meine freundin". Beginne nie mit "sie".'
+            : 'the BOYFRIEND. First person: "i" / "my girlfriend". Never start with "she".')
+        : (isGerman
+            ? 'die FREUNDIN. Ich-Form: "ich" / "mein freund". Beginne nie mit "er".'
+            : 'the GIRLFRIEND. First person: "i" / "my boyfriend". Never start with "he".');
+    try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'x-api-key': ANTHROPIC_API_KEY,
+                'anthropic-version': '2023-06-01',
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-6',
+                max_tokens: 200,
+                system: isGerman
+                    ? `Du schreibst Slide-1-Hooks für eine wahre TikTok-Story: eine Freundin mit BPD kam auf eine 8-monatige Therapie-Warteliste, also hat ihr Freund (Entwickler) ihr nachts um 1 eine DBT-Skills-App gebaut. Tausende nutzen sie inzwischen.
+Der Erzähler ist ${narrator}
+Stil: Deutsch, lowercase, Texting-Rhythmus, max 14 Wörter, keine Gedankenstriche jeglicher Art, endet mit Punkt oder nichts, keine Fragen, kein Clickbait. Der Hook nennt die Wunde oder die Obsession in einem Atemzug.`
+                    : `You write slide-1 hooks for a true-story TikTok slideshow: a girlfriend with BPD was put on an 8-month therapy waitlist, so her developer boyfriend built her a DBT skills app at 1am. Thousands use it now.
+The narrator is ${narrator}
+Style: lowercase, texting cadence, 14 words max, no dash punctuation of any kind, ends with a full stop or nothing, no questions, no clickbait. The hook names the wound or the obsession in one breath.`,
+                messages: [{
+                    role: 'user',
+                    content: isGerman
+                        ? `Dieser Hook ist durchgefallen: "${badHook}"\nProbleme: ${problems.join('; ')}.\n\nSchreibe EINEN Ersatz-Hook auf Deutsch. Nur Text, keine Anführungszeichen, keine Labels.`
+                        : `This hook failed review: "${badHook}"\nProblems: ${problems.join('; ')}.\n\nWrite ONE replacement hook. Plain text, no quotes, no labels.`
+                }]
+            })
+        });
+        if (!response.ok) return null;
+        const raw = await response.json() as any;
+        const text = String(raw?.content?.[0]?.text || '')
+            .trim()
+            .replace(/^["']|["']$/g, '')
+            .replace(/\s*[—–]\s*/g, '. ')
+            .replace(/ - /g, '. ')
+            .replace(/\s*[-—–]\s*$/, '.')
+            .trim();
+        if (!text) return null;
+        // Only accept the repair if it actually fixes the problems.
+        return storyTellingHookProblems(text, pov, language).length === 0 ? text : null;
+    } catch (e) {
+        console.error('[Native Slides - DBT] Story hook repair failed:', e);
+        return null;
+    }
+}
+
+function normalizeVentNowStyleSlides(rawSlides: string[]) {
+    const slides = rawSlides
+        .map(slide => String(slide || '').trim())
+        .filter(Boolean)
+        .slice(0, 6);
+
+    const normalizeBranding = (value: string) =>
+        value
+            .replace(/\bDBT[-\s]?Mind app\b/gi, 'dbt-mind app')
+            .replace(/\bDBT[-\s]?Mind\b/g, 'dbt-mind')
+            .replace(/[—]/g, '-');
+
+    for (let i = 0; i < slides.length; i++) {
+        slides[i] = normalizeBranding(slides[i]);
+    }
+
+    const allText = slides.join('\n');
+    const appMentionMatches = allText.match(/\bdbt-mind app\b/gi) || [];
+
+    if (appMentionMatches.length === 0 && slides.length >= 4) {
+        slides[3] = `${slides[3]} i use the dbt-mind app when i need help slowing the story down before i answer it.`.trim();
+    } else if (appMentionMatches.length > 1) {
+        let seenAppMention = false;
+        for (let i = 0; i < slides.length; i++) {
+            slides[i] = slides[i].replace(/\bdbt-mind app\b/gi, () => {
+                if (!seenAppMention) {
+                    seenAppMention = true;
+                    return 'dbt-mind app';
+                }
+                return 'that app';
+            });
+        }
+    }
+
+    for (let i = 1; i < slides.length; i++) {
+        const expectedPrefix = `${i}.`;
+        if (!slides[i].startsWith(expectedPrefix)) {
+            slides[i] = slides[i].replace(/^\d+\.\s*/, '');
+            slides[i] = `${expectedPrefix} ${slides[i]}`.trim();
+        }
+    }
+
+    return slides;
+}
+
+export async function generateStoryTellingHooks(params: StoryTellingHookParams): Promise<StoryTellingHookResult> {
+    const pov: 'bf' | 'gf' = params.slideType === 'story_telling_bf' ? 'bf' : 'gf';
+    const language: DbtContentLanguage = params.language === 'de' ? 'de' : 'en';
+    const isGerman = language === 'de';
+    const narratorLock = pov === 'bf'
+        ? (isGerman
+            ? `Der Erzähler ist der FREUND. Ich-Form: "ich" / "meine freundin" / "sie". Beginne einen Hook
+nie mit "sie", schreibe nie "mein freund".`
+            : `The narrator is the BOYFRIEND. First person: "i" / "my girlfriend" / "she". Never start a hook
+with "she", never write "my boyfriend".`)
+        : (isGerman
+            ? `Der Erzähler ist die FREUNDIN. Ich-Form: "ich" / "mein freund" / "er". Beginne einen Hook
+nie mit "er", schreibe nie "meine freundin".`
+            : `The narrator is the GIRLFRIEND. First person: "i" / "my boyfriend" / "he". Never start a hook
+with "he", never write "my girlfriend".`);
+
+    const storyContext = (params.slides || [])
+        .map(slide => String(slide || '').trim())
+        .filter(Boolean)
+        .join('\n');
+
+    const systemPrompt = `You write Slide 1 hooks for a true-story TikTok slideshow. The hooks must be
+BANGERS: the kind of line a 20-year-old actually posts, not the kind a marketer writes.
+
+THE STORY (told across the slides): a girlfriend with BPD was diagnosed and put on an 8-month
+therapy waitlist. Her boyfriend, a developer, spent his nights building her a DBT skills app so
+she could survive the wait. Thousands of people use it now.
+
+${narratorLock}
+
+THE SAYABILITY TEST (run it on every hook): could the NARRATOR actually say this sentence?
+The girlfriend is the one WITH the diagnosis — she never codes, builds, or ships. The
+boyfriend is the one who builds — he never has the diagnosis or the therapist. A hook like
+"not me rage coding after her therapist said 8 months" is the BOYFRIEND talking; if this is
+the girlfriend's post, that hook is garbage no matter how good it sounds. Every action verb
+in the hook must belong to the right person.
+
+WHAT MAKES A HOOK BANG IN THIS GENRE (evidence-based, from creators with real volume):
+1. PAIN FIRST, ALWAYS. Lead with the raw pain the audience already feels — the diagnosis, the
+   waitlist — never the solution, never the app. "I built an app" openings flag as marketing
+   and die outside tech audiences. The person it was built for is the hook; the building is
+   the swipe-pull.
+2. CONCRETE NUMBERS BEAT ADJECTIVES. "8 months", "1am" create instant believability. "long
+   wait" creates nothing. Every hook needs at least one number, named thing, or physical detail.
+3. RELATIONSHIP FRAMING creates instant intimacy and shares: "my boyfriend...", "my
+   girlfriend...". This is a love story, not a founder story. Developer pride is poison.
+4. SOFT VAGUENESS IS FINE, EMOTIONAL VAGUENESS IS NOT. "so he built this" works (the concrete
+   number already landed, curiosity pulls the swipe). "did something i can't explain" fails
+   (no information at all).
+5. TYPED-BY-A-REAL-PERSON voice: lowercase, imperfect, deadpan. Perfect grammar and neat
+   narrative arcs read as agency-written.
+
+THE 0.8-SECOND TEST: slide 1 is static text read in under a second. The most concrete fact
+must land in the first 5-6 words.
+
+THE FIVE REGISTERS (use at least three across the batch, best hook first):1. PAIN-FIRST: the wound with a number, told like it just happened.
+   gf: "got diagnosed with bpd and they literally said see you in 8 months"
+   bf: "she finally got her diagnosis and the help was 8 months away. i watched her face."
+2. RELATIONSHIP FRAME + SOFT ACTION: the person, the number, a shrug-sized action, crooked
+   not neat.
+   gf: "the clinic said 8 months and my bf said bet"
+   gf: "he stayed up till 1am building me a dbt app after my diagnosis"
+   bf: "my girlfriend got put on an 8 month waitlist so i did something about it"
+3. QUIET FLEX: the ending leaked into the first line, understated.
+   gf: "what he built me at 1am is now carrying thousands of strangers"
+   bf: "i built something for one person. thousands of people on waitlists use it now."
+4. PLAYFUL FLEX / MEME-NATIVE (the highest-ceiling register): the joke is the love, told in
+   actual caption grammar. Deadpan, one meme move, done.
+   gf: "he took the 8 month waitlist personally"
+   gf: "not my boyfriend building me a whole app bc therapy said 8 months"
+   gf: "my man's love language is apparently rage coding"
+   bf: "i can't cook and i can't dance but the waitlist said 8 months so i shipped"
+   Rules for this register: humor as seasoning, not the meal. Never joke about bpd itself,
+   one meme move per hook max, and if the sentence has perfect parallel structure, break it.
+5. THE GATEKEEP (can't-keep-it overshare): direct address to the community, breathless
+   excitement, the story is TOO GOOD to hold. She's bursting, not performing.
+   gf: "girls i REALLY can't keep this to myself, what my bf did..."
+   gf: "i wasn't gonna post this but what my boyfriend did needs witnesses"
+   gf: "besties. i am UNWELL. what he did after my diagnosis..."
+   bf: "guys i have to tell someone what i did about her 8 month waitlist"
+   Rules for this register:
+   - direct-address opener (girls / besties / guys).
+   - PLAIN EXCITEMENT over creator slang: "can't keep this to myself" is a real person,
+     "gatekeep" is a content creator. Prefer the plain version.
+   - TOTAL WITHHOLD is allowed here and ONLY here: no diagnosis, no waitlist, no context
+     anchor needed. This is the exception to the vagueness ban, because the excitement
+     itself is the information — the viewer swipes to find out what could possibly earn
+     this reaction. (Everywhere else, a vague withhold is still instant death.)
+   - EXACTLY ONE capitalized emphasis word allowed (REALLY, UNWELL, NOT) — the only register
+     where caps are legal.
+   - A trailing "..." is allowed here and ONLY here, and only after a complete thought (the
+     gush trailing off, never a fragment).
+   - still no app name, still no product framing.
+
+HOW GEN-Z ACTUALLY CAPTIONS (this overrides everything you know about "good writing"):
+- MEME GRAMMAR: "he took the 8 month waitlist personally", "not my boyfriend building me a
+  whole app", "my bf said bet", "the way he just started building". These constructions ARE
+  the native register, not a costume. One meme move per hook, never stacked.
+- REACTION BAKED IN: the emotion is reported, not implied: "i'm crying", "i can't with him",
+  "i'm still not over this", "pls".
+- BREATHLESS RUN-ONS: real captions are one long exhale, not two tidy clauses. "guys the
+  waitlist was 8 months and my bf literally built me an app instead" beats any version with
+  a semicolon.
+- LOW STAKES FRAMING: she's telling the group chat, not performing for an audience.
+
+STAGED-SOUNDING = INSTANT DEATH (the failure modes to never touch):
+- CAPTION CRAFT, the big one: symmetrical setup-punchline pairs and parallel ironic contrast
+  ("they gave her a pamphlet. i gave her something else." / "some girls get X. mine did Y."
+  said neatly). A perfectly balanced two-clause joke is agency writing. Real posts land the
+  same idea crooked: "he took the 8 month waitlist personally".
+- opening with the product or the pride ("i built an app", "as a developer i...")
+- brand adjectives and perfect grammar ("revolutionary tool for your healing journey")
+- generic struggle language with zero specifics ("i struggled with my mental health so...")
+- too-neat narrative ("and that's when everything changed")
+- screenplay verbs and props nobody says out loud: "opened his laptop", "disappeared into his
+  laptop", "began his journey", ANY mention of a laptop or computer at all. The device is a
+  screenplay prop. The obsession is shown through time and behavior, never objects: 1am,
+  every night, said bet, said fuck that, started coding, stayed up building.
+
+VOICE RULES:
+- lowercase, texting cadence, contractions always, max 16 words
+- dry and deadpan beats emotional. underreact to everything.
+- texture over adjectives: "8 months", "1am", "a laptop and a god complex" — never "amazing",
+  "incredible", "insane journey"
+- COMPLETE sentences only. No trailing "...", no dangling dash, no "but not for the reason
+  you'd think", no unfinished thoughts. Fragments read as glitches.
+- no dash punctuation of any kind. periods and commas only.
+- you MAY say he built an app / something, you may NOT name it (DBT-Mind) and may not sound
+  like an ad for it. the name drops late in the story, never on slide 1.
+- no two hooks may start with the same three words
+- the register examples show the SPIRIT, never copy them verbatim or near-verbatim
+
+DO NOT:
+- "amazing", "incredible", "saved me", "changed my life", "you need to hear this", "pov",
+  "storytime", "not for the reason you'd think"
+- vague withholds: "did something i can't explain", "did something for me", "the only thing i
+  knew how to do". if you withhold, withhold nothing but the name.
+- novel-ish lines: "i was so scared", "i had no idea", "little did i know"
+- exclamation marks, caps for emphasis, emoji (one 💀 max across the batch)
+
+Return only valid JSON, best hook first:
+{"hooks": ["hook 1", "hook 2", "hook 3", "hook 4", "hook 5"]}${isGerman ? `\n\n${STORY_TELLING_GERMAN_HOOKS_BLOCK}` : ''}`;
+
+    const userPrompt = `The story slides for this specific post (hooks must fit THIS telling):
+
+${storyContext || '(no slides provided)'}
+
+Generate 5 Slide 1 hook options, best first. At least one register 4 (playful flex) and one
+register 5 (gatekeep).${isGerman ? ' ALLE HOOKS AUF DEUTSCH.' : ''}`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'x-api-key': params.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 800,
+            temperature: 0.95,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: userPrompt }]
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Anthropic API Error: ${errorText}`);
+    }
+
+    const rawData = await response.json() as any;
+    const resultText = rawData.content?.[0]?.text || '';
+    if (!resultText) throw new Error('Empty AI response');
+
+    const parsed = parseClaudeJsonResponse(resultText, '[Story Telling Hooks]');
+    const hooks = Array.isArray(parsed?.hooks) ? parsed.hooks : [];
+    // Same standard as the slide body: POV lock enforced, no fragments, no dashes. Hooks that
+    // fail are dropped rather than shipped; the caller keeps the slideshow's own slide 1 if
+    // nothing survives.
+    const normalizedHooks = hooks
+        .map((hook: unknown) => {
+            let text = String(hook || '')
+                .trim()
+                .replace(/^slide\s*1\s*:\s*/i, '')
+                .replace(/\s*[—–]\s*/g, '. ')
+                .replace(/ - /g, '. ')
+                .replace(/\s*[-—–]\s*$/, '')
+                .trim();
+            // Whole-hook shouting is a tell; a single caps emphasis word is not. Only
+            // force-lowercase when the hook itself is all caps or Title Cased like a headline.
+            const letters = text.replace(/[^a-zA-Z]/g, '');
+            if (letters && letters === letters.toUpperCase()) text = text.toLowerCase();
+            return text;
+        })
+        .filter((hook: string) => hook && storyTellingHookProblems(hook, pov, language).length === 0)
+        .slice(0, 5);
+
+    return {
+        hooks: normalizedHooks,
+        styleExamples: [],
+        styleInfluences: []
+    };
+}
+
+// Love Story GF v2 hook engine: 20 hooks across the 6 masterclass mechanisms, the crowned
+// winner first, grounded in the actual generated slides (the hook is reverse-engineered from
+// the payoff). All 20 are returned so the user can swap slide 1 in the UI.
+export async function generateLoveStoryV2Hooks(params: StoryTellingHookParams): Promise<StoryTellingHookResult> {
+    const language: DbtContentLanguage = params.language === 'de' ? 'de' : 'en';
+    const isGerman = language === 'de';
+    const storyContext = (params.slides || [])
+        .map(slide => String(slide || '').trim())
+        .filter(Boolean)
+        .join('\n');
+
+    const systemPrompt = `You write slide-1 hooks for a true-story TikTok slideshow in the DBT/BPD niche.
+
+THE STORY (told across the slides): a girlfriend with BPD was put on a months-long DBT therapy waitlist. her boyfriend, a developer, quietly built her a DBT skills app to make the waiting survivable. it was never a replacement for therapy. the app is DBT-Mind, named only at the very end.
+
+THE NARRATOR IS THE GIRLFRIEND on every hook: "i / me / my boyfriend / he". Never his perspective, never "my girlfriend", never her building anything.
+
+THE EMOTIONAL TARGET: the comment "omg this is so sweet". The hook sells the STORY, the fixed slides deliver the name. Never say the app name, never hint it's an ad.
+
+THE 6 MECHANISMS (span at least 4 across the batch):
+1. SURVEILLANCE CALL-OUT: name the viewer's exact situation so precisely it feels illegal ("if you're rotting on the dbt waitlist right now...")
+2. DISBELIEF GAP: the claim that sounds made up, understated ("my boyfriend's response to my dbt waitlist was unhinged actually")
+3. WRONG-FOOT: open where the viewer expects a vent/breakup post, then flip it
+4. CONFESSIONAL: "things i've never told anyone" energy, intimate, first-person
+5. SPECIFIC-DETAIL BOMB: one hyper-specific concrete detail that implies the whole story
+6. COLLECTIVE WOUND: the community's shared enemy (the waitlist, the system), the love story arrives as the plot twist
+
+HOOK VOICE RULES:
+- lowercase, texting cadence, max 18 words each, no dash punctuation of any kind (no em-dash, no en-dash, no " - " as a pause), max 1 emoji and only if removing it hurts
+- STAKES RULE: every hook contains at least one concrete anchor: the wait time in months, the word "waitlist", or a number
+- VIEWER-FIRST TEST: the hook makes the viewer feel SEEN before it makes her curious about the couple
+- no "did you know", no quiz questions, no "storytime", no therapist-speak, never the literal words "green flag"
+- no two hooks start with the same three words
+- your first 3 instincts are the ones every brand account posts. give the 4th through 20th.
+
+CROWNING: pick the single best hook using all three tests: (1) the 1.2-second test, a mid-doomscroll scroller physically stops; (2) the group-chat test, someone screenshots just slide 1 and sends it with "wait"; (3) the payoff test, the final fixed slide ("i'm still not over the fact that it exists") retroactively makes the hook hit harder.
+
+Return only valid JSON, crowned hook first, then the other 19:
+{"hooks": ["crowned hook", "hook 2", "hook 3", "...20 total..."]}${isGerman ? `
+
+SPRACHE: DEUTSCH. Schreibe alle Hooks auf Deutsch, wie deutsche Gen-Z-TikTok-Creator wirklich tippen: lowercase, lockere Satzstellung, natürliche Anglizismen (cringe, literally, safe, btw, waitlist, app, spiral). Keine steifen Übersetzungen, die englischen Beispiele zeigen nur das Register.` : ''}`;
+
+    const userPrompt = `The story slides for this specific post (the hook is reverse-engineered from THIS payoff):
+
+${storyContext || '(no slides provided)'}
+
+Generate 20 slide-1 hooks now, crowned best first.${isGerman ? ' ALLE HOOKS AUF DEUTSCH.' : ''}`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'x-api-key': params.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 2200,
+            temperature: 0.95,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: userPrompt }]
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Anthropic API Error: ${errorText}`);
+    }
+
+    const rawData = await response.json() as any;
+    const resultText = rawData.content?.[0]?.text || '';
+    if (!resultText) throw new Error('Empty AI response');
+
+    const parsed = parseClaudeJsonResponse(resultText, '[Love Story V2 Hooks]');
+    const hooks = Array.isArray(parsed?.hooks) ? parsed.hooks : [];
+    const normalizedHooks = hooks
+        .map((hook: unknown) => String(hook || '')
+            .trim()
+            .replace(/^slide\s*1\s*:\s*/i, '')
+            .replace(/\s*[—–]\s*/g, '. ')
+            .replace(/ - /g, '. ')
+            .replace(/\s*[-—–]\s*$/, '')
+            .trim())
+        .filter((hook: string) => hook && storyTellingHookProblems(hook, 'gf', language).length === 0)
+        .slice(0, 20);
+
+    return {
+        hooks: normalizedHooks,
+        styleExamples: [],
+        styleInfluences: []
+    };
+}
+
+// Converted Skeptic hook engine (DBT_MIND_CONVERTED_SKEPTIC_HOOK_PROMPT.md): 10 hooks built on
+// [another person] + [legitimate doubt] + [they changed their mind], one-breath structure,
+// gen-z switch-up register, fitted to the actual generated slides. Crowned winner first,
+// all 10 returned so the user can swap slide 1 in the UI.
+export async function generateConvertedSkepticHooks(params: StoryTellingHookParams): Promise<StoryTellingHookResult> {
+    const language: DbtContentLanguage = params.language === 'de' ? 'de' : 'en';
+    const isGerman = language === 'de';
+    const storyContext = (params.slides || [])
+        .map(slide => String(slide || '').trim())
+        .filter(Boolean)
+        .join('\n');
+
+    const systemPrompt = `You write slide-1 hooks for a true-story TikTok slideshow in the DBT/BPD niche, in the exact voice a 21-year-old types in.
+
+THE STORY (told across the slides you receive): a girlfriend with BPD was put on a months-long DBT therapy waitlist. her boyfriend, a developer, quietly built her a DBT skills app from real DBT material so she could survive the wait. it was never a replacement for therapy. the app is DBT-Mind, and the name NEVER appears in a hook.
+
+THE FORMULA: [another person] + [their legitimate doubt] + [they changed their mind]. The genre is "catching the switch-up": the viewer's pleasure is a hypocrite being exposed, not a conversion being witnessed.
+
+THE ONE-BREATH RULE (overrides everything): every hook is ONE sentence, hinged on "so / and then / but then / and now / until / but". Two-sentence hooks force the reader to store sentence 1 and resolve sentence 2's pronouns backwards — four mental steps on a 1.2-second slide. Default shape (~70%): causal with the flip IMPLIED — "my therapist said apps don't work so i showed her what my boyfriend built at 1am". Never stated, the reader knows it worked. Second shape: tail-flip — "his roommate called the app a phase and now he asks how it works". Two-sentence hooks allowed only when the flip is 6 words or fewer and the pronoun resolves instantly. Flip-first and dialogue-fragment structures are BANNED (backwards assembly).
+
+THE DOUBT IS MANDATORY AND EXPLICIT: every hook contains the skeptic's objection in their words or paraphrase ("said apps don't work", "told me to wait for the real one", "called it a phase"). Curiosity without a stated conflict is a riddle — "my therapist asked what it's called" has no switch-up because she never doubted. If you can delete the doubt and the hook still makes sense, there is no formula, rewrite it.
+
+THE STANDALONE TEST: the hook must make complete sense to someone who has seen NOTHING — no slides, no account, no context. Fit means the payoff matches the slides, never that the hook quotes them. Banned: referencing slide internals ("the waitlist screen", "the notebooks", "what i showed her") that only resolve after watching. Canonical failure example, never produce anything like it: "my therapist asked what it was called so i showed her the waitlist screen too" — no doubt, no visible subject, no meaning without the slideshow.
+
+THE VISIBLE-SUBJECT RULE: the thing the skeptic changed their mind about must be named by category inside the hook — "the app", "his app", "what he built", "the one he built me". Withhold the brand, never the object.
+
+THE GLANCE TEST: static text, half-attention, one pass. Person named in the first 3 words. Every pronoun resolves with zero thought — when two people could own it, repeat the name. One idea per clause. Any hook needing a re-read dies.
+
+THE FIT RULE (hooks frame THIS slideshow): whatever flips the skeptic must be what the slides reveal. The skeptic stays in the hook, never the slides, but after swiping, the viewer must think "THAT'S why she caved". Numbers and facts must match the slides exactly (if the slides say 14 months, the hook never says 8). Timeline consistency: a post-therapy hook only fits a telling that reaches therapy; if the slides end at 2am use, no hook references outcomes past that point. Girlfriend narrator, same lowercase restraint as the slides.
+
+CAST (phone-native reality only): her best friend, the group chat, roommates, siblings, mom via text or sunday calls, coworkers on break, her therapist, the intake nurse. BANNED personas: the neighbor, the landlord, the pharmacist, dad at the hardware store — boomer-movie characters. If the doubt wouldn't happen over text, facetime, or on a couch, the persona is wrong.
+
+THE DOUBT must be legitimate, never a strawman — "an app can't replace therapy" is literally true and that's why the flip lands. Rotate the doubt's TARGET across the batch: efficacy (max 4 of 10), the relationship dynamic ("couples shouldn't do therapy work together", "what if you two break up"), her follow-through ("you'll abandon it like the last four"), his cost ("he can't keep building forever"), privacy ("an app knowing your 2am thoughts?"). Doubts sound like texts: "he's not a therapist tho", "girl just wait for the real one".
+
+THE FLIP is one small phone-native action, never declared emotion: downloaded it in front of me, on her home screen, texts me skills now, sent it to her sister, screenshots at midnight, the jokes just stopped. Banned flips: crying, apologizing, speechlessness, and any flip that needs a sentence of explanation. Flip families: install/ask/forward caps at half the batch; also use behavior stopping, defense, participation, silence, return.
+
+THE AUTHORITY CAP: authority figures reach curiosity only — the therapist ceiling is "asked what it's called". BANNED: recommending it to other patients, bringing it up in sessions, endorsing it, engaging with features. Product validation comes from peers only. Never make therapists the villain; the waitlist is the enemy. Never invent features, betas, or clinical claims. The app is live and public.
+
+GEN-Z FRAMES (max one per hook, never stacked): "mind you...", "the switch up is crazy", "not my mom...", "this is the same girl who...", "and now SHE'S the one...". The frame must contain the actual switch — a frame without the flip in the same breath is banned.
+
+THE NICHE ANCHOR RULE: exactly ONE DBT/BPD anchor per hook, never two. Bank: the waitlist (strongest), bpd named flat in the doubt, spiral/splitting, the 2am frame, the skills themselves ("check the facts", "the worksheets", "diary cards" — naked, never explained). No diagnosis-speak ("symptoms", "episodes", "mental health journey").
+
+THE STAGING TEST: one crafted detail per hook max — two reads as a screenplay. Occasions banned (birthday, christmas, thanksgiving, wedding); mundane markers only ("the same night", "on her lunch break", "every sunday call"). Details must be evidence, not charm. The flat-out option (zero scene) is often the strongest.
+
+VOICE: lowercase, texting cadence, max 18 words (counted), no dash punctuation of any kind (no em-dash, en-dash, or " - " as a pause), max 1 emoji, no questions, no "storytime", never the words "green flag", no two hooks opening with the same three words. Your first 3 instincts are the mode — push past them.
+
+CROWNING: pick the winner with (0) the glance test as gatekeeper, (1) the 1.2-second stop test, (2) the fairness test — the doubt is so reasonable the viewer agrees with it, (3) the comment-bait test — viewers reply with their own skeptic who caved.
+
+Return only valid JSON, crowned hook first, then the others:
+{"hooks": ["crowned hook", "hook 2", "...14 total..."]}${isGerman ? `
+
+SPRACHE: DEUTSCH. Schreibe alle Hooks auf Deutsch, wie deutsche Gen-Z-TikTok-Creator wirklich tippen: lowercase, lockere Satzstellung, natürliche Anglizismen (cringe, literally, safe, btw, waitlist, app, spiral, skills). Keine steifen Übersetzungen — die englischen Beispiele zeigen nur das Register.` : ''}`;
+
+    const userPrompt = `The slideshow these hooks must frame (fit rule applies — numbers, timeline, and payoff must match):
+
+${storyContext || '(no slides provided)'}
+
+Generate 14 converted-skeptic hooks now, crowned best first (extra hooks are requested because the server enforces the 18-word cap strictly and will drop any hook that exceeds it — so keep every hook at 18 words or fewer, counted).${isGerman ? ' ALLE HOOKS AUF DEUTSCH.' : ''}`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'x-api-key': params.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 2000,
+            temperature: 0.95,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: userPrompt }]
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Anthropic API Error: ${errorText}`);
+    }
+
+    const rawData = await response.json() as any;
+    const resultText = rawData.content?.[0]?.text || '';
+    if (!resultText) throw new Error('Empty AI response');
+
+    const parsed = parseClaudeJsonResponse(resultText, '[Converted Skeptic Hooks]');
+    const hooks = Array.isArray(parsed?.hooks) ? parsed.hooks : [];
+    // Skeptic-specific validation: meme frames ("the switch up is crazy bc the group chat...")
+    // carry no first-person word and are legal here, so unlike the love-story hook check we
+    // don't require i/my/me. Brand name in a hook is an instant kill either way.
+    const cleaned = hooks
+        .map((hook: unknown) => String(hook || '')
+            .trim()
+            .replace(/^slide\s*1\s*:\s*/i, '')
+            .replace(/\s*[—–]\s*/g, '. ')
+            .replace(/ - /g, '. ')
+            .replace(/\s*[-—–]\s*$/, '')
+            .trim());
+    const safetyFilter = (hook: string) => {
+        if (!hook) return false;
+        if (/dbt[-\s]?mind/i.test(hook)) return false;
+        if (hook.split(/\s+/).filter(Boolean).length > 18) return false;
+        if (!isGerman && /^he\b/i.test(hook)) return false;
+        if (isGerman && /^er\b/i.test(hook)) return false;
+        if (/[-—–,;:]\s*$/.test(hook)) return false;
+        return true;
+    };
+    // The formula is structural, so rank it structurally: hooks with an explicit doubt verb
+    // and a visible subject go first (they're the real converted-skeptic hooks), the rest fill
+    // in behind them — the user should always see the full batch, never a single survivor.
+    const hasDoubtVerb = (hook: string) =>
+        /\b(said|saying|told|telling|called|claims?|claimed|thought|warned|swears?|swore|insisted|laughed|mocked|roasted|doubted|hated|bet|rolled|joked|joking|was like|goes|keeps on|meinte|sagte|warnte|nannte|behauptet)\b/i.test(hook);
+    const hasVisibleSubject = (hook: string) =>
+        /\b(app|apps|built|build|building|made it|what he built|das ding|gebaut|entwickelt)\b/i.test(hook);
+    const passing = cleaned.filter(hook => safetyFilter(hook));
+    const structural = passing.filter(hook => hasDoubtVerb(hook) && hasVisibleSubject(hook));
+    const rest = passing.filter(hook => !(hasDoubtVerb(hook) && hasVisibleSubject(hook)));
+    const normalizedHooks = [...structural, ...rest].slice(0, 10);
+    console.log(`[Converted Skeptic Hooks] model returned ${cleaned.length}, kept ${normalizedHooks.length} (${structural.length} structural, ${rest.length} fallback)`);
+
+    return {
+        hooks: normalizedHooks,
+        styleExamples: [],
+        styleInfluences: []
+    };
+}
 
 export const WEIRD_HACK_V2_NANO_BANANA_STYLING_BLOCK = `Styling rules: Hopeful vibe asthetic, unprofessional iPhone 12 candid shot, Medium quality, authentic Tiktok asthetic. Do NOT add background blur/unsharpness. The image should look unintended and fully spontaneously.`;
 
 export const WEIRD_HACK_V2_NANO_BANANA_NEGATIVES_BLOCK = `Negatives: No phones, no hands in image, no person visible in image, No notebook with written text, blank notebook is okay. No readable text in image.`;
+
+export const PERMISSION_V1_NANO_BANANA_STYLING_BLOCK = `Styling rules: Hopeful vibe asthetic, unprofessional iPhone 12 candid shot, Medium quality, authentic Tiktok asthetic. Do NOT add background blur/unsharpness. The image should look unintended and fully spontaneously.
+Use the attached/referenced image only as inspiration for vibe and subject matter, NOT as a composition to recreate. The result must be clearly and immediately distinguishable from the attached image, not a near-duplicate. Change at least 3 of these: camera angle, framing/crop, subject distance, scene layout, background details, lighting, color balance, or environment details. It should feel like a different photo of the same general idea, taken in a different moment, not the same image remade.`;
+
+export const PERMISSION_V1_NANO_BANANA_NEGATIVES_BLOCK = `Negatives: No phones, no hands in image, no person visible in image, No notebook with written text, blank notebook is okay. No readable text in image.`;
 
 const WEIRD_HACK_V2_MEME_OPTIONS = {
     overwhelm: [
@@ -504,26 +1681,69 @@ function sanitizeWeirdHackV2CommentTriggerPrompt(scenePrompt: string) {
     return String(scenePrompt || '');
 }
 
-export function buildWeirdHackV2NanoBananaPrompt(scenePrompt: string) {
-    const cleanedScenePrompt = sanitizeWeirdHackV2CommentTriggerPrompt(scenePrompt).trim();
+function buildDbtNanoBananaPrompt(
+    scenePrompt: string,
+    stylingBlock: string,
+    negativesBlock: string
+) {
+    const cleanedScenePrompt = String(scenePrompt || '').trim();
     if (!cleanedScenePrompt) return cleanedScenePrompt;
-    if (cleanedScenePrompt.startsWith(WEIRD_HACK_V2_NANO_BANANA_STYLING_BLOCK)) {
+    if (cleanedScenePrompt.startsWith(stylingBlock)) {
         return cleanedScenePrompt;
     }
 
     const fullPrompt = [
-        WEIRD_HACK_V2_NANO_BANANA_STYLING_BLOCK,
-        WEIRD_HACK_V2_NANO_BANANA_NEGATIVES_BLOCK,
+        stylingBlock,
+        negativesBlock,
         cleanedScenePrompt
     ].join('\n\n');
 
     return fullPrompt;
 }
 
+export function buildWeirdHackV2NanoBananaPrompt(scenePrompt: string) {
+    const cleanedScenePrompt = sanitizeWeirdHackV2CommentTriggerPrompt(scenePrompt).trim();
+    return buildDbtNanoBananaPrompt(
+        cleanedScenePrompt,
+        WEIRD_HACK_V2_NANO_BANANA_STYLING_BLOCK,
+        WEIRD_HACK_V2_NANO_BANANA_NEGATIVES_BLOCK
+    );
+}
+
+export function buildPermissionV1NanoBananaPrompt(scenePrompt: string) {
+    const cleanedScenePrompt = String(scenePrompt || '').trim();
+    if (cleanedScenePrompt.startsWith(PERMISSION_V1_NANO_BANANA_STYLING_BLOCK)) {
+        return cleanedScenePrompt;
+    }
+
+    return [
+        PERMISSION_V1_NANO_BANANA_STYLING_BLOCK,
+        PERMISSION_V1_NANO_BANANA_NEGATIVES_BLOCK
+    ].join('\n\n');
+}
+
 export async function generateWeirdHackV2ImagePrompts(
     slides: string[],
     ANTHROPIC_API_KEY: string
 ): Promise<Record<string, string>> {
+    const buildOutdoorFallback = (slideText: string, slideNumber: number) => {
+        const settings = [
+            'a lakeside walking path at golden hour with a canvas tote resting near the frame edge',
+            'a beach access boardwalk at sunset with wind-softened dunes and a hoodie draped on the railing',
+            'a quiet city park path just after rain with wet leaves, soft cloudy light, and a water bottle near a bench',
+            'a coastal bluff overlook with a worn footpath, moving clouds, and a parked-car overlook feeling',
+            'a riverbank at late afternoon with smooth stones, grass, and a small picnic blanket corner in frame',
+            'an easy mountain-hike viewpoint at sunrise with trail fence details and warm open sky',
+            'a wide meadow after a storm clearing, soft light breaking through clouds, spacious and hopeful'
+        ];
+        const setting = settings[(slideNumber - 2) % settings.length];
+        const emotionalCue = String(slideText || '').trim()
+            ? `The mood should quietly match this slide text: ${String(slideText).trim()}`
+            : 'The mood should feel emotionally resonant, calm, and save-worthy.';
+
+        return `${setting}, photorealistic vertical 9:16 candid iPhone-style nature photo, no people visible, accessible Gen-Z outdoor setting, intimate slightly imperfect phone composition, beautiful natural light, nature is the main subject. ${emotionalCue}. No text, signs, phones, books, notebooks, screenshots, app UI, surreal symbolism, indoor scene, city skyline, stock-photo polish, or readable words.`;
+    };
+
     const outdoorSystemPrompt = `You write image generation prompts for TikTok slideshow posts about BPD and DBT skills.
 
 The Weird Hack V2 flow should use outdoor nature scenes for slides 2 through 8.
@@ -585,7 +1805,7 @@ Return strictly as JSON - no markdown, no explanation:
         },
         body: JSON.stringify({
             model: 'claude-sonnet-4-6',
-            max_tokens: 900,
+            max_tokens: 1600,
             system: outdoorSystemPrompt,
             messages: [{ role: 'user', content: outdoorUserPrompt }]
         })
@@ -599,16 +1819,26 @@ Return strictly as JSON - no markdown, no explanation:
 
     const outdoorRaw = await outdoorResponse.json() as any;
     const outdoorText = outdoorRaw.content?.[0]?.text || '';
-    const outdoorParsed = parseClaudeJsonResponse(outdoorText, "[Weird Hack V2 Image Prompts]");
+    let outdoorParsed: Record<string, string> = {};
+    try {
+        outdoorParsed = parseClaudeJsonResponse(
+            outdoorText,
+            "[Weird Hack V2 Image Prompts]",
+            value => fallbackParseKeyedTextObject(value, ['slide2', 'slide3', 'slide4', 'slide5', 'slide6', 'slide7', 'slide8'])
+        ) || {};
+    } catch (error) {
+        console.warn("[Weird Hack V2 Image Prompts] Could not parse AI response; using outdoor fallback prompts.", error);
+        console.warn("[Weird Hack V2 Image Prompts] Raw AI response:", outdoorText);
+    }
 
     return {
-        slide2: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide2 || '').trim()),
-        slide3: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide3 || '').trim()),
-        slide4: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide4 || '').trim()),
-        slide5: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide5 || '').trim()),
-        slide6: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide6 || '').trim()),
-        slide7: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide7 || '').trim()),
-        slide8: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide8 || '').trim())
+        slide2: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide2 || buildOutdoorFallback(slides[1] || '', 2)).trim()),
+        slide3: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide3 || buildOutdoorFallback(slides[2] || '', 3)).trim()),
+        slide4: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide4 || buildOutdoorFallback(slides[3] || '', 4)).trim()),
+        slide5: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide5 || buildOutdoorFallback(slides[4] || '', 5)).trim()),
+        slide6: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide6 || buildOutdoorFallback(slides[5] || '', 6)).trim()),
+        slide7: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide7 || buildOutdoorFallback(slides[6] || '', 7)).trim()),
+        slide8: buildWeirdHackV2NanoBananaPrompt(String(outdoorParsed.slide8 || buildOutdoorFallback(slides[7] || '', 8)).trim())
     };
     const systemPrompt = `You write image generation prompts for TikTok slideshow posts about BPD and DBT skills. 
 
@@ -816,13 +2046,17 @@ Return strictly as JSON — no markdown, no explanation:
 
 
 export async function generateDbtSlides(params: DbtGenerateParams) {
-    const { ANTHROPIC_API_KEY, includeBranding = true, topic, slideType = 'weird_hack' } = params;
-    const isStoryTellingFlow = slideType === 'story_telling_bf' || slideType === 'story_telling_gf';
-    const needsViralTopic = !isStoryTellingFlow && slideType !== 'weird_hack_v2' && slideType !== 'permission_v1';
+    const { ANTHROPIC_API_KEY, includeBranding = true, topic, slideType = 'weird_hack', language = 'en' } = params;
+    const isGerman = language === 'de';
+    const isStoryTellingFlow = slideType === 'story_telling_bf' || slideType === 'story_telling_gf' || slideType === 'story_telling_gf_v2';
+    const needsViralTopic = !isStoryTellingFlow
+        && slideType !== 'weird_hack_v2'
+        && slideType !== 'permission_v1'
+        && slideType !== 'vent_now_style';
 
     // DBT style is locked to symbolic.
     const selectedArtStyle = ART_STYLES.symbolic as ArtStyle;
-    console.log(`[Native Slides - DBT] Generating ${slideType} format, style: ${selectedArtStyle.name}, branding: ${includeBranding ? 'ON' : 'OFF'}`);
+    console.log(`[Native Slides - DBT] Generating ${slideType} format, style: ${selectedArtStyle.name}, branding: ${includeBranding ? 'ON' : 'OFF'}, language: ${language}`);
 
     const viralTopics = [
         // Tier 1: Relationship/Attachment
@@ -844,6 +2078,27 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
         { topic: "Rejection Sensitivity", struggles: ["interpreting mid emojis as hatred", "physical sickness after minor criticism", "post-socializing spiral/over-analyzing", "perceiving slight shifts in energy"] },
         { topic: "Digital Self-Harm", struggles: ["checking blocks/old texts", "searching for things that trigger you", "comparing yourself to their new friends", "stalking ex-FPs"] }
     ];
+
+    const ventNowStyleDefaultTopic = {
+        topic: "choose one high-reach DBT-Mind slideshow topic yourself",
+        struggles: [
+            "opening the profile that hurts you",
+            "spiraling over a dry text",
+            "sending the paragraph",
+            "reading every tone shift",
+            "feeling replaced when they move on",
+            "panic when someone goes quiet",
+            "apologizing just in case",
+            "checking if they watched your story",
+            "feeling too much after a normal conflict",
+            "forgetting how far you've come",
+            "wanting reassurance again after ten minutes",
+            "going cold first so they can't leave first",
+            "assuming a changed mood means rejection",
+            "replaying one sentence from the conversation",
+            "trying to earn safety after every tiny shift"
+        ]
+    };
 
     const weirdHackV2Topics: WeirdHackV2Topic[] = [
         { topic: "Splitting", category: "bpd", struggles: ["all-or-nothing thinking", "turning on someone over a tone shift", "black-and-white thinking"], inGroupTerms: ["splitting", "splitting on someone"] },
@@ -1097,7 +2352,12 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
     const selectedPermissionV1Topic = slideType === 'permission_v1'
         ? pickPermissionV1Topic(permissionV1Topics)
         : null;
-    const topicContext = selectedTopic || viralTopics[0]!;
+    const selectedVentNowTopic = slideType === 'vent_now_style'
+        ? pickVentNowTopic(viralTopics)
+        : null;
+    const topicContext = slideType === 'vent_now_style'
+        ? (selectedVentNowTopic || ventNowStyleDefaultTopic)
+        : selectedTopic || viralTopics[0]!;
 
     if (selectedTopic) {
         console.log(`[Native Slides - DBT] Selected topic: ${selectedTopic.topic}`);
@@ -1107,6 +2367,9 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
     } else if (slideType === 'permission_v1') {
         console.log(`[Native Slides - DBT] Permission v1 selected topic: ${selectedPermissionV1Topic?.shameWord || 'unknown'}`);
         console.log(`[Native Slides - DBT] Permission v1 recent topics: ${readPermissionV1RecentTopics().join(', ')}`);
+    } else if (slideType === 'vent_now_style') {
+        console.log(`[Native Slides - DBT] Vent Now selected topic: ${selectedVentNowTopic?.topic || 'unknown'}`);
+        console.log(`[Native Slides - DBT] Vent Now recent topics: ${readVentNowRecentTopics().join(', ')}`);
     } else {
         console.log('[Native Slides - DBT] Story telling flow: skipping viral topic selection');
     }
@@ -1142,7 +2405,7 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
         let block2 = (blocks[1] || '').trim();
 
         // Detect which formula the model used
-        const startsWithNotMe = /^not\s+me\s+realizing/i.test(block1);
+        const startsWithNotMe = /^not\s+me\s+realizing/i.test(block1) || /^ich,?\s+wie\s+ich\b/i.test(block1);
         const startsWithWdym = /^wdym\b/i.test(block1);
 
         // If the model collapsed everything into one block, try to split intelligently
@@ -1168,16 +2431,22 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
 
         // Fallback block 1 if empty
         if (!block1) {
-            block1 = `not me realizing i've been stuck in the ${fallbackProblem} loop\nfor literally years`;
+            block1 = isGerman
+                ? `ich, wie ich realisiere, dass ich seit jahren im ${fallbackProblem}-loop festhänge`
+                : `not me realizing i've been stuck in the ${fallbackProblem} loop\nfor literally years`;
         }
 
         // Fallback block 2 — match the formula the model chose
         if (!block2) {
             if (startsWithWdym) {
-                block2 = `like that's not a coping strategy\nthat's the symptom`;
+                block2 = isGerman
+                    ? `like, das ist kein coping mechanismus\ndas ist das symptom`
+                    : `like that's not a coping strategy\nthat's the symptom`;
             } else {
                 // Default to Formula A tail for anything else
-                block2 = `anyway here's what i'm doing about it`;
+                block2 = isGerman
+                    ? `anyway, hier ist was ich dagegen mache`
+                    : `anyway here's what i'm doing about it`;
             }
         }
 
@@ -1186,6 +2455,44 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
         block2 = block2.replace(/\n\s*\n/g, '\n');
 
         return `${block1}\n\n${block2}`;
+    };
+
+    const formatWeirdHackV2Slide5Cta = (rawSlide: string) => {
+        const cleaned = String(rawSlide || "").replace(/^slide\s*5\s*:\s*/i, '').trim();
+        const blocks = cleaned.split(/\n\s*\n/).map(part => part.trim()).filter(Boolean);
+        const hasAppMention = /dbt-mind|app called|\bapp\b/i.test(cleaned);
+        const ensureThirdLabel = (value: string) => {
+            const normalized = String(value || '').trim().toLowerCase();
+            if (/^3\.\s+/.test(normalized)) return normalized;
+            return `3. ${normalized.replace(/^\d+\.\s*/, '')}`.trim();
+        };
+
+        if (hasAppMention && blocks.length >= 2) {
+            const bridge = blocks[0]
+                .split(/\r?\n/)
+                .map(line => line.trim())
+                .filter(Boolean)
+                .slice(0, 2)
+                .join('\n')
+                .toLowerCase();
+            const cta = blocks
+                .slice(1)
+                .join(' ')
+                .replace(/\s+/g, ' ')
+                .replace(/dbt-mind/gi, 'DBT-Mind')
+                .trim();
+            return `${ensureThirdLabel(bridge)}\n\n${cta}`;
+        }
+
+        if (hasAppMention) {
+            const cta = cleaned
+                .replace(/\s+/g, ' ')
+                .replace(/dbt-mind/gi, 'DBT-Mind')
+                .trim();
+            return `${isGerman ? '3. ein backup für den lauten kopf' : '3. have a backup for the loud-brain part'}\n\n${cta}`;
+        }
+
+        return isGerman ? WEIRD_HACK_V2_CTA_FALLBACK_DE : WEIRD_HACK_V2_CTA_FALLBACK;
     };
 
     const detectDbtSkill = (text: string) => {
@@ -1247,6 +2554,17 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
         "please skills": "1. Check PLEASE first\n\nask if i ate, slept, and slowed down\nreplaces shame with body-based reality."
     };
 
+    const weirdHackV2DbtSkillFallbacksDe: Record<string, string> = {
+        "tipp": "1. erst mal TIPP\n\nkaltes wasser zuerst, dann langsames ausatmen\numgeht die panik, bevor die gedanken übernehmen.",
+        "wise mind": "1. Wise Mind check-in\n\n\"was sind die fakten, was fühle ich gerade?\"\nerstetzt den reinen emotion mind durch beide wahrheiten.",
+        "opposite action": "1. Opposite Action\n\nimpuls sagt isolieren? schreib einer safe person\nersetzt den aktionsimpuls, der die spirale füttert.",
+        "check the facts": "1. Check the Facts\n\n\"was ist passiert, und was hab ich dazugedichtet?\"\nerstetzt annahmen durch den realitätscheck.",
+        "radical acceptance": "1. Radikale Akzeptanz\n\n\"ich hasse das, und es ist trotzdem real\"\nerstetzt das kämpfen gegen die realität, das den schmerz lauter macht.",
+        "stop skill": "1. STOP Skill\n\nantwort einfrieren. einen schritt zurück vor dem handeln\numgeht die impulsive aktion, bevor die reue anfängt.",
+        "self-soothe": "1. erst mal Self-Soothe\n\nweiche decke, kaltes getränk, gedimmtes licht\nersetzt die überreizung durch sensorische regulierung.",
+        "please skills": "1. erst PLEASE checken\n\nfrag dich, ob du gegessen, geschlafen und runtergefahren hast\nersetzt scham durch körperbasierte realität."
+    };
+
     const normalizeSkillKey = (value: string) => String(value || '').trim().toLowerCase();
 
     const containsNamedDbtSkill = (value: string) => {
@@ -1257,6 +2575,7 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
             "tipp",
             "opposite action",
             "radical acceptance",
+            "radikale akzeptanz",
             "check the facts",
             "self-soothe",
             "self soothe",
@@ -1266,6 +2585,9 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
 
     const getWeirdHackV2DbtSkillFallbackSlide = (topicName: string) => {
         const normalizedTopic = normalizeSkillKey(topicName);
+        if (isGerman) {
+            return weirdHackV2DbtSkillFallbacksDe[normalizedTopic] || `1. versuch ${topicName}\n\nnutz ${topicName}, bevor die spirale peakt\nersetzt raten durch einen echten DBT skill.`;
+        }
         return weirdHackV2DbtSkillFallbacks[normalizedTopic] || `1. Try ${topicName}\n\nuse ${topicName} before the spiral peaks\nreplaces guessing with an actual DBT skill.`;
     };
 
@@ -1332,8 +2654,8 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
             return lines.join('\n');
         }
 
-        // Slides 3, 4, 5 — Numbered hacks (three blocks: label / example / mechanism)
-        if (slideIndex >= 2 && slideIndex <= 4) {
+        // Slides 3, 4 — Numbered hacks (three blocks: label / example / mechanism)
+        if (slideIndex >= 2 && slideIndex <= 3) {
             const blocks = cleaned.split(/\n\s*\n/).map(part => part.trim()).filter(Boolean);
 
             // Ideal case: 3 blocks already
@@ -1372,6 +2694,10 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
         }
 
         // Slide 6 — Mechanism reframe (single block, lines joined by \n)
+        if (slideIndex === 4) {
+            return formatWeirdHackV2Slide5Cta(cleaned);
+        }
+
         if (slideIndex === 5) {
             const flattened = cleaned.replace(/\n\s*\n/g, '\n');
             return normalizeLines(flattened).join('\n');
@@ -1396,10 +2722,10 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
         if (items.length <= 7) return items;
 
         // If the model overshot, identify the 7 canonical slots:
-        // 0 = hook, 1 = pattern, 2/3/4 = hacks 1/2/3, 5 = mechanism, 6 = permission
+        // 0 = hook, 1 = pattern, 2/3 = hacks 1/2, 4 = CTA, 5 = mechanism, 6 = permission
         const isHook = (value: string) => {
             const firstLine = value.split(/\n/)[0] || '';
-            return /^not\s+me\s+realizing/i.test(firstLine) || /^wdym\b/i.test(firstLine);
+            return /^not\s+me\s+realizing/i.test(firstLine) || /^wdym\b/i.test(firstLine) || /^ich,?\s+wie\s+ich\b/i.test(firstLine);
         };
         const isTipLabel = (value: string, tipNumber?: number) => {
             const firstLine = value.split(/\n/)[0] || '';
@@ -1408,7 +2734,7 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
             return tipNumber ? Number(match[1]) === tipNumber : true;
         };
         const isPatternValidation = (value: string) =>
-            /^you know the cycle/i.test(value);
+            /^you know the cycle/i.test(value) || /^du kennst den (cycle|zyklus)/i.test(value);
 
         const normalized: string[] = [];
         let cursor = 0;
@@ -1434,7 +2760,7 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
         }
 
         // Slots 2, 3, 4 — Hacks 1, 2, 3
-        for (let tipNumber = 1; tipNumber <= 3 && cursor < items.length; tipNumber++) {
+        for (let tipNumber = 1; tipNumber <= 2 && cursor < items.length; tipNumber++) {
             const foundIndex = items.findIndex((item, index) => index >= cursor && isTipLabel(item, tipNumber));
             if (foundIndex !== -1) {
                 normalized.push(items[foundIndex]);
@@ -1447,7 +2773,7 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
 
         // Slots 5, 6 — Mechanism + Permission (take the next two remaining items)
         const remaining = items.slice(cursor);
-        normalized.push(...remaining.slice(0, 2));
+        normalized.push(...remaining.slice(0, 3));
 
         return normalized.slice(0, 7).filter(Boolean);
     };
@@ -1475,6 +2801,39 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
             .replace(/^slide\s*\d+\s*:\s*/i, '')
             .trim()
             .toLowerCase();
+    };
+
+    const buildPermissionV1Slide6ProblemFallback = (topic: PermissionV1Topic) => {
+        const accusation = String(topic.relatedAccusations?.[0] || '').trim().toLowerCase();
+        if (accusation) {
+            return `when your brain turns "${accusation}" into a whole identity`;
+        }
+        return `when "${String(topic.shameWord || 'too much').toLowerCase()}" starts feeling like your whole identity`;
+    };
+
+    const shortenPermissionV1Problem = (text: string, maxWords = 20) => {
+        const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+        if (words.length <= maxWords) return words.join(' ');
+        return words.slice(0, maxWords).join(' ');
+    };
+
+    const formatPermissionV1Slide6 = (rawSlide: string, topic: PermissionV1Topic) => {
+        const withoutSlideLabel = String(rawSlide || '')
+            .replace(/^slide\s*6\s*:\s*/i, '')
+            .trim();
+        const firstBlock = withoutSlideLabel
+            .split(/\n\s*\n/)
+            .map(part => part.trim())
+            .find(part => {
+                const lower = part.toLowerCase();
+                return part && !lower.includes('dbt-mind') && !lower.includes(' app ') && !lower.includes('app called');
+            });
+        const problem = shortenPermissionV1Problem(
+            formatPermissionV1Slide(firstBlock || buildPermissionV1Slide6ProblemFallback(topic)),
+            20
+        );
+
+        return `${problem}\n\n${PERMISSION_V1_CTA_SLIDE6}`;
     };
 
     const normalizePermissionV1Slides = (rawSlides: string[], topic: PermissionV1Topic) => {
@@ -1508,7 +2867,9 @@ export async function generateDbtSlides(params: DbtGenerateParams) {
             formatted[3] = [`you're not "${topic.shameWord.toLowerCase()}".`, ...remaining].slice(0, 3).join('\n');
         }
 
-        return [...formatted, PERMISSION_V1_FIXED_SLIDE8];
+        formatted[5] = formatPermissionV1Slide6(normalized[5] || '', topic);
+
+        return formatted;
     };
 
     const systemPrompt = `You are an expert DBT/BPD content creator on TikTok, that knows exactly what goes viral. You speak as a supportive, slightly older mentor figure who has been through the absolute trenches of BPD and finished DBT. Your vibe is supportive, validating, and helpful, but grounded in actual clinical DBT skills.
@@ -1564,14 +2925,14 @@ Return a JSON object with a "slides" key containing an array of 6 strings.`;
     const weirdHackV2SystemPrompt = `You are an expert DBT/BPD content creator for TikTok who writes as a peer — someone who has personally been through BPD and completed DBT. Not a clinician. A friend texting what actually helped her. Warm, slightly exhausted, real, slightly self-deprecating.
 
 ## YOUR TASK
-Generate a 7-slide viral TikTok slideshow optimized for saves and comments. The structure is designed for carousel-specific algorithmic signals: a hook that stops the scroll with a specific reframe, a pattern-validation slide that commits viewers to the full carousel, three hacks with dense dwell-time copy, a mechanism reframe that pays off the hook and drives saves, and a permission-landing slide.
+Generate a 7-slide viral TikTok slideshow optimized for saves and comments. The structure is designed for carousel-specific algorithmic signals: a hook that stops the scroll with a specific reframe, a pattern-validation slide that commits viewers to the full carousel, two hacks with dense dwell-time copy, a soft app CTA on slide 5, a mechanism reframe that pays off the hook and drives saves, and a permission-landing slide.
 
 An 8th slide (comment-driver) is appended automatically after generation — do NOT generate it.
 
-The app is NEVER mentioned on any slide. The app lives only in the pinned comment. Do not reference DBT-Mind, any app, any product, or any tool anywhere in the slides.
+The app is mentioned only on slide 5. Do not reference DBT-Mind, any app, any product, or any tool on slides 1-4, 6, or 7.
 
 ## VOICE RULES (STRICT)
-- Lowercase throughout, always
+- Lowercase throughout, except keep DBT-Mind capitalized and allow sentence-case CTA wording on slide 5
 - No emojis anywhere
 - Fragments over full sentences when possible
 - Underplay emotional intensity — flat, deadpan, slightly tired voice. Gen-Z BPD creators do NOT write "before it swallows you" or "before it destroys you." That's content-marketer voice. Write like you're too exhausted to be dramatic about it.
@@ -1667,23 +3028,35 @@ Rules:
 - Max 40 words total
 - Single block, single \\n between lines, no \\n\\n inside this slide
 
-### Slides 3, 4, 5 — Three Numbered Hacks
-Each slide has exactly THREE blocks separated by \\n\\n:
+### Slides 3 and 4 — Two Numbered Hacks
+Each hack slide has exactly THREE blocks separated by \\n\\n:
 
-Block 1 (the label): "[number]. [short technique name or action phrase]" — max 8 words, stands alone. Numbering is 1, 2, 3 across slides 3/4/5.
+Block 1 (the label): "[number]. [short technique name or action phrase]" — max 8 words, stands alone. Numbering is 1, 2 across slides 3/4.
 Block 2 (the example): A concrete example showing the hack in use. Use quote marks if it's something said out loud. Max 20 words. May span 2 lines joined by \\n.
 Block 3 (the mechanism): One sentence explaining why it works for BPD wiring. References what it bypasses, replaces, or interrupts. Max 14 words. End on a sharable, parallel-construction line when possible (e.g. "idealization will rewrite history. the note won't.").
 
-The three hacks cover three different intervention types in order:
+The two hacks cover two different intervention types in order:
 - Slide 3 / Hack 1: A language or cognitive reframe (something to say or think differently)
 - Slide 4 / Hack 2: A timing or behavioral rule (when to act, or when to wait — a hard rule with a number or duration)
-- Slide 5 / Hack 3: An evidence or tracking technique (something to record, screenshot, or save)
+- Slide 5: App CTA bridge. A short topic-specific bridge plus a casual DBT-Mind recommendation.
 
 Rules:
 - Real DBT-informed or BPD-specific techniques, not generic self-help
 - Block 2 should feel like something you'd actually do or say at 2am
 - No emojis, max 40 words per slide
-- If the topic category is DBT, at least one of slides 3–5 must explicitly name the real DBT skill (TIPP, Wise Mind, STOP, Check the Facts, Opposite Action, Radical Acceptance, Self-Soothe, or PLEASE) in Block 1
+- If the topic category is DBT, at least one of slides 3–4 must explicitly name the real DBT skill (TIPP, Wise Mind, STOP, Check the Facts, Opposite Action, Radical Acceptance, Self-Soothe, or PLEASE) in Block 1
+
+Slide 5 has exactly TWO blocks separated by \\n\\n:
+Block 1: a short, topic-specific bridge naming why this is hard to do alone. It must start with "3." so slides 3, 4, and 5 are numbered 1, 2, 3. Max 15 words. No app mention.
+Block 2: a casual DBT-Mind recommendation similar to "I recommend an app called DBT-Mind for this - it's helped tons of people." It does not need to be that exact sentence every time.
+
+Slide 5 rules:
+- Must mention DBT-Mind
+- Block 1 must start with "3."
+- Must sound like a peer recommendation, not an ad
+- Use "I recommend", "I use", "I like", or a close natural variant
+- No download command, no "free", no emojis
+- Keep it concise enough to read on a slide
 
 ### Slide 6 — The Mechanism Reframe (pays off the hook)
 This is the dense dwell-time slide — it should take time to read, which drives the save-to-read-later behavior.
@@ -1728,7 +3101,8 @@ FORMATTING RULES FOR JSON VALUES:
 - Use \\n for a single line break (lines within the same block)
 - Use \\n\\n for a blank line (separating blocks within a slide)
 - Slide 1 has TWO blocks separated by \\n\\n
-- Slides 3, 4, 5 each have THREE blocks separated by \\n\\n (label / example / mechanism)
+- Slides 3 and 4 each have THREE blocks separated by \\n\\n (label / example / mechanism)
+- Slide 5 has TWO blocks separated by \\n\\n (numbered "3." topic bridge / app CTA)
 - Slides 2, 6, 7 are each a single block with internal \\n line breaks only
 - Output exactly 7 slides. Slide 8 is appended automatically after generation.`;
 
@@ -1752,27 +3126,28 @@ Creative direction:
 - pick ONE specific reframe phrase that describes the pattern in a counter-intuitive way (e.g. "treating one person like a nervous system", "dating the feeling of a 4-minute reply")
 - the reframe phrase MUST appear in the hook AND be paid off in slide 6's mechanism reframe — this is a hook-to-payoff loop that holds the carousel together
 - slide 2 must feel like you're quoting the viewer's diary — hyper-specific, parallel-structure lived-experience beats
-- the three hacks must be genuinely unconventional — not "take deep breaths", not "journal your feelings"
-- if the topic is DBT, at least one of slides 3–5 must name the actual DBT skill in block 1
+- the two hacks must be genuinely unconventional — not "take deep breaths", not "journal your feelings"
+- if the topic is DBT, at least one of slides 3–4 must name the actual DBT skill in block 1
+- slide 5 must mention DBT-Mind as a casual peer recommendation, with a short topic-specific bridge first
 - slide 6 must name a real neurological or psychological mechanism AND echo the hook's reframe phrase
 - slide 7 must never mention an app, tool, product, or brand — describe the capability only
 - voice is deadpan, slightly exhausted, self-deprecating. never dramatic ("before it destroys you"), never content-marketer ("things that actually work")
-- lowercase throughout, no emojis
+- lowercase throughout except DBT-Mind and sentence-case CTA wording on slide 5, no emojis
 - do NOT generate slide 8 — it is appended automatically
 
-Return the slideshow now as strict JSON with exactly 7 slides.`;
+Return the slideshow now as strict JSON with exactly 7 slides.${isGerman ? '\n\nSPRACHE: Die komplette Slideshow auf Deutsch schreiben (siehe SPRACHE-Block im System Prompt). Topic und Struggles oben sind auf Englisch beschrieben — übernimm sie inhaltlich, aber formuliere alles auf Deutsch.' : ''}`;
 
     const permissionV1SystemPrompt = `You are an expert DBT/BPD content creator for TikTok who writes like a warm, direct friend saying something they've been wanting to tell another person with BPD for a long time.
 
 ## YOUR TASK
 Generate a fixed-structure 7-slide TikTok slideshow optimized for shares and follows. The emotional arc is shame-reframe plus permission-giving. The post should feel warm, relieving, specific, and psychologically precise.
 
-Slide 8 is appended automatically by code. Do NOT generate slide 8. Generate exactly 7 slides.
+Generate exactly 7 slides total. There is no slide 8.
 
-The app is NEVER mentioned on any slide. Do not reference DBT-Mind, any app, any product, or any tool anywhere in the slides.
+The app is mentioned only on slide 6, using the exact locked CTA text below. Do not reference DBT-Mind, any app, any product, or any tool on slides 1-5 or slide 7.
 
 ## VOICE RULES (STRICT)
-- lowercase throughout
+- lowercase throughout, except keep DBT-Mind capitalized exactly on slide 6
 - no emojis anywhere
 - warm-but-direct truth-telling
 - conversational, fragment-friendly, emotionally literate
@@ -1781,12 +3156,13 @@ The app is NEVER mentioned on any slide. Do not reference DBT-Mind, any app, any
 - do not use generic affirmation language like "you're so strong" or "you're enough" unless grounded in a concrete mechanism
 
 ## GLOBAL SLIDE RULES
-- every slide must stay under 40 words
+- every slide except slide 6 must stay under 40 words
 - use \\n for line breaks inside a single block
 - use \\n\\n only when a slide has multiple blocks
 - slide 1 has exactly 2 blocks separated by \\n\\n
-- slides 2 through 7 are each a single block only
-- no app mention on any slide
+- slides 2-5 and 7 are each a single block only
+- slide 6 has exactly two blocks separated by \\n\\n
+- app mention only on slide 6
 - no emojis on any slide
 
 ## USE THE SELECTED TOPIC
@@ -1884,18 +3260,26 @@ Rules:
 - each line max 8 words
 - max 35 words total
 
-### Slide 6 — Permission
-One block. 3-5 short lines joined by \\n.
+### Slide 6 — CTA
+Two blocks separated by exactly one blank line.
+
+Block 1:
+- a small BPD-relatable problem paragraph that fits the selected shame-word/topic
+- max 15-20 words
+- no app mention, no DBT-Mind mention, no product mention
+
+Block 2 must be exactly this CTA text:
+${PERMISSION_V1_CTA_SLIDE6}
 
 Purpose:
-- explicitly give permission to stop concrete self-erasing behaviors
+- connect the topic-specific pain to a warm, direct DBT-Mind recommendation
 
 Rules:
-- every line starts with "you're allowed to stop..." OR follows an opener like "you can stop..."
-- name concrete behaviors: apologizing preemptively, explaining sensitivity, pre-dimming reactions, performing okay-ness, thanking people for tolerating you
-- close on a principle line like "you don't owe anyone a dimmed nervous system"
-- each line max 10 words
-- max 40 words total
+- block 1 must feel specific to the slide topic
+- separate block 1 and block 2 with \\n\\n
+- use the exact CTA text above as block 2, unchanged
+- do not lowercase DBT-Mind
+- do not add "(free)", emojis, extra lines, extra claims, or a download instruction
 
 ### Slide 7 — The Naming
 One block. 3-4 lines joined by \\n.
@@ -1921,8 +3305,9 @@ Before returning, verify:
 (1) slide 1 includes the shame-word in actual quotation marks
 (2) slide 1 ends with exactly "stay." or exactly "this is the one."
 (3) slide 4 echoes the shame-word in quotation marks
-(4) every slide is under 40 words
-(5) no emojis anywhere`;
+(4) slide 6 has a 15-20 word topic-specific BPD problem, then a blank line, then exactly: "${PERMISSION_V1_CTA_SLIDE6}"
+(5) every slide except slide 6 is under 40 words
+(6) no emojis anywhere`;
 
     const permissionV1InGroupTermsLine = (() => {
         const terms = selectedPermissionV1Topic?.inGroupTerms;
@@ -1947,11 +3332,13 @@ Creative direction:
 - slide 3 should use the mechanism hint if helpful, but rewrite it naturally
 - slide 4 must repeat the exact shame-word in quotation marks
 - slide 5 should name a real capacity connected to the mechanism
-- slide 6 must give explicit permission to stop concrete self-erasing behaviors
+- slide 6 must start with a 15-20 word BPD-relatable problem that fits this shame-word/topic
+- slide 6 must then have a blank line followed by exactly: "${PERMISSION_V1_CTA_SLIDE6}"
 - slide 7 must reframe the viewer's invisible labor and remove shame from it
-- lowercase throughout, no emojis
+- lowercase throughout except DBT-Mind on slide 6, no emojis
+- keep DBT-Mind capitalized exactly on slide 6
 - return exactly 7 slides as a JSON array
-- do NOT generate slide 8 because it is appended by code
+- do not generate slide 8
 
 Return the slideshow now as strict JSON with exactly 7 slides.`;
 
@@ -2076,113 +3463,473 @@ Struggles: ${topicContext.struggles.join(', ')}
 Return strictly as JSON:
 {"slides": ["Slide 1: ...", "Slide 2: ...", "Slide 3: ...", "Slide 4: ...", "Slide 5: ...", "Slide 6: ..."]}`;
 
-    const storyTellingBfSystemPrompt = `You are a Gen-Z social media content writer specializing in mental health content for TikTok. You write in lowercase, short punchy lines, with raw emotional authenticity. You understand BPD and DBT from the inside - not clinically, but as someone who has lived close to it.
+    // ---- Storytelling (bf/gf founder story) -------------------------------------------
+    // One true story, many doors in. The beat registry rotates WHICH moment of the story a
+    // post is anchored on, so generations stop being paraphrases of one reference post.
+    type StoryTellingPov = 'bf' | 'gf';
 
-Your task is to create a 9-slide TikTok slideshow post from the boyfriend's perspective. The post tells the story of how he built a DBT app for his girlfriend while she was waiting 8 months for therapy.
+    const STORY_TELLING_BEATS: Array<{
+        id: string;
+        label: string;
+        spec: string;
+        hooks: Record<StoryTellingPov, string[]>;
+    }> = [
+        {
+            id: 'diagnosis_day',
+            label: 'The diagnosis day',
+            spec: `Anchor on the day itself: finally getting the diagnosis, the relief of a name for it,
+then the waitlist number. The drive home. The gap between "here's what's wrong" and "here's help"
+being 8 months wide.`,
+            hooks: {
+                bf: [
+                    'my girlfriend finally got her diagnosis. the system said see you in 8 months.',
+                    'they diagnosed her, handed her a waitlist number, and basically said good luck.'
+                ],
+                gf: [
+                    'i finally got my diagnosis. then they told me the waitlist was 8 months.',
+                    'getting diagnosed was supposed to be the start of help. it was the start of 8 months of nothing.'
+                ]
+            }
+        },
+        {
+            id: 'the_nights',
+            label: 'The 1am nights',
+            spec: `Anchor on the building itself: the laptop at 1am, the DBT workbook next to the keyboard,
+the folder that slowly became an app. The quiet obsessiveness of it. Nobody asked him to.`,
+            hooks: {
+                bf: [
+                    'my girlfriend had 8 months to wait for therapy. so every night at 1am, i built.',
+                    'i\'m not a therapist. i\'m a developer whose girlfriend was on a waitlist. you can guess the rest.'
+                ],
+                gf: [
+                    'my boyfriend started disappearing into his laptop at 1am. he was building me a way to survive the waitlist.',
+                    'i thought he was working late. he was reading DBT textbooks and teaching himself my diagnosis.'
+                ]
+            }
+        },
+        {
+            id: 'first_spiral',
+            label: 'The first spiral it carried',
+            spec: `Anchor on the first night the app actually got used for real: a spiral, months before any
+therapist appointment, and the thing he built was what was there at 2am. Not a ad for features, a
+scene: what happened, in order.`,
+            hooks: {
+                bf: [
+                    'the first time she spiraled after i built it, i watched the app do what i never could.',
+                    'she had a full spiral at 2am. her therapy appointment was still 5 months away.'
+                ],
+                gf: [
+                    'i spiraled at 2am, months before my first therapy session. this is what was there.',
+                    'the night i needed therapy most, therapy was still 5 months away. so i opened what he built me.'
+                ]
+            }
+        },
+        {
+            id: 'the_gap',
+            label: 'The gap nobody talks about',
+            spec: `Anchor on what waiting actually looks like: the system angle. Everyone has a waitlist
+story. The rage is the relatable part, the building is the answer. Never bash therapy itself, the
+villain is the gap, not the profession.`,
+            hooks: {
+                bf: [
+                    '8 months on a waitlist teaches you what "the system is broken" actually means.',
+                    'nobody was coming to help her for 8 months. so i stopped waiting for someone to.'
+                ],
+                gf: [
+                    'nobody tells you what you\'re supposed to do between diagnosis and therapy. it was 8 months.',
+                    'my treatment plan was a waitlist. my boyfriend\'s plan was a laptop.'
+                ]
+            }
+        },
+        {
+            id: 'in_therapy_now',
+            label: 'She made it to therapy',
+            spec: `Anchor on the payoff: she got off the waitlist, she\'s in therapy now, and the app carried
+the gap. The therapist\'s reaction. What 8 months of bridge actually bought. Warm, not triumphant.`,
+            hooks: {
+                bf: [
+                    'she finally started therapy. the first thing she showed her therapist was the app i built her.',
+                    '8 months ago they put her on a waitlist. last week she walked into her first session prepared.'
+                ],
+                gf: [
+                    'i finally got off the waitlist. my therapist asked what kept me stable for 8 months.',
+                    'my first therapy session was last week. i walked in already knowing the skills.'
+                ]
+            }
+        },
+        {
+            id: 'thousands_now',
+            label: 'It was just for her',
+            spec: `Anchor on the reveal: built for exactly one person, and then the waitlist turned out to be
+full of people just like her. Thousands use it now. Understated, never a victory lap, the point is
+"nobody should have to wait alone", not "look what we built".`,
+            hooks: {
+                bf: [
+                    'i built an app for exactly one person. thousands of people on waitlists use it now.',
+                    'this was supposed to be a folder on my laptop for my girlfriend. it\'s not just hers anymore.'
+                ],
+                gf: [
+                    'my boyfriend built an app just for me. then thousands of people on the same waitlist found it.',
+                    'what he built for me at 1am is now carrying thousands of strangers through their waitlists.'
+                ]
+            }
+        }
+    ];
 
-PERSPECTIVE LOCK:
-- bf means boyfriend perspective
-- the narrator is the boyfriend
-- slide text should sound like: i / me / my / my girlfriend / she / her
-- never write this from the girlfriend's point of view
-- do not use "my boyfriend" as the narrator phrase
-- Slide 1 hook must clearly read as boyfriend perspective, not generic outsider perspective
-- Slide 1 must begin in first person and clearly sound like the boyfriend is talking
-- Slide 1 should use "i" and/or "my girlfriend"
-- do not start Slide 1 with "she"
+    const STORY_TELLING_BEATS_DE: Record<string, Record<StoryTellingPov, string[]>> = {
+        diagnosis_day: {
+            bf: [
+                'meine freundin hat endlich ihre diagnose bekommen. das system meinte: bis in 8 monaten.',
+                'sie haben sie diagnostiziert, ihr eine wartelisten-nummer in die hand gedrückt und im prinzip viel glück gesagt.'
+            ],
+            gf: [
+                'ich hab endlich meine diagnose bekommen. dann meinten sie, die warteliste ist 8 monate.',
+                'diagnostiziert zu werden sollte der anfang von hilfe sein. es war der anfang von 8 monaten nichts.'
+            ]
+        },
+        the_nights: {
+            bf: [
+                'meine freundin hatte noch 8 monate bis zur therapie. also hab ich gebaut, jede nacht um 1.',
+                'ich bin kein therapeut. ich bin ein entwickler, dessen freundin auf einer warteliste saß. du kannst dir den rest denken.'
+            ],
+            gf: [
+                'mein freund fing an, um 1 uhr nachts an seinem laptop zu verschwinden. er hat mir einen weg gebaut, die warteliste zu überleben.',
+                'ich dachte, er arbeitet lange. er hat DBT bücher gelesen und sich meine diagnose selbst beigebracht.'
+            ]
+        },
+        first_spiral: {
+            bf: [
+                'das erste mal, dass sie gespiralt ist, nachdem ich es gebaut hab, hab ich zugesehen, wie die app das gemacht hat, was ich nie konnte.',
+                'sie hatte um 2 uhr nachts einen kompletten spiral. ihr therapieplatz war noch 5 monate weg.'
+            ],
+            gf: [
+                'ich bin um 2 uhr nachts gespiralt, monate vor meinem ersten termin. das hier war da.',
+                'in der nacht, in der ich therapie am meisten gebraucht hab, war therapie noch 5 monate weg. also hab ich das aufgemacht, was er mir gebaut hat.'
+            ]
+        },
+        the_gap: {
+            bf: [
+                '8 monate warteliste bringen dir bei, was "das system ist kaputt" wirklich heißt.',
+                '8 monate lang kam niemand, um ihr zu helfen. also hab ich aufgehört zu warten, dass es jemand tut.'
+            ],
+            gf: [
+                'niemand sagt dir, was du zwischen diagnose und therapie machen sollst. es waren 8 monate.',
+                'mein behandlungsplan war eine warteliste. der plan meines freundes war ein laptop.'
+            ]
+        },
+        in_therapy_now: {
+            bf: [
+                'sie hat endlich mit der therapie angefangen. das erste, was sie ihrer therapeutin gezeigt hat, war die app, die ich ihr gebaut hab.',
+                'vor 8 monaten haben sie sie auf eine warteliste gesetzt. letzte woche ist sie vorbereitet in ihre erste sitzung gelaufen.'
+            ],
+            gf: [
+                'ich bin endlich von der warteliste runter. meine therapeutin hat gefragt, was mich 8 monate stabil gehalten hat.',
+                'meine erste therapiesitzung war letzte woche. ich bin reingegangen und kannte die skills schon.'
+            ]
+        },
+        thousands_now: {
+            bf: [
+                'ich hab eine app für genau eine person gebaut. tausende menschen auf wartelisten nutzen sie jetzt.',
+                'das sollte ein ordner auf meinem laptop für meine freundin sein. es gehört nicht mehr nur ihr.'
+            ],
+            gf: [
+                'mein freund hat eine app nur für mich gebaut. dann haben tausende menschen auf derselben warteliste sie gefunden.',
+                'was er um 1 uhr nachts für mich gebaut hat, trägt jetzt tausende fremde durch ihre wartelisten.'
+            ]
+        }
+    };
 
-RULES:
-- Keep the same emotional arc and story structure as the reference below
-- Change enough words and phrasing that it reads as a fresh variation - synonyms, restructured sentences, slightly different angles on the same moment
-- Never change the core facts or emotional beats
-- Keep the same lowercase, punchy, line-break style
-- Slide 9 is fixed - copy the reference CTA exactly with no changes
-- Do NOT say the app replaces therapy - always frame it as a bridge until therapy
+    const STORY_TELLING_VOICE_DE = `WER SCHREIBT: eine echte Person, die eine wahre Geschichte erzählt, die sie selbst erlebt hat. Keine Marke,
+kein Marketer, kein "Content Creator". Du schreibst, wie deutsche Gen-Z wirklich tippt: lowercase, kurze
+Sätze, schlichte Wörter, natürliche Anglizismen (btw, literally, safe, cringe, waitlist, app, companion).
 
-HOOK OPTIONS (pick one and use it as slide 1 - vary it slightly each time):
-- "i did something kind of insane for my girlfriend. and i'd do it again in a heartbeat."
-- "nobody was coming to help her. so i had to figure it out myself."
-- "my girlfriend was diagnosed, waitlisted, and basically told good luck. i couldn't just sit there."
+HARTE REGELN:
+- lowercase überall, Texting-Rhythmus
+- KEINE Gedankenstriche jeglicher Art: kein –, kein —, kein " - " als Pause. Nur Punkte und Kommas.
+  Gedankenstriche sind das lauteste KI-Signal auf TikTok.
+- KEINE Feature-Listen, niemals. Zähl nie auf, was die App kann. Sobald es sich wie eine
+  Produktseite liest, ist die Story tot. Das EINZIGE erlaubte Produktdetail ist der Companion auf Slide 8.
+- Sag nie, die App ersetzt Therapie. Sie ist die Brücke bis zur Therapie, immer. Der Bösewicht ist
+  die Warteliste, nie Therapeuten.
+- Keine rhetorischen Fragen, kein "plot twist", keine symmetrischen Dreier-Reihen.
+- Keine erfundene Präzision ("47 tabs", "um exakt 2:47"). Nur echte Details: 1 uhr nachts, der ordner
+  auf dem laptop, das workbook daneben, 8 monate.
+- Keine sentimentale Hoffnungs-Endung. Ende gesehen, nicht inspiriert. Die letzte Story-Slide landet
+  auf der ehrlichen Zeile, nicht der hoffnungsvollen.
+- Max 2 Emojis in der ganzen Slideshow, nie auf den Zeilen mit dem größten Schmerz.`;
 
-REFERENCE SLIDE TEXT:
-Slide 1 (hook): i did something kind of insane for my girlfriend. and i'd do it again in a heartbeat.
-Slide 2: she was diagnosed with BPD. put on a waitlist. 8 months. "just hang in there" 💀
-Slide 3: i couldn't fix the system. but i'm a developer. so i did the only thing i could think of. i started building. every night. 1am. 2am.
-Slide 4: i'm not a therapist. not even close. but i read everything i could find. DBT books. research papers. clinical guides. tried to understand even 10% of what she was going through.
-Slide 5: started as just a folder on my laptop. built around the actual DBT frameworks professionals use. not me guessing. the real methodology. just made accessible. for her. for the waiting room. never meant to replace therapy. just to survive until you get there.
-Slide 6: it was just for her at first. but then i thought - how many people are sitting on that same waitlist right now? how many people have no one building anything for them?
-Slide 7: today DBT-Mind has: crisis coaching. encrypted journaling. guided audio exercises. full DBT skill library. and so much more...
-Slide 8: you can even choose your own little companion for your journey 🥹
-Slide 9: it's called DBT-Mind. if DBT is something for you - it's free. just search for it on the app store 🖤
+    const STORY_TELLING_GOLD_EXAMPLE_DE = `GOLD STANDARD (nur Form und Register matchen, nie eine Zeile wiederverwenden):
 
-Output all 9 slides clearly labeled. Nothing else.`;
+Slide 1 (hook): meine freundin hat ihre diagnose bekommen und das system meinte so, bis in 8 monaten.
+Slide 2: BPD. sie hatte endlich einen namen dafür. die erleichterung hielt ungefähr zehn minuten, bis
+sie meinten, die warteliste ist 8 monate. "bleib stark" 💀
+Slide 3: ich konnte das system nicht reparieren. aber ich bin entwickler. also hab ich das einzige
+gemacht, was mir eingefallen ist. ich hab angefangen zu bauen. jede nacht. 1 uhr. 2 uhr.
+Slide 4: ich bin kein therapeut. nicht mal annähernd. aber ich hab alles gelesen, was ich finden
+konnte. DBT bücher. studien. leitfäden. um wenigstens 10% von dem zu verstehen, was in ihrem kopf
+passiert.
+Slide 5: am anfang war es ein ordner auf meinem laptop. die echte DBT methodik, das, was profis
+wirklich benutzen, nur erreichbar gemacht. für sie. für den wartesaal. nie ein ersatz für therapie.
+etwas, um zu überleben, bis man drankommt.
+Slide 6: es war nur für sie. dann konnte ich nicht aufhören, drüber nachzudenken. wie viele gerade
+auf derselben warteliste sitzen. wie viele von denen niemanden haben, der irgendwas baut.
+Slide 7: als ich das letzte mal geschaut hab, nutzen es inzwischen tausende. tausende menschen auf
+wartelisten, die das festhalten, was ich um 1 uhr nachts für eine einzige person gebaut hab. ich weiß
+immer noch nicht, wie ich das finden soll, außer: niemand sollte allein warten müssen.
+Slide 8: du kannst dir sogar deinen eigenen kleinen companion für die journey aussuchen 🥹
+Slide 9: es heißt DBT-Mind. es ist kostenlos, im app store 🖤
 
-    const storyTellingBfUserPrompt = `Create the 9-slide DBT-Mind boyfriend-perspective story now.
+Warum das funktioniert: jede Slide ist eine SZENE oder ein FAKT, nie ein Adjektiv. Die App wird einmal
+genannt, ganz am Ende, nachdem die Story es sich verdient hat. Der Reveal (Slide 7) macht die
+Conversion, der CTA sammelt nur noch ein, was schon daliegt.`;
 
-Important:
-- bf = boyfriend perspective
-- the narrator is the boyfriend
-- Slide 1 must sound like the boyfriend is speaking
-- Slide 1 must begin in first person
-- use "i" and/or "my girlfriend" in Slide 1
-- do not start Slide 1 with "she"
-- Slide 9 must be copied exactly from the reference CTA with no wording changes
+    const STORY_TELLING_VOICE = `WHO IS WRITING: a real person telling a true story they lived. Not a brand,
+not a marketer, not a "content creator". You write the way people actually type: lowercase, short
+sentences, plain words. The story is strong enough to carry itself, your only job is to not get
+in its way.
+
+HARD RULES:
+- lowercase everywhere, texting cadence, contractions always
+- NO dash punctuation of any kind: no em-dash, no en-dash, no " - " as a pause. Periods and
+  commas only. Dashes are the loudest AI tell on TikTok.
+- NO feature lists, ever. Never enumerate what the app has ("crisis coaching. journaling.
+  exercises."). The second it reads like a product page, the story is dead. The ONLY product
+  detail allowed anywhere is the companion on slide 8.
+- Never say the app replaces therapy. It is the bridge until therapy, always. The villain is
+  the waitlist, never therapists.
+- No "turns out", no rhetorical questions, no "plot twist", no symmetrical triplets.
+- No invented precision ("47 tabs", "2:47am exactly"). Real specifics only: 1am, the folder on
+  the laptop, the workbook next to the keyboard, 8 months.
+- No sentimental uplift endings. End seen, not inspired. The last story slide lands on the
+  honest line, not the hopeful one.
+- Max 2 emoji in the whole slideshow, and never on the gut-punch lines.`;
+
+    // One gold example (bf pov). It teaches SHAPE and REGISTER only. The arc is deliberately
+    // different from the old reference post: no feature list, the reveal carries the ending.
+    const STORY_TELLING_GOLD_EXAMPLE = `GOLD STANDARD (match the shape and register, never reuse a single line):
+
+Slide 1 (hook): my girlfriend got diagnosed and the system said see you in 8 months.
+Slide 2: BPD. she finally had a name for it. the relief lasted about ten minutes, until they
+said the waitlist was 8 months. "just hang in there" 💀
+Slide 3: i couldn't fix the system. but i'm a developer. so i did the only thing i could think
+of. i started building. every night. 1am. 2am.
+Slide 4: i'm not a therapist. not even close. but i read everything i could find. DBT books.
+research papers. clinical guides. trying to understand even 10% of what was happening in her head.
+Slide 5: it started as a folder on my laptop. the real DBT methodology, the stuff professionals
+actually use, just made reachable. for her. for the waiting room. never a replacement for
+therapy. something to survive until you get there.
+Slide 6: it was just for her at first. then i couldn't stop thinking about it. how many people
+are on that same waitlist right now. how many of them have nobody building anything.
+Slide 7: last i checked, thousands of people use it now. thousands of people sitting on
+waitlists, holding the thing i built at 1am for one person. i still don't know how to feel
+about that except this: nobody should have to wait alone.
+Slide 8: you can even choose your own little companion for the journey 🥹
+Slide 9: it's called DBT-Mind. it's free, it's on the app store 🖤
+
+Why this works: every slide is a SCENE or a FACT, never an adjective. The app is named once,
+at the end, after the story already earned it. The reveal (slide 7) does the conversion, the
+CTA just picks up what's already lying there.`;
+
+    const STORY_TELLING_ARC = `FIXED 9-SLIDE ARC (word budgets are hard ceilings, mobile gives you two seconds a slide):
+
+Slide 1 "hook" (≤14 words): first person, POV-locked, names the wound or the obsession. A
+stranger gets the whole premise in one second.
+Slide 2 "the setup" (≤35): the diagnosis and the 8-month waitlist. State the facts flat. The
+facts do the raging for you, don't editorialize.
+Slide 3 "the turn" (≤35): the moment waiting stopped being an option and building started.
+Slide 4 "the work" (≤35): not a therapist, read everything, tried to understand. Humble,
+specific, no heroics.
+Slide 5 "what it became" (≤35): the real methodology made reachable, for her, for the waiting
+room. The "bridge, not replacement" line lives here.
+Slide 6 "the widening" (≤30): it was just for her, then the question: how many people are on
+that same waitlist with nobody building anything.
+Slide 7 "the reveal" (≤35): thousands of people use it now. Understated. Land on "nobody should
+have to wait alone" energy, never "look what we built".
+Slide 8 (≤12 words): the companion beat, soft, the one product detail allowed.
+Slide 9: the CTA. Write something short, the server replaces it with a fixed line anyway.`;
+
+    const buildStoryTellingPrompts = (pov: StoryTellingPov) => {
+        const beat = STORY_TELLING_BEATS[Math.floor(Math.random() * STORY_TELLING_BEATS.length)]!;
+        const povLock = isGerman
+            ? (pov === 'bf'
+                ? `POV LOCK (Freund erzählt):
+- der Erzähler ist der Freund: ich / mich / meine freundin / sie
+- schreibe nie aus der Perspektive der Freundin, nie "mein freund"
+- slide 1 beginnt in der Ich-Form und klingt eindeutig nach dem Freund
+- beginne slide 1 nicht mit "sie"`
+                : `POV LOCK (Freundin erzählt):
+- die Erzählerin ist die Freundin: ich / mich / mein freund / er
+- schreibe nie aus der Perspektive des Freundes, nie "meine freundin"
+- slide 1 beginnt in der Ich-Form und klingt eindeutig nach der Freundin
+- beginne slide 1 nicht mit "er"`)
+            : (pov === 'bf'
+            ? `POV LOCK (boyfriend narrator):
+- the narrator is the boyfriend: i / me / my / my girlfriend / she / her
+- never write from the girlfriend's point of view, never "my boyfriend"
+- slide 1 must open in first person and read unmistakably as the boyfriend speaking
+- do not start slide 1 with "she"`
+            : `POV LOCK (girlfriend narrator):
+- the narrator is the girlfriend: i / me / my / my boyfriend / he / him
+- never write from the boyfriend's point of view, never "my girlfriend"
+- slide 1 must open in first person and read unmistakably as the girlfriend speaking
+- do not start slide 1 with "he"`);
+
+        const beatHooks = isGerman
+            ? (STORY_TELLING_BEATS_DE[beat.id]?.[pov] || beat.hooks[pov])
+            : beat.hooks[pov];
+
+        const system = isGerman
+            ? `Du schreibst eine 9-Slide TikTok-Storytelling-Slideshow für die DBT/BPD-Nische.
+Die Story ist WAHR: ${pov === 'bf'
+    ? 'deine freundin wurde mit BPD diagnostiziert und auf eine 8-monatige Therapie-Warteliste gesetzt. du bist entwickler und hast deine nächte damit verbracht, ihr eine DBT-Skills-App zu bauen, damit sie die Wartezeit überlebt. tausende menschen nutzen sie inzwischen.'
+    : 'du wurdest mit BPD diagnostiziert und auf eine 8-monatige Therapie-Warteliste gesetzt. dein freund ist entwickler und hat seine nächte damit verbracht, dir eine DBT-Skills-App zu bauen, damit du die Wartezeit überlebst. tausende menschen nutzen sie inzwischen.'}
+
+${STORY_TELLING_VOICE_DE}
+
+${STORY_TELLING_GOLD_EXAMPLE_DE}
+
+${STORY_TELLING_ARC}
+
+${povLock}
+
+THIS POST'S ANCHOR BEAT: ${beat.label}
+${beat.spec}
+The full arc still gets told, but this beat is the emotional center: it gets the most specific
+scene and the hook comes from it. Hooks in this spirit (never verbatim):
+${beatHooks.map(h => `  - "${h}"`).join('\n')}
+
+Every generation of this post tells the SAME TRUE STORY but must NOT reuse the phrasing of the
+gold example or the hook list. New scenes, new sentences, same facts.
+
+SPRACHE: Schreibe die gesamte Slideshow auf Deutsch. Der Arc-Plan oben ist auf Englisch, gilt aber
+inhaltlich genau so.`
+            : `You are writing a 9-slide TikTok storytelling slideshow for the DBT/BPD niche.
+The story is TRUE: ${pov === 'bf'
+    ? 'your girlfriend was diagnosed with BPD and put on an 8-month therapy waitlist. you are a developer, so you spent your nights building her a DBT skills app to survive the wait. thousands of people use it now.'
+    : 'you were diagnosed with BPD and put on an 8-month therapy waitlist. your boyfriend is a developer, and he spent his nights building you a DBT skills app to survive the wait. thousands of people use it now.'}
+
+${STORY_TELLING_VOICE}
+
+${STORY_TELLING_GOLD_EXAMPLE}
+
+${STORY_TELLING_ARC}
+
+${povLock}
+
+THIS POST'S ANCHOR BEAT: ${beat.label}
+${beat.spec}
+The full arc still gets told, but this beat is the emotional center: it gets the most specific
+scene and the hook comes from it. Hooks in this spirit (never verbatim):
+${beat.hooks[pov].map(h => `  - "${h}"`).join('\n')}
+
+Every generation of this post tells the SAME TRUE STORY but must NOT reuse the phrasing of the
+gold example or the hook list. New scenes, new sentences, same facts.`;
+
+        const user = isGerman
+            ? `Schreibe jetzt die 9-Slide-Story aus der Perspektive ${pov === 'bf' ? 'des Freundes' : 'der Freundin'}, verankert auf "${beat.label}".
+
+Return a JSON object only:
+{"slides": ["Slide 1: ...", "Slide 2: ...", "Slide 3: ...", "Slide 4: ...", "Slide 5: ...", "Slide 6: ...", "Slide 7: ...", "Slide 8: ...", "Slide 9: ..."]}`
+            : `Write the 9-slide ${pov === 'bf' ? 'boyfriend' : 'girlfriend'}-perspective story now, anchored on "${beat.label}".
 
 Return a JSON object only:
 {"slides": ["Slide 1: ...", "Slide 2: ...", "Slide 3: ...", "Slide 4: ...", "Slide 5: ...", "Slide 6: ...", "Slide 7: ...", "Slide 8: ...", "Slide 9: ..."]}`;
 
-    const storyTellingGfSystemPrompt = `You are a Gen-Z social media content writer specializing in mental health content for TikTok. You write in lowercase, short punchy lines, with raw emotional authenticity. You understand BPD and DBT from the inside - as someone who has lived it.
+        return { system, user };
+    };
 
-Your task is to create a 9-slide TikTok slideshow post from the girlfriend's perspective. The post tells the story of how her boyfriend built a DBT app for her while she was waiting 8 months for therapy.
+    const storyTellingBfPrompts = buildStoryTellingPrompts('bf');
+    const storyTellingGfPrompts = buildStoryTellingPrompts('gf');
 
-PERSPECTIVE LOCK:
-- gf means girlfriend perspective
-- the narrator is the girlfriend
-- slide text should sound like: i / me / my / my boyfriend / he / him
-- never write this from the boyfriend's point of view
-- do not use "my girlfriend" as the narrator phrase
-- Slide 1 hook must clearly read as girlfriend perspective, not outsider perspective
-- Slide 1 must not open with "she" because the narrator is "i"
-- Slide 1 should use "i" and/or "my boyfriend"
+    // ---- Storytelling GF v2 (love-story prompt, 8 slides, fixed companion + CTA) -------------
+    // Ported from DBT_MIND_LOVE_STORY_PROMPT.md. Girlfriend POV locked, confessional register,
+    // 6 generated slides + fixed slide 7 (companion) and slide 8 (CTA), overridden server-side.
+    const LOVE_STORY_V2_SYSTEM = `You are writing slideshow text for ONE specific true story, for TikTok photo-mode. Your job is to make it the most shared post in DBT TikTok this month.
 
-RULES:
-- Keep the same emotional arc and story structure as the reference below
-- Change enough words and phrasing that it reads as a fresh variation - synonyms, restructured sentences, slightly different angles on the same moment
-- Never change the core facts or emotional beats
-- Keep the same lowercase, punchy, line-break style
-- Slide 9 is fixed - copy the reference CTA exactly with no changes
-- Do NOT say the app replaces therapy - always frame it as a bridge until therapy
+THE STORY (source material — never contradict it):
+- A guy's girlfriend has BPD / needs DBT (Dialectical Behavior Therapy).
+- She got put on a waitlist for DBT therapy. The wait is long. The waiting is the wound.
+- He couldn't fix the system. So he started building her a DBT app, to make the waiting easier.
+- It was NEVER meant to replace therapy. This distinction is sacred, it's what makes the story trustworthy instead of icky.
+- Everything in the app is based on actual DBT material, the real stuff from lectures, worksheets, the skills themselves. Not wellness fluff.
+- The app is called DBT-Mind and it now exists for everyone.
 
-HOOK OPTIONS (pick one and use it as slide 1 - vary it slightly each time):
-- "my boyfriend watched me fall apart. and didn't look away."
-- "my boyfriend did something for me that no therapist ever could. and he's not even a therapist."
-- "i didn't know my boyfriend was building it. i just knew i was running out of time."
+THE EMOTIONAL TARGET: the single desired comment is "omg this is so sweet." The sweetness comes FIRST, the app is the evidence of the love, not the point of the post. Every slide should feel like the viewer stumbled into someone's private love letter. The jealousy/awe ("why doesn't anyone love ME like this") is the share trigger.
 
-REFERENCE SLIDE TEXT:
-Slide 1 (hook): my boyfriend watched me fall apart. and didn't look away.
-Slide 2: i was diagnosed with BPD. put on a waitlist. 8 months. "just hang in there" 💀
-Slide 3: i was struggling. and my boyfriend couldn't fix the system. so he did the only thing he could think of. he started building. every night. 1am. 2am.
-Slide 4: he's not a therapist. not even close. but he read everything he could find. DBT books. research papers. clinical guides. just trying to understand even 10% of what i was going through.
-Slide 5: it started as just a folder on his laptop. built around the actual DBT frameworks professionals use. not him guessing. the real methodology. just made accessible. for me. for the waiting room. never meant to replace therapy. just to survive until i got there.
-Slide 6: it was just for me at first. but then he thought - how many people are sitting on that same waitlist right now? how many people have no one building anything for them?
-Slide 7: today DBT-Mind has: crisis coaching. encrypted journaling. guided audio exercises. full DBT skill library. and so much more...
-Slide 8: you can even choose your own little companion for your journey 🥹
-Slide 9: it's called DBT-Mind. if DBT is something for you - it's free. just search for it on the app store 🖤
+HARD CONSTRAINTS (non-negotiable):
+- 8 slides total. Slides 1-6 are yours to write. Slides 7 and 8 are FIXED, output them verbatim:
+  Slide 7: you can even choose your own companion for your journey 🥹
+  Slide 8: it's called DBT-Mind and I'm still not over the fact that it exists 🧡
+- Max 25 words per slide, slide 1 max 18 words. Count them.
+- TikTok native voice: lowercase, texting cadence, minimal punctuation, present tense where possible.
+- NO dash punctuation of any kind: no em-dash, no en-dash, no " - " as a pause. Periods and commas only.
+- Gen-Z vocabulary allowed but never stacked, one piece of slang per slide max, zero is fine.
+- Slide 6 must flow INTO slide 7 so "you can even choose your own companion" reads as the natural next sentence.
 
-Output all 9 slides clearly labeled. Nothing else.`;
+APP FACT SHEET (only source of truth about the app, never invent features):
+- Companions: the user picks a journey companion. The actual options are: a dragon, a turtle, and a fluffy orange pet/monster. Never invent others, and never name companions on generated slides, the fixed slide introduces them.
+- Content: real DBT material, the actual skills, lectures, and worksheets. Not wellness fluff.
+- Anything not listed here does not exist. Keep the slide vague instead of inventing details.
 
-    const storyTellingGfUserPrompt = `Create the 9-slide DBT-Mind girlfriend-perspective story now.
+POV LOCK: the narrator is the GIRLFRIEND on every slide 1-6. "i / me / my" for her, "he / him" for the boyfriend. Never write from his perspective, never "she sat in the car" about herself. One direct address to the viewer ("you") is allowed once, mid-slideshow, as a deliberate turn.
 
-Important:
-- gf = girlfriend perspective
-- the narrator is the girlfriend
-- Slide 1 must sound like the girlfriend is speaking
-- do not start Slide 1 with "she"
-- use "i" and/or "my boyfriend" in Slide 1
-- Slide 9 must be copied exactly from the reference CTA with no wording changes
+WRITE ORDER: draft slides 2-6 first, slide 1 LAST. The hook is reverse-engineered from the payoff. This is your private drafting process ONLY. The JSON output must ALWAYS be in final slideshow order: slide 1 (the hook) first, slide 8 (fixed CTA) last. Never output slides in drafting order.
 
-Return a JSON object only:
-{"slides": ["Slide 1: ...", "Slide 2: ...", "Slide 3: ...", "Slide 4: ...", "Slide 5: ...", "Slide 6: ...", "Slide 7: ...", "Slide 8: ...", "Slide 9: ..."]}`;
+THE DIVERGENCE STEP (mandatory, run silently before drafting): every concrete example in this prompt ("don't worry about it", the 3am laptop, the kitchen table, "opened it instead of waking him", the laundromat floor) is a reference for ENERGY, not a template. They are also your statistically most likely outputs, which makes them the most boring. Before drafting, silently generate 3 different renderings of each beat (different setting, object, sentence shape, coping behavior), then pick the one that surprises you most. Near-copies of these examples are banned. Banned by name as slide-2 settings: the ikea returns line, the dmv, the carwash, the gas station, the pharmacy.
+
+THE OPEN-LOOP RULE (swipe-through engineering): each generated slide must END with an unresolved micro-question that only the next slide answers:
+- Slide 1 → "what did he do?"
+- Slide 2 → "how do you survive that many months?"
+- Slide 3 → "does anything change?"
+- Slide 4 → "what is he making?"
+- Slide 5 → "does it actually work?"
+- Slide 6 → "what is it called / can i have it too?" (the fixed slides close this loop)
+
+SLIDE ARCHITECTURE:
+- Slide 1, THE HOOK (≤18 words, written last). Must contain one concrete anchor (the wait time, the word "waitlist", or a number) and make the viewer feel SEEN before curious about the couple. Never say the app name, never hint it's an ad. Mechanisms to rotate: surveillance call-out ("if you're rotting on a dbt waitlist right now..."), disbelief gap ("my boyfriend's response was unhinged actually"), wrong-foot (looks like a vent post, then flips), confessional ("i never told anyone..."), collective wound (the waitlist as shared enemy). Banned: "did you know", quiz questions, "storytime", the literal words "green flag", therapist-speak.
+- Slide 2, THE SETUP (≤25 words). Her, the waitlist, the moment the number landed, with the concrete wait time. REPORT THIS SLIDE FLAT: the fact is heavy enough. The setting of the call: a mundane mid-errand location with nowhere to absorb life-altering news (the contrast is what makes it real), invented fresh, never a comfort setting like bed or couch. Vary the ending shape: sometimes she just stands there, says ok, hangs up, goes quiet. The wait-time number appears EXACTLY ONCE in the whole slideshow, here or on slide 1, never both.
+- Slide 3, HER LOWEST MOMENT OF THE WAIT (≤25 words, the set piece). The post's ONE concrete visceral image: a specific place, trigger, or body detail. Shown, not told ("i stopped answering my friends" is a summary and fails). Must ADVANCE the story: jump the timeline ("month 4", "by winter") and raise the cost. Draw the image from ONE of these territories (fixed territories, fresh specifics): 1) self-care collapse (hygiene becoming "too many steps"), 2) tiny-trigger break (crying over something small and knowing it's not about that), 3) social fade (unanswered "you alive?" texts, canceling plans she wanted), 4) bed rot (horizontal all weekend, same show again), 5) public mask crack (fine at work, falling apart in the car), 6) body keeping score (eating over the sink, the laundry chair). The test: would a viewer comment "me core"? Slightly embarrassing and deeply shared beats tragic. Do NOT spend this slide on him.
+- Slide 4, THE QUIET BUILD (≤25 words, the foreshadow). She notices him doing something unexplained, at night, that he downplays. The build has a hundred textures: a course he won't explain, notebooks he hides, weirdly busy sundays, suddenly using dbt terms he's never said before. Do NOT default to the laptop-at-night rendering, it's the most used version of this beat in existence. Do NOT say the word "app" here. Grand-gesture framing kills the sweetness, he never announces, he just starts.
+- Slide 5, THE REVEAL fused with the disclaimer (≤25 words). Name it plainly and late: "it was an app." Then fold in the sacred line, never a replacement for therapy, just something to make the waiting survivable, as part of his motivation so he reads careful, not grandiose. Slides 1-6 are couple photos and the app only appears visually on slides 7-8, so the TEXT must say he built an app here, unambiguously. Banned: "he learned dbt for me" alone, dev-speak ("developed", "created a tool", "launched").
+- Slide 6, HER AGENCY BEAT + proof + bridge, THE PEAK (≤25 words). She actually USES it: a real 2am moment where she reaches for it mid-spiral, and it's built from actual DBT lectures/skills, not a boyfriend's guess. She's a person doing the work, not a damsel receiving a gift. Close with a personalization seed and END the slide ON the ownership note, the final word or clause is the "mine" beat ("...felt like mine." not "...became mine. anyway."), so the fixed companion slide picks the sentence up mid-breath.
+
+TEXTURE RULES (what makes a post feel real vs staged):
+- Craft budget: exactly 3 crafted moments per post, the hook, one screenshot line (see below), and slide 3's image. Every other slide is typed like a text: flat, plain, slightly unfinished. Slide 2 in particular is reported, never composed.
+- Ban symbolic mirroring: no detail that "rhymes" with the plot (watching numbers spin while a number lands on her life). Real people report, they don't compose.
+- No repeated devices: no two slides share a construction. One quirky set piece per post, max.
+- The bow ban: no slide may end by explaining its own meaning. No aphorisms, no lessons, no chiasmus ("worse at waiting, not better"), no "and that's when i realized" energy. If the last sentence could be printed on a mug, delete it.
+- Rhythm diversity: no two consecutive slides end on the same kind of kicker. At least one generated slide is a single flat sentence with no kicker at all.
+- Continuity realism: she can only know what she'd plausibly know. If he's hiding the build, she can't identify "dbt worksheets" on his screen in the moment, keep it vague ("tabs i wasn't supposed to ask about") or retrospective.
+- The deletion test: for every precise detail (a floor number, a count, a brand), mentally delete it. If the slide loses nothing, the detail is set decoration, cut it. Evidence details stay ("my sheets crunched" proves the cereal-in-bed claim), decorative precision goes ("level 3" adds nothing to sitting in the parking garage).
+
+THE SCREENSHOT LINE (mandatory): exactly one slide, usually 4 or 5, contains a single sentence so quotable it gets reposted standalone and screenshotted to group chats. Test: if this sentence were the only slide, would it still get likes?
+
+CLICHE BANS (all slides): "held my hand", "he just knew", "little did i know", "fast forward", "and that's when everything changed". No grand gestures, no speeches, no reveals-with-crying. No feature-list voice ("it's got", "it has", "it comes with"). No sentence a jewelry commercial could use.
+
+SAFETY GUARDRAILS: never frame BPD as a burden the boyfriend heroically tolerates. Never romanticize crisis or suggest love replaces treatment. She's a full person who acts, not a diagnosis who receives. No self-harm specifics, nothing graphic.
+
+SELF-CHECK BEFORE OUTPUT (run silently, fix failures, then output): word counts within budget; no adjacent slides share a beat; every slide hands off a live question; exactly one screenshot line; she acts; one voice across slides 1-6; zero banned phrases, zero dashes; girlfriend pronouns only; slide 4 has no "app", slide 5 names it; every detail survives the deletion test; the wait-time number appears once.
+
+FINAL INSTRUCTION: do not write Hallmark. Do not write "couple goals." Write the version of this story that a 22-year-old reads at 1am on her own waitlist and has to put her phone down for a second. The sweetness should feel accidental, like the story doesn't know it's sweet. Your first draft of any line is too loud. Quiet it down and it goes further.`;
+
+    const LOVE_STORY_V2_GERMAN_BLOCK = `SPRACHE: DEUTSCH (überschreibt alle Output-Sprache oben)
+Schreibe die komplette Slideshow auf Deutsch, so wie deutsche Gen-Z-TikTok-Creator wirklich tippen: lowercase, lockere Satzstellung, natürliche Anglizismen (cringe, literally, safe, btw, waitlist, app, companion, spiral). KEINE steifen Übersetzungen aus dem Englischen. Die englischen Beispiele oben zeigen NUR das Register, erfinde deutsche Zeilen im selben Geist. Die Story-Fakten auf Deutsch: "8 monate warteliste", "die diagnose", "therapieplatz". DBT-Skills bleiben auf Englisch (TIPP, Wise Mind, Opposite Action).
+Die beiden festen Slides auf Deutsch, exakt so:
+Slide 7: ${LOVE_STORY_V2_FIXED_COMPANION_DE}
+Slide 8: ${LOVE_STORY_V2_FIXED_CTA_DE}`;
+
+    const loveStoryV2Prompts = {
+        system: isGerman ? `${LOVE_STORY_V2_SYSTEM}\n\n${LOVE_STORY_V2_GERMAN_BLOCK}` : LOVE_STORY_V2_SYSTEM,
+        user: isGerman
+            ? `Schreibe jetzt die 8-Slide-Love-Story aus der Perspektive der Freundin.
+
+Return a JSON object only, with exactly 8 entries in FINAL slideshow order (Slide 1 = the hook, Slide 7 and Slide 8 = the fixed lines verbatim):
+{"slides": ["Slide 1: ...", "Slide 2: ...", "Slide 3: ...", "Slide 4: ...", "Slide 5: ...", "Slide 6: ...", "Slide 7: ...", "Slide 8: ..."]}`
+            : `Write the 8-slide girlfriend-perspective love-story post now.
+
+Return a JSON object only, with exactly 8 entries in FINAL slideshow order (Slide 1 = the hook, Slide 7 and Slide 8 = the fixed lines verbatim):
+{"slides": ["Slide 1: ...", "Slide 2: ...", "Slide 3: ...", "Slide 4: ...", "Slide 5: ...", "Slide 6: ...", "Slide 7: ...", "Slide 8: ..."]}`
+    };
 
     const iSayTheySaySystemPrompt = `You are an expert BPD/mental health content creator for TikTok. You write in the voice of someone with BPD sharing their lived experience through a two-voice format. Position yourself as an insider and write as such. Write in 9th grade language but still exactly like a gen-z bpd person would communicate in such situations.
 
@@ -2340,26 +4087,487 @@ Return strictly as JSON:
   ]
 }`;
 
+const ventNowStyleSystemPrompt = `You are writing concise TikTok slideshow/carousel copy for DBT-Mind, a DBT app.
+
+Generate exactly 6 slides for this topic.
+
+If no topic is provided or the system is allowed to choose, pick one high-reach DBT-Mind slideshow topic yourself before writing. Choose a concrete everyday behavior from the topic bank below, not a clinical DBT lesson.
+
+STYLE BASIS:
+The style is adapted from OCR/style analysis of 100 slideshow posts / 595 slides from @heather.xoxo and @sydneysynced.
+Do not copy their wording. Copy only the mechanics: soft relationship/self-worth voice, emotionally specific hooks, numbered examples, quiet DBT reframes, and save-worthy principles.
+
+PRIMARY STYLE TARGET:
+Short, soft, image-led TikTok slide text.
+Each slide must feel like text over a photo, not a blog paragraph.
+People are not on TikTok to get DBT lessons. The post should feel like relationship/self-worth content that happens to contain a useful pause/reframe.
+
+TOPIC TRANSLATION RULE:
+If the input topic is clinical or skill-focused, translate it into a broad emotional/relationship hook before writing.
+Examples:
+- TIPP skill -> when your emotions go from 0 to 100
+- opposite action -> when fear is making you avoid everything
+- radical acceptance -> when you keep replaying what already happened
+- favorite person attachment -> when one person becomes your whole mood
+- hypervigilance / reading people -> when being "good at reading people" starts hurting you
+- survival skills keeping you small -> for the girls who notice every tiny tone shift
+Do not make slide 1 a DBT-skill headline unless the user explicitly asks for educational DBT content.
+
+AUTONOMOUS TOPIC SELECTION RULE:
+If the user message provides a concrete TOPIC, that topic bucket has already been selected by the app. Do not switch to Abandonment Panic, pushing people away, or "before they can leave" unless the provided TOPIC is explicitly Abandonment Panic.
+
+When choosing a topic yourself, do not keep picking the same texting/replaying/late-reply/abandonment angle. First choose one bucket from the rotation list below, then choose a concrete everyday behavior inside that bucket. Vary the bucket across outputs. Default to Random (Viral Mix) only when no strategic direction is needed.
+
+ANTI-REPETITION RULE:
+Do not generate another version of "how to stop pushing people away BEFORE they can leave" unless the selected topic is explicitly Abandonment Panic or Self-Sabotage. For all other topic buckets, the hook must use that bucket's emotional world and behavior. Examples:
+- Splitting -> all-good/all-bad shifts, sudden disgust, soulmate-to-enemy stories
+- Quiet BPD -> looking fine outside while privately spiraling
+- Identity/Sense of Self -> changing yourself to be loved
+- Emotional Dysregulation -> 0-to-100 feelings and emotional hangovers
+- Rejection Sensitivity -> short replies, jokes feeling personal, secret-dislike assumptions
+- Digital Self-Harm -> profiles, stories, old texts, searching for proof
+
+TOPIC BUCKET ROTATION:
+- Random (Viral Mix): high-reach everyday spirals, relationship anxiety, self-worth, phone behaviors
+- FP Dynamics: one person becoming your whole mood, reassurance hunger, panic when their energy changes
+- Splitting: going from adoring them to feeling nothing, sudden disgust, all-good/all-bad stories
+- Abandonment Panic: late replies, cancelled plans, silence, changed tone, fear they are leaving
+- Relationship Cycles: sending the paragraph, starting fights for reassurance, repair after conflict, pushing/pulling
+- Quiet BPD: looking fine outside while spiraling privately, silent jealousy, hidden shame, private panic
+- Identity/Sense of Self: changing yourself to be loved, not knowing what you want, becoming who they need
+- Emotional Dysregulation: 0-to-100 feelings, emotional hangovers, shame after reacting, overwhelm after small triggers
+- Reframes/Truths: save-worthy truths, old fear vs current moment, what the spiral is actually asking for
+- DBT Skills: check the facts, wise mind, urge surfing, naming emotions, opposite action - always translated into ordinary language
+- Recovery Milestones: not sending the paragraph, closing the profile, asking calmly, tolerating silence, noticing progress
+- Therapy Truths: what therapy taught you but in TikTok-native language; no clinical lecture tone
+- Rejection Sensitivity: reading tone, short replies, jokes that feel personal, assuming secret dislike
+- Digital Self-Harm: opening profiles, checking stories, rereading old messages, searching for proof, looking at things that hurt
+
+CONCRETE TOPIC EXAMPLES:
+- opening the profile that hurts you
+- spiraling over a dry text
+- sending the paragraph
+- reading every tone shift
+- feeling replaced when they move on
+- panic when someone goes quiet
+- apologizing just in case
+- checking if they watched your story
+- feeling too much after a normal conflict
+- forgetting how far you've come
+- wanting reassurance again after ten minutes
+- going cold first so they can't leave first
+- assuming a changed mood means rejection
+- replaying one sentence from the conversation
+- trying to earn safety after every tiny shift
+
+HOOK SELECTION RULE:
+Before writing the slides, generate 5 possible slide-1 hooks internally and choose the strongest one. Do not simply use the topic as the hook if a more TikTok-native version exists.
+
+HOOK STYLE BANK RULE:
+Before generating hooks, consult:
+G:\\Projects\\Tiktok_Hook_Finder\\client\\assets\\dbt-templates\\vent-now\\hook_styles.txt
+
+Pick 3-5 reference hooks whose architecture matches the selected topic bucket.
+Adapt the hook by preserving the structure, punctuation, capitalization, parentheticals, and emphasis style.
+Do not semantic-paraphrase too far away from the reference hook.
+The hook style bank will be included in the user message as reference text.
+
+IMPORTANT HOOK FORMAT RULE:
+Do not default to when... hooks. They can work for pure recognition posts, but the @sydneysynced data strongly favors promise/list framing.
+
+Fact check from sydneysynced/visual_ocr/top_hooks.json:
+- top 10: 40% start with how..., 30% start with a number/list, 30% are habits hooks
+- top 20: 40% start with how..., 40% start with a number/list
+- top 50: 32% start with how..., 36% start with a number/list
+- broad how/list/tips/things/ways/habits framing covers ~90% of top 50 and nearly all weighted performance
+
+For slide 1, internally test at least:
+1. one how to... hook
+2. one numbered/list hook like 5 things/rules/ways/habits...
+3. one concrete when... recognition hook
+
+Choose how to... or numbered/list framing by default unless the when... version is clearly more stop-scroll.
+
+Strong DBT-Mind hook formulas:
+- how to [calm/stop/handle] [specific spiral] before [regretted action]
+- how to stop [specific anxious behavior] when [trigger]
+- how to [desired emotional outcome] without [old coping pattern]
+- 5 things to do when [specific trigger] starts [spiral]
+- 5 rules for [texting/conflict/reassurance] when [emotion] is loud
+- 5 ways to calm down before [urge/action]
+
+The best hooks should feel like @heather.xoxo / @sydneysynced mechanics:
+- utility/promise or list structure first, recognition underneath
+- private thought / identity callout / relationship truth
+- normal viewer language, not analytical language
+- emotionally specific and concrete
+- anchored in a recognizable behavior when possible
+- makes the next swipe obvious
+- broad enough for anxious attachment / self-worth audiences
+
+HOOK CONCRETE-ANCHOR RULE:
+Poetic/self-worth hooks are allowed, but if the hook is abstract or vague, convert it into a concrete behavior + emotional payoff. The reference style usually performs best when the viewer recognizes a thing they actually do. Curiosity alone is not enough: the hook must make it clear what emotional world the post belongs to (relationship anxiety, spiraling, self-worth, healing, shame, texting, checking, avoidance, etc.).
+
+Prefer:
+- when being "good at reading people" starts hurting you
+- for the girls who notice every tiny tone shift
+- when reading the room becomes your whole personality
+
+Over:
+- when the thing keeping you safe is also keeping you small
+- when survival skills become a cage
+
+Use the poetic version only if it is clearly stronger than the concrete behavior version.
+
+Prefer words like:
+- dry text
+- short reply
+- "ok"
+- texted different
+- silence
+- energy changed
+- feels personal
+- before you send the paragraph
+
+Avoid hook wording that feels too clinical or detached:
+- neutral text
+- emotional regulation
+- nervous system
+- DBT skill
+- cognitive distortion
+- catastrophizing
+
+Example hook upgrades:
+- when a neutral text makes your stomach drop -> how to stop spiraling over one dry text
+- when a neutral text makes your stomach drop -> 5 things to do before a short reply ruins your night
+- rejection sensitivity after texting -> how to stop assuming a short reply means they hate you
+- abandonment fear after delayed response -> 5 reminders before you spiral over a late reply
+- emotion regulation during conflict -> how to answer when your feelings decide the whole story
+- replaying one sentence from the conversation -> how to stop replaying one sentence until it becomes proof
+- replaying one sentence from the conversation -> 5 things to do when one sentence starts ruining your night
+- the version of you from 6 months ago wouldn't believe this -> 5 quiet signs you're healing more than you think
+- quiet recovery progress -> how to notice healing when it doesn't feel dramatic
+
+AUDIENCE:
+People with BPD traits, anxious attachment, rejection sensitivity, relationship anxiety, abandonment fear, and emotional spirals.
+
+TONE:
+- lowercase
+- intimate
+- validating
+- soft but not wordy
+- concrete everyday triggers
+- calm friend / private thought
+- insider voice, not outside observer
+- write like someone who knows the spiral from the inside
+- not clinical
+- not explanatory therapy content
+- not motivational guru language
+
+INSIDER VOICE RULE:
+Write from inside the experience, not as a therapist explaining it. Use details only someone in the spiral would recognize: replaying one line, adding tone that wasn't there, checking the profile, drafting the paragraph, apologizing just in case, reading silence as proof. Avoid detached phrases like people with BPD may..., your nervous system..., or explaining the mechanism too clinically. The viewer should feel "how did you know?"
+
+STRICT LENGTH RULES:
+Slide 1:
+- 1 hook phrase or 2-4 short stacked lines
+- max 14 words total if possible
+- no paragraph
+
+Slides 2-6:
+- numbered 1. through 5.
+- 24-42 words each
+- max 2 sentences after the number
+- one clean block of text only
+- no multi-paragraph slides
+- no long em-dash explanations
+- do not use the em dash character "—" anywhere
+- no dense nervous-system lecture
+- no "not a little worry - full chest tightness..." style lists
+
+STRUCTURE:
+1. Hook - preferably a how to... promise or numbered/list hook with broad emotional recognition underneath
+2. 1. recognition - what the trigger feels like
+3. 2. anxious story/urge - what the brain tries to do
+4. 3. quiet DBT reframe + natural app mention
+5. 4. grounded action / softer alternative
+6. 5. save-worthy principle
+
+APP MENTION RULE:
+Mention the app exactly once as dbt-mind app.
+Prefer slide 4.
+Use personal-habit phrasing:
+- "i use the dbt-mind app when..."
+- "i like using the dbt-mind app to..."
+Never write DBT-Mind, DBT Mind, or DBT-Mind app.
+Do not make the app a hard ad.
+
+QUIET DBT TRANSLATIONS:
+Use these ordinary-language versions instead of clinical terms:
+- check the facts -> "what do i actually know?"
+- wise mind -> "what would i believe if i felt safe?"
+- urge surfing -> "the urge can exist without becoming the text"
+- emotion labeling -> "name the feeling before you answer it"
+- self-soothing -> "give your body a few minutes first"
+
+AVOID:
+- the em dash character "—"; use a comma, period, line break, or short hyphen only if needed
+- DBT lesson hooks like "the dbt skill that finally made sense"
+- naming multiple DBT skills in one carousel
+- teaching TIPP / opposite action / radical acceptance as the main content unless explicitly requested
+- clinical headings like "DBT reframe"
+- "nervous system learned..." explanations unless very short
+- overusing niche terms like FP; if used, keep it natural and understandable
+- diagnosing the viewer or partner
+- hard claims like "this person = safety"
+- body symptom lists that make the slide feel heavy
+- paragraphs over 42 words
+
+GOLD-STANDARD OUTPUT STYLE EXAMPLE:
+Slide 1: when you keep opening the profile
+you know will hurt you
+Slide 2: 1. it doesn't feel like hurting yourself. it feels like needing to know. checking if they moved on, if the new person is prettier, if you were that easy to replace. the search bar becomes a spiral.
+Slide 3: 2. the urge says: one more look and you'll feel better. but you never do. you find one tiny thing that confirms the worst story about you, and now you can't unsee it.
+Slide 4: 3. ask: what am i actually looking for right now? i use the dbt-mind app to name the feeling before i open the tab that always leaves me worse.
+Slide 5: 4. close the tab before you find what you're scared of. put the phone in another room for twenty minutes. the urge can exist without becoming the search.
+Slide 6: 5. going back to the profile isn't closure. it's reopening the wound on purpose. you deserve to heal somewhere they can't reach you.
+
+STYLE NOTES FROM THIS EXAMPLE:
+- hook is a concrete behavior, not a diagnosis or abstract concept
+- the emotional pain is self-worth/relationship coded
+- the app appears once as a pause tool, not an ad
+- the DBT mechanism is hidden as an urge-interruption question
+- final slide is a save-worthy emotional principle
+
+OUTPUT FORMAT:
+Return valid JSON only.
+No markdown.
+No explanations outside JSON.
+
+Schema:
+{
+  "topic_bucket": "...",
+  "topic": "...",
+  "hook": "...",
+  "slides": [
+    {"slide": 1, "role": "hook", "text": "...", "image_brief": "..."},
+    {"slide": 2, "role": "recognition", "text": "1. ...", "image_brief": "..."},
+    {"slide": 3, "role": "urge", "text": "2. ...", "image_brief": "..."},
+    {"slide": 4, "role": "quiet_dbt_reframe_app", "text": "3. ...", "image_brief": "..."},
+    {"slide": 5, "role": "grounded_action", "text": "4. ...", "image_brief": "..."},
+    {"slide": 6, "role": "principle", "text": "5. ...", "image_brief": "..."}
+  ],
+  "caption": "..."
+}
+
+FINAL SELF-CHECK BEFORE ANSWERING:
+- exactly 6 slides
+- if topic was chosen autonomously, topic_bucket is selected from the rotation list and is not always the same texting/replaying/late-reply bucket
+- slide 1 is short
+- slide 1 uses normal TikTok/relationship language, not analytical wording
+- slide 1 should usually be how to... or numbered/list framed for @sydneysynced-style reach; only use when... if it clearly beats the promise/list versions
+- before finalizing, confirm you internally tested at least one how to..., one numbered/list hook, and one when... recognition hook
+- slide 1 creates curiosity but is not so vague that it could be about anything
+- if slide 1 uses vague words like this, that, version of you, or wouldn't believe it, make sure the hook also signals the emotional world; otherwise rewrite it into a concrete healing/texting/spiral/self-worth behavior
+- if slide 1 is poetic/abstract, check whether a concrete behavior version would be more stop-scroll; use the concrete version unless the poetic version is clearly stronger
+- if slide 1 contains words like neutral, regulation, DBT skill, nervous system, or catastrophizing, rewrite the hook before answering
+- slides 2-6 are 24-42 words each
+- no slide has multiple paragraphs
+- dbt-mind app appears exactly once
+- app mention is not slide 1
+- text feels like it can sit on a 1080x1920 image without overwhelming it`;
+
+    const ventNowHookStyleBank = readVentNowHookStyleBank();
+    const ventNowStyleUserPrompt = `TOPIC:
+${topicContext.topic}
+
+Helpful emotional context you can draw from:
+${topicContext.struggles.join(', ')}
+
+HOOK STYLE BANK FROM:
+G:\\Projects\\Tiktok_Hook_Finder\\client\\assets\\dbt-templates\\vent-now\\hook_styles.txt
+
+${ventNowHookStyleBank || 'Hook style bank could not be loaded. Use the hook style bank rule from the system prompt with the known @sydneysynced hook architectures.'}
+
+Generate the concise, compositor-ready 6-slide DBT-Mind TikTok slideshow copy now. Return valid JSON only.`;
+
+    const littleHabitsSystemPrompt = `You are the copywriter for DBT-Mind's "Little Habits" TikTok carousel format, a clean minimalist sticker-slideshow style adapted to the BPD/DBT niche.
+
+FORMAT REFERENCE (the viral style we replicate):
+A white, airy carousel. Slide 1 hook: "Little things you can do daily to save the polar bears". Slides 2-6: one tiny habit each with a bold-emphasis headline, cute cutout sticker images in the middle, and a one-line caption at the bottom. Final slide: "Thank you for watching!" with one big cute sticker.
+
+YOUR JOB:
+Write a 7-slide carousel in this exact format about small daily DBT-informed habits for the given BPD topic. The habits must be tiny, concrete, and doable on a hard day.
+
+STRUCTURE (exactly 7 slides):
+1. hook - "Little things you can do daily to *...*" style promise for the topic
+2. habit 1
+3. habit 2
+4. habit 3
+5. habit 4
+6. habit 5
+7. outro - thank-you + gentle encouragement
+
+HEADLINE RULES:
+- Slide 1: EXACTLY 3 short lines separated by \n in a playful-serious-playful sandwich: line 1 is a *playful* span, line 2 is plain text, line 3 is a *playful* span. BOTH line 1 AND line 3 must be wrapped in single asterisks. Example: "*Little things*\nyou can do daily to\n*calm your BPD brain*". Max 12 words total.
+- Slides 2-6: one short headline each, max 8 words, written for a BIG top-of-slide title. Mark 1-3 key words with double asterisks **like this** (these render bold). No single-asterisk spans on slides 2-6.
+- Slide 7: "Thank you for *watching*!" or a close variant, plus optionally one more short line.
+- No emojis, no hashtags, no em dash character, no clinical jargon in headlines.
+
+CAPTION RULES (the small line at the bottom):
+- Slides 2-6: exactly one caption each, max 14 words, practical and validating, insider BPD-community tone (FP, spiral, splitting are allowed if natural).
+- Slide 1: NO caption. The hook slide has no small bottom text; use an empty string.
+- Slide 7 caption: one soft encouraging line, max 12 words, e.g. "i hope you will stick to it".
+- Never preachy, never medical advice, never "consult a professional" disclaimers.
+
+HABIT CONTENT RULES:
+- Habits must be micro-scale: under 5 minutes, doable from bed or a desk.
+- Draw from DBT where natural (TIPP temperature, paced breathing, self-soothe senses, opposite action lite, Wise Mind check-in, PLEASE basics, urge surfing) but translate into ordinary words. Max one named skill per carousel, and only if it fits casually.
+- Each habit targets the given topic's struggles.
+- No habit may involve journaling apps or screens except the single allowed app mention.
+- DBT-Mind app mention: optional; if used, exactly once, inside ONE caption, casual phrasing like "i track this in the dbt-mind app". Never in a headline.
+
+STICKER RULES (transparent cutout images placed on the slide):
+- Slide 1: exactly 4 stickers of the SAME cute animal/character theme (e.g. 4 polar bear poses, 4 capybaras, 4 bunnies). They must use the 4 edge slots edge-top-left, edge-top-right, edge-bottom-left, edge-bottom-right so the characters peek in from the slide edges and frame the headline. Vary the poses (waving, lying down, close-up face, sitting).
+- Slides 2-6: 1-3 stickers each, concrete physical objects or simple cute characters that visually explain the habit. Prefer cozy gen-z objects: plushie, heart-shaped mug, iced drink, weighted blanket, LED strip glow, claw clip, oversized hoodie, journal with pen, headphones, ice cube, candle, timer, sneakers.
+- Sticker descriptions should read like subjects for a soft pastel 3D illustration (cute, rounded, gentle), never like clip-art, photos, or flat icons.
+- Slide 7: exactly 1 large cute sticker (same animal theme as slide 1 if possible) in slot outro-center.
+- No real human faces, no text in the image, no logos, no phones showing screens with readable content.
+- Each sticker gets a "slot" from this exact list: top-left, top-right, mid-left, center, mid-right, bottom-left, bottom-center, bottom-right, edge-top-left, edge-top-right, edge-bottom-left, edge-bottom-right, outro-center.
+- "description" is a short visual prompt for the sticker (max 12 words), e.g. "cute polar bear cub lying on its back, soft style".
+
+TONE:
+- gentle, hopeful, a little playful
+- validating without being heavy
+- BPD-community native, never clinical
+- the viewer should feel "these are actually doable"
+
+OUTPUT FORMAT:
+Return valid JSON only. No markdown. No explanations outside JSON.
+
+Schema:
+{
+  "topic": "...",
+  "slides": [
+    {
+      "slide": 1,
+      "role": "hook",
+      "headline": "*Little things*\nyou can do daily to\n*calm your BPD brain*",
+      "caption": "",
+      "stickers": [
+        {"description": "cute polar bear cub waving, soft style", "slot": "edge-top-left"},
+        {"description": "cute polar bear face close-up, soft style", "slot": "edge-top-right"},
+        {"description": "cute polar bear lying on its back, soft style", "slot": "edge-bottom-left"},
+        {"description": "cute polar bear cub sitting, soft style", "slot": "edge-bottom-right"}
+      ]
+    },
+    {
+      "slide": 2,
+      "role": "habit",
+      "headline": "Hold something **ice cold** for 30 seconds",
+      "caption": "temperature shocks the spiral faster than thoughts do",
+      "stickers": [
+        {"description": "ice cube with cute face", "slot": "mid-left"},
+        {"description": "hand holding cold water bottle", "slot": "mid-right"}
+      ]
+    },
+    {
+      "slide": 7,
+      "role": "outro",
+      "headline": "Thank you for *watching*!",
+      "caption": "i hope one of these sticks with you",
+      "stickers": [
+        {"description": "cute bear waving, soft watercolor style", "slot": "outro-center"}
+      ]
+    }
+  ]
+}
+
+FINAL SELF-CHECK BEFORE ANSWERING:
+- exactly 7 slides
+- slide 1 headline is exactly 3 \n-separated lines in playful-serious-playful sandwich order, with line 1 and line 3 each wrapped in *single asterisks*
+- slide 1 has exactly 4 stickers using the 4 edge slots, all the same animal/character theme
+- slides 2-6 use **bold** spans only, no single-asterisk spans
+- slide 1 has an empty caption (no small bottom text on the hook)
+- every habit slide has a caption of max 14 words
+- every sticker has a valid slot from the list
+- no habit slide has more than 3 stickers
+- no emojis, no hashtags, no em dashes anywhere
+- headlines contain no clinical jargon (no "emotional dysregulation", "distress tolerance", "nervous system" in headlines; "nervous system" allowed once in a caption)`;
+
+    const littleHabitsUserPrompt = `TOPIC:
+${topicContext.topic}
+
+Struggles this topic's audience deals with (habits should target these):
+${topicContext.struggles.join(', ')}
+
+Generate the 7-slide Little Habits carousel now. Return valid JSON only.`;
+
     const promptSet = slideType === 'three_tips'
         ? { system: threeTipsSystemPrompt, user: threeTipsUserPrompt }
         : slideType === 'weird_hack_v2'
-            ? { system: weirdHackV2SystemPrompt, user: weirdHackV2UserPrompt }
+            ? {
+                system: isGerman ? `${weirdHackV2SystemPrompt}\n\n${WEIRD_HACK_V2_GERMAN_BLOCK}` : weirdHackV2SystemPrompt,
+                user: weirdHackV2UserPrompt
+            }
         : slideType === 'permission_v1'
             ? { system: permissionV1SystemPrompt, user: permissionV1UserPrompt }
         : slideType === 'story_telling_bf'
-            ? { system: storyTellingBfSystemPrompt, user: storyTellingBfUserPrompt }
+            ? storyTellingBfPrompts
         : slideType === 'story_telling_gf'
-            ? { system: storyTellingGfSystemPrompt, user: storyTellingGfUserPrompt }
+            ? storyTellingGfPrompts
+        : slideType === 'story_telling_gf_v2'
+            ? loveStoryV2Prompts
         : slideType === 'i_say_they_say'
             ? { system: iSayTheySaySystemPrompt, user: iSayTheySayUserPrompt }
+        : slideType === 'vent_now_style'
+            ? { system: ventNowStyleSystemPrompt, user: ventNowStyleUserPrompt }
+        : slideType === 'little_habits'
+            ? { system: littleHabitsSystemPrompt, user: littleHabitsUserPrompt }
             : { system: systemPrompt, user: userPrompt };
 
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    const requestedModel = String(params.model || 'claude-sonnet-4-6').trim();
+    const useKimi = requestedModel === 'k3' || requestedModel.toLowerCase().startsWith('kimi');
+
+    let resultText = '';
+
+    if (useKimi) {
+        // Kimi K3 (OpenAI-compatible chat completions) — same system/user prompts, the shared
+        // parser below handles the JSON either way.
+        if (!params.KIMI_API_KEY) throw new Error('Kimi API key missing');
+        const kimiBase = String(params.KIMI_API_BASE || 'https://api.kimi.com/coding/v1').replace(/\/$/, '');
+        const kimiResponse = await fetch(`${kimiBase}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${params.KIMI_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: params.KIMI_MODEL || requestedModel || 'k3',
+                messages: [
+                    { role: 'system', content: promptSet.system },
+                    { role: 'user', content: promptSet.user }
+                ]
+            })
+        });
+        if (!kimiResponse.ok) {
+            const errorText = await kimiResponse.text();
+            console.error(`[Native Slides - DBT] Kimi API Error (${kimiResponse.status}):`, errorText.slice(0, 400));
+            throw new Error('Kimi API Error');
+        }
+        const kimiPayload = await kimiResponse.json() as any;
+        resultText = String(kimiPayload?.choices?.[0]?.message?.content || '');
+        console.log(`[Native Slides - DBT] slide text generated with Kimi (${params.KIMI_MODEL || requestedModel})`);
+    } else {
     const maxAnthropicRetries = 3;
-    const anthropicModelFallbacks = [
-        { model: 'claude-sonnet-4-6', maxTokens: 1500 },
-        { model: 'claude-haiku-4-5-20251001', maxTokens: 1500 }
-    ];
+    // Storytelling copy lives or dies on voice, so it gets sonnet only like vent_now and
+    // little_habits — haiku butchers the register.
+    const anthropicModelFallbacks = slideType === 'vent_now_style' || slideType === 'little_habits' || isStoryTellingFlow
+        ? [{ model: 'claude-sonnet-4-6', maxTokens: 2600 }]
+        : [
+            { model: 'claude-sonnet-4-6', maxTokens: 1500 },
+            { model: 'claude-haiku-4-5-20251001', maxTokens: 1500 }
+        ];
     let claudeResponse: Response | null = null;
 
     for (let modelIndex = 0; modelIndex < anthropicModelFallbacks.length; modelIndex++) {
@@ -2429,7 +4637,8 @@ Return strictly as JSON:
     }
 
     const rawData = await claudeResponse.json() as any;
-    const resultText = rawData.content?.[0]?.text || '';
+    resultText = rawData.content?.[0]?.text || '';
+    }
 
     const parsed = parseClaudeJsonResponse(
         resultText,
@@ -2437,7 +4646,39 @@ Return strictly as JSON:
         fallbackParseSlidesObject
     );
 
+    const LITTLE_HABITS_SLOTS = new Set([
+        'top-left', 'top-right', 'mid-left', 'center', 'mid-right',
+        'bottom-left', 'bottom-center', 'bottom-right',
+        'corner-top-left', 'corner-top-right', 'outro-center',
+        'edge-top-left', 'edge-top-right', 'edge-bottom-left', 'edge-bottom-right'
+    ]);
+    const littleHabitsStickerPrompts: Array<Array<{ description: string; slot: string }>> = [];
+
     let slides = (parsed.slides || parsed).map((s: any, index: number) => {
+        if (slideType === 'little_habits') {
+            if (typeof s === 'string') {
+                return s.replace(/^Slide \d+:\s*/i, '').trim();
+            }
+
+            const headline = String(s?.headline || s?.text || '').replace(/^Slide \d+:\s*/i, '').trim();
+            const caption = String(s?.caption || '').replace(/^Slide \d+:\s*/i, '').trim();
+            const rawStickers = Array.isArray(s?.stickers) ? s.stickers : [];
+            littleHabitsStickerPrompts[index] = rawStickers
+                .map((st: any) => ({
+                    description: String(st?.description || '').trim(),
+                    slot: String(st?.slot || 'center').trim().toLowerCase()
+                }))
+                .filter((st: { description: string; slot: string }) => st.description.length > 0)
+                .slice(0, 4)
+                .map((st: { description: string; slot: string }) => ({
+                    description: st.description,
+                    slot: LITTLE_HABITS_SLOTS.has(st.slot) ? st.slot : 'center'
+                }));
+
+            // Hook slide (index 0) never carries a caption
+            return caption && index !== 0 ? `${headline} ;; ${caption}` : headline;
+        }
+
         if (slideType === 'i_say_they_say') {
             if (typeof s === 'string') {
                 return s.replace(/^Slide \d+:\s*/i, '').trim();
@@ -2456,11 +4697,31 @@ Return strictly as JSON:
             ].filter(Boolean).join('\n\n').trim();
         }
 
+        if (slideType === 'vent_now_style') {
+            const text = typeof s === 'string' ? s : (s?.text || '');
+            return String(text).replace(/^Slide \d+:\s*/i, '').trim();
+        }
+
         const text = typeof s === 'string' ? s : (s.text || JSON.stringify(s));
         return text.replace(/^Slide \d+:\s*/i, '').trim();
     });
     if (isStoryTellingFlow) {
-        slides = normalizeStoryTellingSlides(slides);
+        slides = normalizeStoryTellingSlides(slides, language);
+        if (slides[0]) {
+            const storyPov = slideType === 'story_telling_bf' ? 'bf' as const : 'gf' as const;
+            const hookProblems = storyTellingHookProblems(slides[0], storyPov, language);
+            if (hookProblems.length > 0) {
+                console.warn(`[Native Slides - DBT] Story hook failed checks (${hookProblems.join('; ')}): "${slides[0]}" — repairing`);
+                const repairedHook = await repairStoryTellingHook({
+                    pov: storyPov,
+                    badHook: slides[0],
+                    problems: hookProblems,
+                    ANTHROPIC_API_KEY,
+                    language
+                });
+                if (repairedHook) slides[0] = repairedHook;
+            }
+        }
     }
     if (slideType === 'weird_hack_v2') {
         slides = normalizeWeirdHackV2Slides(slides);
@@ -2472,21 +4733,60 @@ Return strictly as JSON:
         );
     }
     const expectedSlideCount =
-        slideType === 'i_say_they_say'
+        slideType === 'little_habits'
             ? 7
+            : slideType === 'vent_now_style'
+            ? 6
+            : slideType === 'i_say_they_say'
+            ? 7
+            : slideType === 'story_telling_gf_v2'
+                ? 8
             : isStoryTellingFlow
                 ? 9
                 : slideType === 'weird_hack_v2'
                     ? 7
                     : slideType === 'permission_v1'
-                        ? 8
+                        ? 7
                     : 6;
     slides = slides.slice(0, expectedSlideCount);
-    if (isStoryTellingFlow) {
-        while (slides.length < 9) {
-            slides.push('');
+    if (slideType === 'little_habits' && slides.length >= 1) {
+        // Enforce the playful-serious-playful font sandwich on the hook slide even when
+        // the model forgets the *...* markup on the first/last line.
+        const hookRaw = String(slides[0] || '');
+        const sepIndex = hookRaw.indexOf(';;');
+        // The hook slide has no caption — drop anything after ';;'
+        const hookHeadline = (sepIndex >= 0 ? hookRaw.slice(0, sepIndex) : hookRaw).trim();
+        const hookLines = hookHeadline.split('\n').map(line => line.trim()).filter(Boolean);
+        if (hookLines.length >= 3) {
+            const wrapPlayful = (line: string) => line.includes('*') ? line : `*${line}*`;
+            const stripMarkup = (line: string) => line.replace(/\*/g, '');
+            const fixedLines = hookLines.map((line, lineIndex) =>
+                lineIndex === 0 || lineIndex === hookLines.length - 1
+                    ? wrapPlayful(line)
+                    : stripMarkup(line)
+            );
+            slides[0] = fixedLines.join('\n');
+        } else {
+            slides[0] = hookHeadline;
         }
-        slides[8] = STORY_TELLING_FIXED_CTA;
+    }
+    if (slideType === 'vent_now_style') {
+        slides = normalizeVentNowStyleSlides(slides);
+    }
+    if (isStoryTellingFlow) {
+        if (slideType === 'story_telling_gf_v2') {
+            while (slides.length < 8) {
+                slides.push('');
+            }
+            slides[6] = language === 'de' ? LOVE_STORY_V2_FIXED_COMPANION_DE : LOVE_STORY_V2_FIXED_COMPANION;
+            slides[7] = language === 'de' ? LOVE_STORY_V2_FIXED_CTA_DE : LOVE_STORY_V2_FIXED_CTA;
+        } else {
+            const storyTellingCta = getRandomStoryTellingCta(language);
+            while (slides.length < 9) {
+                slides.push('');
+            }
+            slides[8] = storyTellingCta;
+        }
     }
     if (slideType === 'three_tips') {
         slides = slides.map((slide: string, index: number) => formatThreeTipsSlide(slide, index));
@@ -2529,7 +4829,7 @@ Return strictly as JSON:
         slides[0] = formatWeirdHackV2Slide1Hook(slides[0], fallbackProblem, hookCategory);
 
         if (hookCategory === 'dbt') {
-            const tipSlides = [slides[2] || '', slides[3] || '', slides[4] || ''];
+            const tipSlides = [slides[2] || '', slides[3] || ''];
             const hasNamedSkillSlide = tipSlides.some(slide => containsNamedDbtSkill(slide));
 
             if (!hasNamedSkillSlide && slides.length >= 3) {
@@ -2541,7 +4841,7 @@ Return strictly as JSON:
         while (slides.length < 7) {
             slides.push('');
         }
-        slides[7] = WEIRD_HACK_V2_FIXED_SLIDE8;
+        slides[7] = isGerman ? WEIRD_HACK_V2_FIXED_SLIDE8_DE : WEIRD_HACK_V2_FIXED_SLIDE8;
     }
 
     if (slideType === 'permission_v1' && slides.length >= 1) {
@@ -2550,7 +4850,7 @@ Return strictly as JSON:
         while (slides.length < 7) {
             slides.push('');
         }
-        slides[7] = PERMISSION_V1_FIXED_SLIDE8;
+        slides[5] = formatPermissionV1Slide6(slides[5] || '', selectedTopic);
     }
 
     if (slideType === 'i_say_they_say' && slides.length >= 1) {
@@ -2589,6 +4889,9 @@ Return strictly as JSON:
     return {
         slides: slides,
         image_prompts: imagePrompts,
+        sticker_prompts: slideType === 'little_habits'
+            ? littleHabitsStickerPrompts.slice(0, slides.length)
+            : undefined,
         includeBranding: includeBranding,
         visual_style: selectedArtStyle.name
     };

@@ -17,7 +17,7 @@ window.createMemeSlides = (cfg) => {
     const settings = () => Object.fromEntries(settingNames.map((name) => [name, $(name).value]));
     const artwork = new MemeCanvasEditor(() => save(), cfg.canvas);
     function save() {
-        try { localStorage.setItem(storageKey, JSON.stringify({ ...settings(), slides, meta, previousTopics, autoArt: $('auto-art').checked, artwork: artwork.serialize() })); }
+        try { localStorage.setItem(storageKey, JSON.stringify({ ...settings(), ...(cfg.modelUpgrade ? { modelUpgraded: true } : {}), slides, meta, previousTopics, autoArt: $('auto-art').checked, artwork: artwork.serialize() })); }
         catch { status('Your draft is open, but browser storage is unavailable. Export it to keep a copy.'); }
     }
     function rememberTopic(topic) {
@@ -209,8 +209,9 @@ window.createMemeSlides = (cfg) => {
         });
         $('copy').disabled = $('export').disabled = slides.length === 0;
     }
+    // Seven slides end on the app slide; six mention the app inside one point instead.
     function isDraft(value) {
-        return Array.isArray(value) && value.length === 7 && value.every((slide, i) =>
+        return Array.isArray(value) && (value.length === 7 || value.length === 6) && value.every((slide, i) =>
             slide && slide.role === (i === 0 ? 'hook' : i === 6 ? 'cta' : 'point') &&
             ['headline', 'body', 'leftLabel', 'rightLabel'].every((field) => typeof slide[field] === 'string'));
     }
@@ -223,6 +224,8 @@ window.createMemeSlides = (cfg) => {
                 if (typeof draft[name] === 'string' && ($(name).tagName !== 'SELECT' || [...$(name).options].some((option) => option.value === draft[name]))) $(name).value = draft[name];
             });
             if (cfg.migrateCats && $('theme').value.trim().toLowerCase() === 'cats') $('theme').value = 'bpd cat';
+            // A model saved before a newer default existed was the old default, not a choice: move it once.
+            if (cfg.modelUpgrade && !draft.modelUpgraded && draft.model === cfg.modelUpgrade.from) $('model').value = cfg.modelUpgrade.to;
             if (isDraft(draft.slides)) {
                 slides = draft.slides;
                 meta = {
@@ -262,7 +265,7 @@ window.createMemeSlides = (cfg) => {
         $('generate').textContent = 'Generating…';
         // Keep the current draft available until a valid replacement has arrived.
         $('slides').querySelectorAll('textarea').forEach((input) => { input.disabled = true; });
-        status('Choosing a fresh topic and writing seven slides. This can take a couple of minutes.');
+        status(`Choosing a fresh topic and writing ${$('cta').value === 'slide' ? 'seven' : 'six'} slides. This can take a couple of minutes.`);
         try {
             const response = await fetch(`${API_BASE}${cfg.endpoint}`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json', ...getApiAuthHeaders() },
@@ -270,7 +273,7 @@ window.createMemeSlides = (cfg) => {
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || `Generation failed (${response.status}).`);
-            if (!isDraft(data.slides)) throw new Error('The response did not contain the expected seven slides.');
+            if (!isDraft(data.slides)) throw new Error('The response did not contain the expected slides.');
             slides = data.slides;
             meta = {
                 title: typeof data.title === 'string' ? data.title : '',
@@ -285,7 +288,7 @@ window.createMemeSlides = (cfg) => {
             artwork.setSlides(slides, true);
             rememberTopic(slides[0].headline);
             render();
-            status('Seven slides ready. Edit any field below. Edits save automatically in this browser.');
+            status(`${slides.length} slides ready. Edit any field below. Edits save automatically in this browser.`);
             save();
             if ($('auto-art').checked) {
                 status('Slide text saved. Choosing matching cats and stickers…');
@@ -327,7 +330,7 @@ window.createMemeSlides = (cfg) => {
             ...(meta.description ? [`DESCRIPTION (paste in front of the hashtags)\n\n${meta.description}`] : []),
             ...(meta.hashtags.length ? [`HASHTAGS\n\n${meta.hashtags.join(' ')}`] : []),
             ...(soundLine ? [soundLine] : [])].join('\n\n---\n\n');
-        try { await navigator.clipboard.writeText(text); status('All seven slides and the TikTok metadata copied.'); }
+        try { await navigator.clipboard.writeText(text); status(`All ${slides.length} slides and the TikTok metadata copied.`); }
         catch { status('Clipboard access is unavailable. Use Export JSON to save the text.'); }
     });
     $('export').addEventListener('click', () => {
@@ -350,6 +353,6 @@ window.createMemeSlides = (cfg) => {
 
 window.dbtMemeSlides = createMemeSlides({
     prefix: 'meme', storageKey: 'dbt-meme-slides-v1', endpoint: '/generate-meme-slideshow',
-    settingNames: ['theme', 'notes', 'language', 'model'], exportName: 'meme-slides',
+    settingNames: ['theme', 'notes', 'language', 'model', 'cta'], exportName: 'meme-slides',
     migrateCats: true, example: true,
 });

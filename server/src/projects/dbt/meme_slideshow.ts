@@ -1,5 +1,6 @@
 import { buildDescription, buildHashtags, buildTitle } from './ss_slideshow';
 import { logClaudeUsage } from '../../claude_usage';
+import { applyCtaMode, checkNativeMention, checkNoMention, memeCtaMode, pickNativePoint, roleAt, slideCount, slideCountWord, structureError, type MemeCtaMode } from './meme_cta';
 
 export type MemeSlide = { role: 'hook' | 'point' | 'cta'; headline: string; body: string; leftLabel: string; rightLabel: string };
 
@@ -8,11 +9,11 @@ export type MemeSlide = { role: 'hook' | 'point' | 'cta'; headline: string; body
 export function stripDashes(text: string) {
     return text.replace(/\s*[–—]\s*/g, ', ').replace(/,\s*([,.!?])/g, '$1').replace(/\s+,/g, ',').trim();
 }
-export function validateMemeSlides(value: unknown): MemeSlide[] {
+export function validateMemeSlides(value: unknown, mode: MemeCtaMode = 'slide'): MemeSlide[] {
     const slides = (value as { slides?: unknown })?.slides;
-    if (!Array.isArray(slides) || slides.length !== 7) throw new Error('Expected a cover, five points, and a CTA.');
+    if (!Array.isArray(slides) || slides.length !== slideCount(mode)) throw new Error(structureError(mode));
     return slides.map((slide, index) => {
-        const role = index === 0 ? 'hook' : index === 6 ? 'cta' : 'point';
+        const role = roleAt(index, mode);
         if (!slide || slide.role !== role) throw new Error(`Slide ${index + 1} has the wrong role.`);
         const result = { role } as MemeSlide;
         for (const field of ['headline', 'body', 'leftLabel', 'rightLabel'] as const) {
@@ -184,7 +185,19 @@ const AXES_FOR_PROMISE: Record<string, number[]> = {
     'A SCRIPT': [0, 1, 3, 4, 6, 7],
 };
 
-export async function generateMemeSlideshow(params: { topic?: string; theme?: string; notes?: string; previousTopics?: string[]; language?: string; model?: string; axis?: string; promise?: string; ANTHROPIC_API_KEY: string }) {
+// The app line for a post without the closing app slide (see meme_cta.ts).
+const DBT_NATIVE = {
+    app: 'DBT-Mind',
+    pattern: /dbt[\s-]?mind/i,
+    features: 'the step-by-step DBT skills library (for following instructions), journaling (for recording what happened or progress), guided breathwork, or chain analysis (for working out what led to a moment).',
+    example: 'Write down what happened while it is still happening, the journal in DBT-Mind is made for exactly this, so one sweet message cannot erase it.',
+};
+
+export async function generateMemeSlideshow(params: { topic?: string; theme?: string; notes?: string; previousTopics?: string[]; language?: string; model?: string; axis?: string; promise?: string; cta?: string; ANTHROPIC_API_KEY: string }) {
+    const ctaMode = memeCtaMode(params.cta);
+    const native = { ...DBT_NATIVE, point: pickNativePoint() };
+    const system = applyCtaMode(SYSTEM_PROMPT, ctaMode, native);
+    const count = slideCountWord(ctaMode);
     const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-sonnet-5-5'].includes(params.model || '') ? params.model! : 'claude-sonnet-5-5';
     // Sonnet 5.5 thinks before it answers (adaptive by default), so it needs room beyond the
     // 4000 tokens the copy itself takes, and a decline is finished by a fallback model.
@@ -193,10 +206,10 @@ export async function generateMemeSlideshow(params: { topic?: string; theme?: st
     const promise = params.promise && MEME_PROMISES.includes(params.promise) ? params.promise : pick(MEME_PROMISES);
     const allowed = (AXES_FOR_PROMISE[promise] || MEME_AXES.map((_, i) => i)).map((i) => MEME_AXES[i]!);
     const axis = params.axis && MEME_AXES.some((a) => a.startsWith(params.axis!)) ? params.axis : pick(allowed);
-    console.log(`[Meme Slideshow] promise: ${promise} · axis: ${axis.split(':')[0]}`);
+    console.log(`[Meme Slideshow] promise: ${promise} · axis: ${axis.split(':')[0]} · cta: ${ctaMode === 'native' ? `native in point ${native.point}` : ctaMode}`);
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [{ role: 'user', content: JSON.stringify({
         direction: [params.topic?.trim(), params.notes?.trim()].filter(Boolean).join('\n'),
-        task: 'Invent a fresh creative topic inside the assigned territory and promise, then write the complete seven-slide carousel.',
+        task: `Invent a fresh creative topic inside the assigned territory and promise, then write the complete ${count}-slide carousel.`,
         assignedAxis: axis,
         assignedPromise: promise,
         doNotDrift: 'The territory (assignedAxis) and promise are assigned for this post. Build the topic inside them rather than choosing your own.',
@@ -208,7 +221,7 @@ export async function generateMemeSlideshow(params: { topic?: string; theme?: st
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST', signal: AbortSignal.timeout(150000),
             headers: { 'x-api-key': params.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', ...(sonnet55 ? { 'anthropic-beta': 'server-side-fallback-2026-07-01' } : {}) },
-            body: JSON.stringify({ model, max_tokens: sonnet55 ? 16000 : 4000, system: SYSTEM_PROMPT, messages, ...(sonnet55 ? { fallbacks: 'default' } : {}) }),
+            body: JSON.stringify({ model, max_tokens: sonnet55 ? 16000 : 4000, system, messages, ...(sonnet55 ? { fallbacks: 'default' } : {}) }),
         });
         if (!response.ok) throw new Error(`Text provider returned ${response.status}. Please retry.`);
         const data = await response.json() as any;
@@ -220,7 +233,9 @@ export async function generateMemeSlideshow(params: { topic?: string; theme?: st
             let parsed: unknown;
             try { parsed = JSON.parse(raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')); }
             catch { throw new Error('The response was not valid JSON. Return only the JSON object.'); }
-            const slides = validateMemeSlides(parsed);
+            const slides = validateMemeSlides(parsed, ctaMode);
+            if (ctaMode === 'native') checkNativeMention(slides, native);
+            if (ctaMode === 'none') checkNoMention(slides, native);
             // The bracket subtitle introduces the character, so a headline naming it too reads
             // twice: "5 conversations BPD cat already won (explained by bpd cat)".
             const character = !params.theme?.trim() || params.theme.trim().toLowerCase() === 'cats' ? 'cat' : params.theme.trim().toLowerCase().replace(/s$/, '');
@@ -233,7 +248,7 @@ export async function generateMemeSlideshow(params: { topic?: string; theme?: st
             }
             const normalize = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
             if ((params.previousTopics || []).some((topic) => normalize(topic) === normalize(slides[0]!.headline))) {
-                throw new Error('The topic repeats a recent post. Choose a different subject and rewrite all seven slides.');
+                throw new Error(`The topic repeats a recent post. Choose a different subject and rewrite all ${count} slides.`);
             }
             const meta = parsed as { title?: unknown; hashtags?: unknown; description?: unknown };
             return {
@@ -244,7 +259,7 @@ export async function generateMemeSlideshow(params: { topic?: string; theme?: st
             };
         } catch (error) {
             if (attempt === 1) throw new Error(`Generation failed twice. Last reason: ${error instanceof Error ? error.message : String(error)}`);
-            messages.push({ role: 'assistant', content: raw }, { role: 'user', content: `Fix the JSON and structure: ${String(error)}. Return all seven slides.` });
+            messages.push({ role: 'assistant', content: raw }, { role: 'user', content: `Fix the JSON and structure: ${String(error)}. Return all ${count} slides.` });
         }
     }
     throw new Error('Generation failed.');

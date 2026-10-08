@@ -83,6 +83,11 @@ body[data-service="batch"] #floating-download-btn { display: none !important; }
 .batch-workspace textarea:focus-visible, .batch-workspace select:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 1px; }
 .batch-setup { display: grid; grid-template-columns: 1.4fr 1.6fr .6fr .8fr auto; gap: 14px; align-items: end; margin: 20px 0 6px; }
 .batch-setup .btn { white-space: nowrap; }
+.batch-setup [hidden] { display: none; }
+/* Meme formats add the App CTA choice as one more column (wide screens only; narrow ones wrap). */
+@media (min-width: 1101px) {
+    .batch-setup:has(#batch-cta-field:not([hidden])) { grid-template-columns: 1.3fr 1.4fr .5fr .7fr 1.2fr auto; }
+}
 .batch-review-nav .btn, .batch-sidebar-head .btn { width: auto; flex: 0 0 auto; }
 .batch-workspace .btn:disabled { opacity: .45; cursor: not-allowed; }
 .batch-connection { min-height: 1.2em; margin: 0 0 18px; }
@@ -3303,4 +3308,18 @@ body[data-service="bfrb"] #floating-download-btn { display: none !important; }
 #bfrb-art-label-panel { margin: 16px 0; }
 #bfrb-art-label-description { font-size: .85rem; line-height: 1.5; margin: 10px 0; }
 
+/* Endumi memes reuse the meme workspace. */
+body[data-service="endo"] .main-content { display: block; }
+body[data-service="endo"] .main-content > :not(#panel-endo),
+body[data-service="endo"] #floating-download-btn { display: none !important; }
+#endo-status { min-height: 24px; margin: 16px 0; color: var(--text-secondary); }
+#endo-artwork { margin: 28px 0; padding: 24px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); }
+#endo-artwork[hidden] { display: none; }
+#endo-art-nav { margin: 16px 0; }
+#endo-art-nav [aria-pressed='true'] { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+#endo-art-canvas { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; background: #fff; touch-action: none; cursor: grab; box-shadow: 0 0 0 1px var(--border-color); }
+#endo-art-canvas:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+#endo-art-canvas:active { cursor: grabbing; }
+#endo-art-label-panel { margin: 16px 0; }
+#endo-art-label-description { font-size: .85rem; line-height: 1.5; margin: 10px 0; }
 

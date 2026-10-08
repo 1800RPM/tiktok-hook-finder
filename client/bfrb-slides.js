@@ -2,8 +2,9 @@
 // gauges and closing slide. The cat library and sound pool are shared.
 createMemeSlides({
     prefix: 'bfrb', storageKey: 'bfrb-meme-slides-v1', endpoint: '/generate-bfrb-meme-slideshow',
-    settingNames: ['theme', 'notes', 'model'], exportName: 'bfrb-meme-slides',
+    settingNames: ['theme', 'notes', 'model', 'cta'], exportName: 'bfrb-meme-slides',
     migrateCats: false, example: false,
+    modelUpgrade: { from: 'claude-sonnet-4-6', to: 'claude-sonnet-5-5' },
     canvas: {
         prefix: 'bfrb-art', artwork: 'bfrb-artwork', panel: '#panel-bfrb', filePrefix: 'bfrb-slide',
         low: 'assets/bfrb-slides/urge_level_low.png',

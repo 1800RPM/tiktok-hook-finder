@@ -1,4 +1,6 @@
 import { stripDashes, type MemeSlide } from '../dbt/meme_slideshow';
+import { logClaudeUsage } from '../../claude_usage';
+import { applyCtaMode, checkNativeMention, checkNoMention, memeCtaMode, pickNativePoint, roleAt, slideCount, slideCountWord, structureError, type MemeCtaMode } from '../dbt/meme_cta';
 import { buildDescription, buildTitle } from '../dbt/ss_slideshow';
 
 // BFRB Ally meme carousels: same seven-slide cat format as the DBT-Mind meme flow, written for
@@ -38,11 +40,11 @@ export function findRepeatedMove(slides: MemeSlide[]): string | null {
     return null;
 }
 
-export function validateBfrbSlides(value: unknown): MemeSlide[] {
+export function validateBfrbSlides(value: unknown, mode: MemeCtaMode = 'slide'): MemeSlide[] {
     const slides = (value as { slides?: unknown })?.slides;
-    if (!Array.isArray(slides) || slides.length !== 7) throw new Error('Expected a cover, five points, and a CTA.');
+    if (!Array.isArray(slides) || slides.length !== slideCount(mode)) throw new Error(structureError(mode));
     return slides.map((slide, index) => {
-        const role = index === 0 ? 'hook' : index === 6 ? 'cta' : 'point';
+        const role = roleAt(index, mode);
         if (!slide || slide.role !== role) throw new Error(`Slide ${index + 1} has the wrong role.`);
         const result = { role } as MemeSlide;
         for (const field of ['headline', 'body', 'leftLabel', 'rightLabel'] as const) {
@@ -205,16 +207,31 @@ function buildBfrbHashtags(raw: unknown): string[] {
     return tags;
 }
 
-export async function generateBfrbMemeSlideshow(params: { topic?: string; theme?: string; notes?: string; previousTopics?: string[]; model?: string; axis?: string; promise?: string; ANTHROPIC_API_KEY: string }) {
-    const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(params.model || '') ? params.model! : 'claude-sonnet-4-6';
+// The app line for a post without the closing app slide (see dbt/meme_cta.ts).
+const NATIVE_CTA = {
+    app: 'BFRB Ally',
+    pattern: /bfrb\s?ally/i,
+    features: 'a five-minute urge surfing timer for riding out an urge, a two-tap log without judgment that shows when and where it happens, short guided repair sessions for after an episode, guided paths with competing responses for your hands, Trance Breaker check-ins before your usual risky time, or an anonymous Wave Buddy.',
+    example: 'Start the five-minute urge surfing timer in BFRB Ally and give your hands the stress ball until it runs out.',
+};
+
+export async function generateBfrbMemeSlideshow(params: { topic?: string; theme?: string; notes?: string; previousTopics?: string[]; model?: string; axis?: string; promise?: string; cta?: string; ANTHROPIC_API_KEY: string }) {
+    const ctaMode = memeCtaMode(params.cta);
+    const native = { ...NATIVE_CTA, point: pickNativePoint() };
+    const system = applyCtaMode(SYSTEM_PROMPT, ctaMode, native);
+    const count = slideCountWord(ctaMode);
+    const model = ['claude-sonnet-5-5', 'claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(params.model || '') ? params.model! : 'claude-sonnet-5-5';
+    // Sonnet 5.5 thinks before it answers, so it needs room beyond the ~4000 tokens of copy, and
+    // a declined request is finished by a fallback model.
+    const sonnet55 = model === 'claude-sonnet-5-5';
     const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)]!;
     const promise = params.promise && BFRB_PROMISES.includes(params.promise) ? params.promise : nextPromise();
     const allowed = (AXES_FOR_PROMISE[promise] || BFRB_AXES.map((_, i) => i)).map((i) => BFRB_AXES[i]!);
     const axis = params.axis && BFRB_AXES.some((a) => a.startsWith(params.axis!)) ? params.axis : pick(allowed);
-    console.log(`[BFRB Memes] promise: ${promise} · axis: ${axis.split(':')[0]}`);
+    console.log(`[BFRB Memes] promise: ${promise} · axis: ${axis.split(':')[0]} · cta: ${ctaMode === 'native' ? `native in point ${native.point}` : ctaMode}`);
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [{ role: 'user', content: JSON.stringify({
         direction: [params.topic?.trim(), params.notes?.trim()].filter(Boolean).join('\n'),
-        task: 'Invent a fresh creative topic inside the assigned axis and promise, then write the complete seven-slide carousel.',
+        task: `Invent a fresh creative topic inside the assigned axis and promise, then write the complete ${count}-slide carousel.`,
         assignedAxis: axis,
         assignedPromise: promise,
         doNotDrift: 'The axis and promise are assigned for this post. Build the topic inside them rather than choosing your own.',
@@ -225,22 +242,25 @@ export async function generateBfrbMemeSlideshow(params: { topic?: string; theme?
     for (let attempt = 0; attempt < 2; attempt++) {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST', signal: AbortSignal.timeout(150000),
-            headers: { 'x-api-key': params.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-            body: JSON.stringify({ model, max_tokens: 4000, system: SYSTEM_PROMPT, messages }),
+            headers: { 'x-api-key': params.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', ...(sonnet55 ? { 'anthropic-beta': 'server-side-fallback-2026-07-01' } : {}) },
+            body: JSON.stringify({ model, max_tokens: sonnet55 ? 16000 : 4000, system, messages, ...(sonnet55 ? { fallbacks: 'default' } : {}) }),
         });
         if (!response.ok) throw new Error(`Text provider returned ${response.status}. Please retry.`);
         const data = await response.json() as any;
+        logClaudeUsage('BFRB memes · copy', data, attempt);
         const raw = (data.content || []).filter((block: any) => block.type === 'text').map((block: any) => block.text).join('\n');
         try {
             let parsed: unknown;
             try { parsed = JSON.parse(raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')); }
             catch { throw new Error('The response was not valid JSON. Return only the JSON object.'); }
-            const slides = validateBfrbSlides(parsed);
+            const slides = validateBfrbSlides(parsed, ctaMode);
+            if (ctaMode === 'native') checkNativeMention(slides, native);
+            if (ctaMode === 'none') checkNoMention(slides, native);
             const repeated = findRepeatedMove(slides);
             if (repeated) throw new Error(`${repeated} appears in more than one point. Give each point a different move and rewrite the repeats.`);
             const normalize = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
             if ((params.previousTopics || []).some((topic) => normalize(topic) === normalize(slides[0]!.headline))) {
-                throw new Error('The topic repeats a recent post. Choose a different subject and rewrite all seven slides.');
+                throw new Error(`The topic repeats a recent post. Choose a different subject and rewrite all ${count} slides.`);
             }
             const meta = parsed as { title?: unknown; hashtags?: unknown; description?: unknown };
             // The shared title builder cuts anything over eight words and can leave a stub like
@@ -255,7 +275,7 @@ export async function generateBfrbMemeSlideshow(params: { topic?: string; theme?
             };
         } catch (error) {
             if (attempt === 1) throw new Error(`Generation failed twice. Last reason: ${error instanceof Error ? error.message : String(error)}`);
-            messages.push({ role: 'assistant', content: raw }, { role: 'user', content: `Fix the JSON and structure: ${String(error)}. Return all seven slides.` });
+            messages.push({ role: 'assistant', content: raw }, { role: 'user', content: `Fix the JSON and structure: ${String(error)}. Return all ${count} slides.` });
         }
     }
     throw new Error('Generation failed.');

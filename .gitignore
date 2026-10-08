@@ -49,3 +49,4 @@ data/*.db
 /.claude/skills/
 /client/assets/bfrb-slides/
 /server/data/meme_recent_covers.json
+/client/assets/endo-slides/

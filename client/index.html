@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TikTok Slide Creator</title>
-    <link rel="stylesheet" href="styles.css?v=20260827dx">
+    <link rel="stylesheet" href="styles.css?v=20261007a">
 </head>
 
 <body data-service="dbt">
@@ -23,6 +23,7 @@
                 <button class="service-btn service-btn-ss" data-service="ss">Slideshows</button>
                 <button class="service-btn" data-service="meme">Meme Slides</button>
                 <button class="service-btn" data-service="bfrb">BFRB Memes</button>
+                <button class="service-btn" data-service="endo">Endo Memes</button>
                 <button class="service-btn service-btn-ts" data-service="the_script">The Script</button>
                 <button class="service-btn" data-service="batch">Batch → TikTok</button>
                 <button class="service-btn service-btn-stickman" data-service="stickman">Stickman</button>
@@ -39,6 +40,7 @@
                         <label>Format<select id="batch-format" class="select-input"></select></label>
                         <label>Posts<select id="batch-count" class="select-input"><option>1</option><option>3</option><option selected>5</option><option>10</option><option>16</option><option>24</option></select></label>
                         <label>Language<select id="batch-language" class="select-input"><option value="en">English</option><option value="de">German</option></select></label>
+                        <label id="batch-cta-field" hidden>App CTA<select id="batch-cta" class="select-input"><option value="mixed">Mixed, random per post</option><option value="slide">App slide at the end</option><option value="native">Native mention in a point</option><option value="none">No CTA</option></select></label>
                         <button id="batch-generate" type="button" class="btn btn-primary">Generate batch</button>
                     </div>
                     <p id="batch-connection" class="section-hint batch-connection" aria-live="polite"></p>
@@ -80,6 +82,7 @@
                         <label>Character theme<input id="meme-theme" class="text-input" maxlength="120" value="bpd cat" placeholder="e.g. bpd cat"></label>
                         <label>Language<select id="meme-language" class="select-input"><option value="en">English</option><option value="de">German</option></select></label>
                         <label>Text model<select id="meme-model" class="select-input"><option value="claude-sonnet-5-5" selected>Claude Sonnet 5.5 (default)</option><option value="claude-sonnet-4-6">Claude Sonnet 4.6</option><option value="claude-fable-5">Claude Fable 5</option><option value="claude-opus-5">Claude Opus 5</option><option value="claude-opus-4-8">Claude Opus 4.8</option></select></label>
+                        <label>App CTA<select id="meme-cta" class="select-input"><option value="slide">App slide at the end (7 slides)</option><option value="native">Native mention inside a point (6 slides)</option><option value="none">No CTA, pure value (6 slides)</option></select></label>
                         <label class="meme-wide">Creative direction (optional)<textarea id="meme-notes" class="prompt-textarea" rows="2" maxlength="2000" placeholder="Leave blank for a fresh AI topic, or describe a direction to explore"></textarea></label>
                     </div>
                     <div class="meme-actions">
@@ -183,7 +186,8 @@
                     <p class="section-hint">Generate the copy, then arrange your cats on white slides. Cover + five comparisons + the BFRB Ally slide, exported at 1080 × 1350.</p>
                     <div class="meme-settings">
                         <label>Character theme<input id="bfrb-theme" class="text-input" maxlength="120" value="picker cat" placeholder="e.g. picker cat"></label>
-                        <label>Text model<select id="bfrb-model" class="select-input"><option value="claude-sonnet-4-6">Claude Sonnet 4.6</option><option value="claude-fable-5">Claude Fable 5</option><option value="claude-opus-5">Claude Opus 5</option><option value="claude-opus-4-8">Claude Opus 4.8</option></select></label>
+                        <label>Text model<select id="bfrb-model" class="select-input"><option value="claude-sonnet-5-5" selected>Claude Sonnet 5.5 (default)</option><option value="claude-sonnet-4-6">Claude Sonnet 4.6</option><option value="claude-fable-5">Claude Fable 5</option><option value="claude-opus-5">Claude Opus 5</option><option value="claude-opus-4-8">Claude Opus 4.8</option></select></label>
+                        <label>App CTA<select id="bfrb-cta" class="select-input"><option value="slide">App slide at the end (7 slides)</option><option value="native">Native mention inside a point (6 slides)</option><option value="none">No CTA, pure value (6 slides)</option></select></label>
                         <label class="meme-wide">Creative direction (optional)<textarea id="bfrb-notes" class="prompt-textarea" rows="2" maxlength="2000" placeholder="Leave blank for a fresh AI topic, or describe a direction to explore"></textarea></label>
                     </div>
                     <div class="meme-actions">
@@ -274,6 +278,106 @@
                         </div>
                     </section>
                     <div id="bfrb-slides"><p class="section-hint">Generate a fresh AI topic and seven slides, for BFRB Ally.</p></div>
+                </section>
+            </div>
+            <div id="panel-endo" class="service-panel">
+                <section class="panel-section meme-workspace">
+                    <h2>Endumi Memes (DE)</h2>
+                    <p class="section-hint">Generate the copy, then arrange your cats on white slides. Cover + five comparisons + the Endumi slide, exported at 1080 × 1350.</p>
+                    <div class="meme-settings">
+                        <label>Character theme<input id="endo-theme" class="text-input" maxlength="120" value="endo cat" placeholder="z. B. endo cat"></label>
+                        <label>Text model<select id="endo-model" class="select-input"><option value="claude-sonnet-4-6">Claude Sonnet 4.6</option><option value="claude-fable-5">Claude Fable 5</option><option value="claude-opus-5">Claude Opus 5</option><option value="claude-opus-4-8">Claude Opus 4.8</option></select></label>
+                        <label>App CTA<select id="endo-cta" class="select-input"><option value="slide">App slide at the end (7 slides)</option><option value="native">Native mention inside a point (6 slides)</option><option value="none">No CTA, pure value (6 slides)</option></select></label>
+                        <label class="meme-wide">Creative direction (optional)<textarea id="endo-notes" class="prompt-textarea" rows="2" maxlength="2000" placeholder="Leer lassen für ein frisches Thema, oder eine Richtung beschreiben (Deutsch oder Englisch)"></textarea></label>
+                    </div>
+                    <div class="meme-actions">
+                        <button id="endo-generate" type="button" class="btn btn-primary">Generate slide text</button>
+                        <button id="endo-example" type="button" class="btn btn-secondary" hidden>Load approved example</button>
+                        <button id="endo-copy" type="button" class="btn btn-secondary" disabled>Copy all text</button>
+                        <button id="endo-export" type="button" class="btn btn-secondary" disabled>Export JSON</button>
+                        <label class="meme-auto-choice"><input id="endo-auto-art" type="checkbox" checked>Auto-place images after generation</label>
+                    </div>
+                    <p id="endo-status" role="status" aria-live="polite"></p>
+                    <div class="input-group" id="endo-sound-group" style="margin-top: 12px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                            <label class="ss-label" style="margin:0;">TikTok Sound</label>
+                            <button id="endo-sound-refresh" type="button" class="btn btn-secondary"
+                                style="padding:4px 10px; font-size:12px;">Andere Vorschl&auml;ge</button>
+                        </div>
+                        <div id="endo-sound-filters" class="ss-sound-filters"></div>
+                        <div id="endo-sound-list" class="ss-sound-list"></div>
+                        <p id="endo-sound-status" class="section-hint" style="margin:6px 0 0;"></p>
+                    </div>
+
+                    <div id="endo-meta-group" hidden style="margin-top: 12px;">
+                        <h3 style="margin: 0 0 8px;">TikTok metadata</h3>
+                        <div class="input-group">
+                            <label class="ss-label" for="endo-title">Title (max 8 words, paste as the post text)</label>
+                            <input id="endo-title" type="text" class="text-input" placeholder="kleingeschrieben, in der Stimme des Accounts">
+                        </div>
+                        <div class="input-group" style="margin-top: 10px;">
+                            <label class="ss-label" for="endo-description">Description (goes in front of the hashtags)</label>
+                            <textarea id="endo-description" class="text-input" rows="2"
+                                placeholder="Zwei Sätze, keine Emojis."></textarea>
+                        </div>
+                        <div class="input-group" style="margin-top: 10px;">
+                            <label class="ss-label" for="endo-hashtags">Hashtags</label>
+                            <input id="endo-hashtags" type="text" class="text-input" placeholder="#endometriose #endo ...">
+                        </div>
+                        <div class="meme-actions" style="margin-top: 10px;">
+                            <button id="endo-copy-meta" type="button" class="btn btn-secondary">Copy description + hashtags</button>
+                        </div>
+                    </div>
+                    <section id="endo-artwork" hidden aria-label="Endumi meme slide image editor">
+                        <h3>Slide images</h3>
+                        <div class="meme-actions">
+                            <button id="endo-art-analyze" type="button" class="btn btn-secondary">Analyze new assets</button>
+                            <button id="endo-art-arrange" type="button" class="btn btn-primary">AI arrange carousel</button>
+                        </div>
+                        <div id="endo-art-nav" class="meme-actions" aria-label="Choose a slide"></div>
+                        <div class="meme-art-layout">
+                            <div>
+                                <canvas id="endo-art-canvas" width="1080" height="1350" tabindex="0" aria-label="Slide canvas. Drag objects to move them. Select an object to resize or rotate it using the controls."></canvas>
+                                <p class="section-hint">Drag to move. Drag the round handle to rotate images; the square handle resizes them. Arrow keys nudge the selected object.</p>
+                                <div class="meme-actions">
+                                    <button id="endo-art-png" type="button" class="btn btn-primary">Download this PNG</button>
+                                    <button id="endo-art-zip" type="button" class="btn btn-secondary">Download all slides (.zip)</button>
+                                </div>
+                            </div>
+                            <aside class="meme-art-tools">
+                                <label>Selected object<select id="endo-art-selection"></select></label>
+                                <div class="meme-settings">
+                                    <label>X position<input id="endo-art-x" type="number" step="1"></label>
+                                    <label>Y position<input id="endo-art-y" type="number" step="1"></label>
+                                    <label>Image width<input id="endo-art-size" type="range" min="60" max="1400" step="1"></label>
+                                    <label>Rotation <span id="endo-art-angle-value">0°</span><input id="endo-art-angle" type="range" min="-180" max="180" step="1"></label>
+                                </div>
+                                <div class="meme-actions">
+                                    <button id="endo-art-arrange-slide" type="button" class="btn btn-primary">AI images for this slide</button>
+                                    <button id="endo-art-reset-one" type="button" class="btn btn-secondary">Reset selected position</button>
+                                    <button id="endo-art-reset-text" type="button" class="btn btn-secondary">Reset all text</button>
+                                    <button id="endo-art-front" type="button" class="btn btn-secondary">Bring image forward</button>
+                                    <button id="endo-art-back" type="button" class="btn btn-secondary">Send image backward</button>
+                                    <button id="endo-art-remove" type="button" class="btn btn-secondary">Remove image</button>
+                                    <button id="endo-art-gauges" type="button" class="btn btn-secondary">Restore pain gauges</button>
+                                    <button id="endo-art-swap" type="button" class="btn btn-secondary">Swap high / low</button>
+                                    <button id="endo-art-alternatives" type="button" class="btn btn-secondary" disabled>Suggest alternatives</button>
+                                </div>
+                                <div id="endo-art-suggestions" class="meme-alternatives"></div>
+                                <details id="endo-art-label-panel">
+                                    <summary>Selected image labels</summary>
+                                    <p id="endo-art-label-description"></p>
+                                    <label>Correct or add context<textarea id="endo-art-label-edit" rows="3" maxlength="1500" placeholder="Describe the joke, mood, or situations this image fits"></textarea></label>
+                                    <button id="endo-art-label-save" type="button" class="btn btn-secondary">Save label corrections</button>
+                                </details>
+                                <h4>Cat library</h4>
+                                <label>Find a cat<input id="endo-art-search" type="search" placeholder="Search expressions or names"></label>
+                                <div id="endo-art-library" class="meme-cat-library"></div>
+                                <p id="endo-art-status" role="status" aria-live="polite"></p>
+                            </aside>
+                        </div>
+                    </section>
+                    <div id="endo-slides"><p class="section-hint">Generate a fresh AI topic and seven slides, in German, for Endumi.</p></div>
                 </section>
             </div>
             <!-- Left Panel: Controls -->
@@ -2088,9 +2192,10 @@ INSIDE: ..."></textarea>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="app.js?v=20261006d"></script>
     <script src="meme-canvas.js?v=20261005b"></script>
-    <script src="meme-slides.js?v=20261006a"></script>
-    <script src="batch.js?v=20261006f"></script>
-    <script src="bfrb-slides.js?v=20260916a"></script>
+    <script src="meme-slides.js?v=20261008b"></script>
+    <script src="batch.js?v=20261008b"></script>
+    <script src="bfrb-slides.js?v=20261008a"></script>
+    <script src="endo-slides.js?v=20261007a"></script>
 </body>
 
 </html>

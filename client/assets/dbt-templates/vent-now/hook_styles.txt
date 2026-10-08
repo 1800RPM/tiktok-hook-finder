@@ -1,0 +1,88 @@
+# @sydneysynced Hook Style Bank
+
+Purpose: use these as STYLE REFERENCES for DBT-Mind / DBT / BPD TikTok slideshow hooks.
+Do NOT copy exact hooks. Preserve architecture and swap only the niche payload.
+
+STYLE-PRESERVING ADAPTATION RULES
+- Preserve skeletons: `how to... WITHOUT...`, `5 things...`, `5 rules...`, `HOW TO...: subtitle`, `[hook] (parenthetical)`.
+- Preserve punctuation/casing when useful: all-caps emphasis like ACTUALLY, WITHOUT, INSTANTLY, MUST, UNRECOGNIZABLE.
+- Preserve short parentheticals when useful: (realistically), (you’re not alone), (backed by science), (before you text back).
+- Change only the subject matter into DBT/BPD/relationship-anxiety language.
+- Prefer broad relationship/self-worth language first, quiet DBT underneath.
+- Do not turn these into clinical hooks like “DBT skills for emotional regulation”.
+
+TOPIC BUCKETS TO ADAPT INTO
+- FP Dynamics
+- Splitting
+- Abandonment Panic
+- Relationship Cycles
+- Quiet BPD
+- Identity/Sense of Self
+- Emotional Dysregulation
+- Reframes/Truths
+- DBT Skills translated into normal language
+- Recovery Milestones
+- Therapy Truths
+- Rejection Sensitivity
+- Digital Self-Harm
+
+EXAMPLES OF STYLE-PRESERVING ADAPTATION
+- Reference: `how to be interesting WITHOUT oversharing`
+  Adapt: `how to feel close WITHOUT oversharing`
+- Reference: `HOW TO BUILD A POSITIVE MINDSET (according to science)`
+  Adapt: `HOW TO TRUST YOURSELF AFTER A SPIRAL (realistically)`
+- Reference: `5 things you MUST do alone to truly know yourself`
+  Adapt: `5 things you MUST do before texting from panic`
+
+TOP 50 @sydneysynced OCR HOOKS
+Format: rank. slide_1_ocr_hook | tiktok_title
+01. 5 viral theories that will ACTUALLY change your life | title: part 2!
+02. how to collect all the marrow out of being alive | title: i love life so much (and you should too)
+03. how to be interesting WITHOUT oversharing | title: connection doesn’t mean trauma bonding!!
+04. HOW TO FEEL HOT 24/7: my self-care tips as a model | title: my best advice
+05. 5 viral theories that will ACTUALLY change your life | title: i’ll be passing these on to my grandkids
+06. habits that calm your nervous system | title: habits to calm your nervous system!
+07. the secret habits of people who are INSTANTLY liked by everyone | title: these change everything
+08. easy habits that keep me ultra feminine | title: these changed everything!!
+09. 5 viral theories that will ACTUALLY change your life | title: part 4!
+10. how to stop assuming people secretly dislike you | title: advice straight from my therapist
+11. 5 viral theories that will ACTUALLY change your life | title: part 3!
+12. HOW TO BUILD A / POSITIVE MINDSET / (according to science) | title: you have one life, don’t spend all your time hating it
+13. 5 rules of gut health that got me from: | title: my secrets are out
+14. HOW TO BE A BETTER FRIEND | title: people miss these way too often
+15. 5 tips on being the most confident person in the room | title: you’re not bound to lifelong social anxiety btw
+16. HOW TO INSTANTLY BECOME MORE ATTRACTIVE | title: i can’t emphasize these enough
+17. 5 viral theories that will ACTUALLY change your life | title: part 5!
+18. HOW TO BE RIDICULOUSLY OPTIMISTIC | title: you owe optimism to yourself
+19. glow up tips to make you UNRECOGNIZABLE | title: save these immediately
+20. 5 simple "bad day protocols" my boyfriend’s mom taught me | title: she changed my life
+21. weird habits I’ve quietly built that actually work | title: what having it together actually looks like
+22. things to do everyday to optimize your health (backed by science) | title: take care of yourself
+23. the art of taking nothing personally | title: advice straight from my therapist
+24. 5 physical things you didn’t realize were symptoms of serious burnout | title: heavy on #3
+25. HOW TO BE THE MASTER OF YOUR OWN LIFE | title: yolo
+26. this is how you’re becoming UNRECOGNIZABLE in 30 days. | title: summers here
+27. 5 habits that make you emotionally independent | title: holding your hand as i say these
+28. underrated wellness habits | title: wish i knew these earlier
+29. 5 things I would do to *physically* glow up in 30 days | title: exactly what i’d do if i had 30 days to become unrecognizable
+30. things that people with high-functioning anxiety do without realizing (you’re not alone) | title: oh to be at peace
+31. HOW TO GET EXCITED FOR LIFE AGAIN | title: forever whimscial
+32. random advice to ACTUALLY improve your life | title: game changers
+33. you’re bored because you don’t do side quests. life is more than work and bedrotting. | title: 21 side quests WE are doing this year
+34. how to master the art of not giving a f*ck | title: life becomes so much better when you practice these
+35. how to lower your cortisol (to get hotter and more confident) | title: heal how you handle stress and watch everythinggg change
+36. 5 weird ways to actually unrot your brain | title: brainrot is way too normalized and we need to do something about it
+37. 5 things you MUST do alone to truly know yourself | title: heavy on 3
+38. 5 uncomfortable truths that make life feel lighter | title: these are so important to remember
+39. how I stopped feeling lost in my 20s (realistically) | title: you don’t need to “fix your life,” you just need a system that actually works
+40. girl to girl🎀 | title: this might be the reset you needed
+41. tips for cognitive & brain health | title: so so important
+42. how to be interesting WITHOUT oversharing | title: part 2!
+43. 6 things to tell yourself to IMMEDIATELY relieve anxiety | title: small reminders that have big impact!
+44. 5 tips on being the coolest person in the room | title: presence > personality
+45. small ways to organize / your life | title: exactly how i became HER
+46. 5 things I’ve learned since studying psychology | title: take notes!
+47. habits to become dangerously overeducated | title: i hope this finds the right audience
+48. how to become emotionally strong | title: take care of yourself 💛
+49. how to reduce negative thinking | title: soften the negative thoughts before they harden into your identity
+50. 5 ways to clear your head | title: these always work

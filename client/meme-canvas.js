@@ -1,8 +1,8 @@
 (() => {
     'use strict';
     const W = 1080, H = 1350;
-    // Everything that differs between apps. The defaults are the DBT-Mind meme flow; BFRB Ally
-    // passes its own element prefix, gauges and closing slide.
+    // Everything that differs between apps. The defaults are the DBT-Mind meme flow; BFRB Ally and Endumi pass
+    // their own element prefix, gauges and closing slide.
     const DEFAULTS = {
         prefix: 'meme-art', artwork: 'meme-artwork', panel: '#panel-meme', filePrefix: 'meme-slide',
         low: 'assets/meme-slides/bpd_level_low.png',
@@ -15,7 +15,7 @@
     const clamp = (n, low, high) => Math.max(low, Math.min(high, n));
     const radians = (degrees) => degrees * Math.PI / 180;
     const id = () => crypto.randomUUID();
-    const validSrc = (src) => typeof src === 'string' && /^assets\/(?:meme|bfrb)-slides\//.test(src) && !src.includes('..');
+    const validSrc = (src) => typeof src === 'string' && /^assets\/(?:meme|bfrb|endo)-slides\//.test(src) && !src.includes('..');
 
     // Canvas exports carry no EXIF, but browsers differ in which ancillary PNG chunks they emit
     // (sRGB, pHYs, gAMA, and in principle tEXt/tIME). Keeping only the chunks needed to decode the

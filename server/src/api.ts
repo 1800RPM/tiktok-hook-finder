@@ -13,10 +13,11 @@ import { generateSsSlideshow, generateSsTopicSeeds } from "./projects/dbt/ss_sli
 import { recommendSsSounds, resolveSoundAudio } from "./projects/dbt/ss_sounds";
 import { generateMemeSlideshow } from "./projects/dbt/meme_slideshow";
 import { generateBfrbMemeSlideshow } from "./projects/bfrb/bfrb_meme_slideshow";
+import { generateEndoMemeSlideshow } from "./projects/endo/endo_meme_slideshow";
 import { getMemeAssets, startMemeAnalysis, editMemeLabels, selectMemeAssets } from "./projects/dbt/meme_assets";
-import { generateSsBatch, SS_FORMATS } from "./projects/dbt/ss_batch";
 import { usageSummary } from "./claude_usage";
 import { createTikTokDraft, getDraftStatus, listPublishAccounts, listScheduledTimes, publishingStatus, uploadSlideImage } from "./publish";
+import { generateSsBatch, SS_FORMATS } from "./projects/dbt/ss_batch";
 import type { SsFormatId } from "./projects/dbt/ss_batch";
 import { generateTheScriptSlideshow } from "./projects/dbt/the_script";
 import { getAnchorImage, buildUGCSlide1Prompt } from "./common/prompt_utils";
@@ -696,6 +697,9 @@ function formatDbtSlide1Hook(rawHook: string, fallbackProblem = "this pattern"):
 
 const server = Bun.serve({
     port: PORT,
+    // Bun drops a connection after 10s without bytes, which the browser reports as
+    // "Failed to fetch". Sound-pool rebuilds and model calls routinely take longer.
+    idleTimeout: 255,
     async fetch(req) {
         const url = new URL(req.url);
         console.log(`[Request] ${req.method} ${url.pathname}`);
@@ -2956,10 +2960,6 @@ Output ONLY the JSON object.No markdown, no explanation.`
                 return sendJSON(await editMemeLabels(body.id, body.override));
             } catch { return sendJSON({ error: 'Could not save label corrections.' }, 500); }
         }
-        else if (cleanPath === '/meme-assets/select' && method === 'POST') {
-            if (!ANTHROPIC_API_KEY) return sendJSON({ error: 'Anthropic API key is not configured.' }, 503);
-            try {
-                const body: any = await req.json();
         // Claude token totals per tab and model since the server started (see claude_usage.ts).
         else if (cleanPath === '/usage' && method === 'GET') {
             return sendJSON(usageSummary());
@@ -3002,6 +3002,10 @@ Output ONLY the JSON object.No markdown, no explanation.`
                 return sendJSON({ post: await createTikTokDraft({ accountId: body.channelId, caption: body.text, title: typeof body.title === 'string' ? body.title : '', imageUrls: body.imageUrls, autoAddMusic: typeof body.autoAddMusic === 'boolean' ? body.autoAddMusic : undefined, scheduledAt: scheduledAt?.toISOString() }) });
             } catch (error: any) { console.error('[Publish] draft:', error); return sendJSON({ error: error.message || 'Draft failed.' }, 502); }
         }
+        else if (cleanPath === '/meme-assets/select' && method === 'POST') {
+            if (!ANTHROPIC_API_KEY) return sendJSON({ error: 'Anthropic API key is not configured.' }, 503);
+            try {
+                const body: any = await req.json();
                 if (!Array.isArray(body?.slides) || body.slides.length < 1 || body.slides.length > 6 ||
                     body.slides.some((s: any) => !s || !['hook', 'point'].includes(s.role) || ['headline', 'body', 'leftLabel', 'rightLabel'].some((k) => typeof s[k] !== 'string' || s[k].length > 3000))) return sendJSON({ error: 'Provide one to six cover/point slides.' }, 400);
                 if (body.alternative && (typeof body.alternative.id !== 'string' || !['left', 'right', 'accentLeft', 'accentRight'].includes(body.alternative.side))) return sendJSON({ error: 'Invalid alternative request.' }, 400);
@@ -3027,7 +3031,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                 if (!ANTHROPIC_API_KEY) return sendJSON({ error: "Anthropic API key is not configured on the server." }, 503);
                 return sendJSON(await generateMemeSlideshow({
                     topic: body.topic?.trim(), theme: body.theme, notes: body.notes, previousTopics: body.previousTopics,
-                    language: body.language, model: body.model, ANTHROPIC_API_KEY,
+                    language: body.language, model: body.model, cta: body.cta, ANTHROPIC_API_KEY,
                 }));
             } catch (error) {
                 console.error("[Meme Slideshow] Generation failed:", error);
@@ -3048,11 +3052,32 @@ Output ONLY the JSON object.No markdown, no explanation.`
                 }
                 if (!ANTHROPIC_API_KEY) return sendJSON({ error: "Anthropic API key is not configured on the server." }, 503);
                 return sendJSON(await generateBfrbMemeSlideshow({
-                    theme: body.theme, notes: body.notes, previousTopics: body.previousTopics, model: body.model, ANTHROPIC_API_KEY,
+                    theme: body.theme, notes: body.notes, previousTopics: body.previousTopics, model: body.model, cta: body.cta, ANTHROPIC_API_KEY,
                 }));
             } catch (error) {
                 console.error("[BFRB Memes] Generation failed:", error);
                 return sendJSON({ error: "BFRB meme generation failed. Please retry." }, 500);
+            }
+        }
+        // Endumi meme carousels (German): same format and validation limits, separate prompt.
+        else if (cleanPath === "/generate-endo-meme-slideshow" && method === "POST") {
+            try {
+                const body = await req.json() as any;
+                if (body?.previousTopics !== undefined && (!Array.isArray(body.previousTopics) || body.previousTopics.length > 50 ||
+                    body.previousTopics.some((topic: unknown) => typeof topic !== 'string' || topic.length > 500))) {
+                    return sendJSON({ error: "Recent topics must be a list of up to 50 short titles." }, 400);
+                }
+                if ((body?.theme !== undefined && (typeof body.theme !== 'string' || body.theme.length > 120)) ||
+                    (body?.notes !== undefined && (typeof body.notes !== 'string' || body.notes.length > 2000))) {
+                    return sendJSON({ error: "Theme or notes exceed the allowed length." }, 400);
+                }
+                if (!ANTHROPIC_API_KEY) return sendJSON({ error: "Anthropic API key is not configured on the server." }, 503);
+                return sendJSON(await generateEndoMemeSlideshow({
+                    theme: body.theme, notes: body.notes, previousTopics: body.previousTopics, model: body.model, cta: body.cta, ANTHROPIC_API_KEY,
+                }));
+            } catch (error) {
+                console.error("[Endo Memes] Generation failed:", error);
+                return sendJSON({ error: "Endo meme generation failed. Please retry." }, 500);
             }
         }
         // GET /ss-sounds - three sound suggestions for the current slideshow post

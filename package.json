@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd server && bun --watch src/api.ts",
-    "client": "npx serve client",
+    "client": "cd client && bun dev-server.ts",
     "build": "echo 'No build step for root'",
     "install:all": "npm install && cd server && bun install"
   },
