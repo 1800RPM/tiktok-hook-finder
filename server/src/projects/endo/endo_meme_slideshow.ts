@@ -1,4 +1,5 @@
 import { stripDashes, type MemeSlide } from '../dbt/meme_slideshow';
+import { logClaudeUsage } from '../../claude_usage';
 import { applyCtaMode, checkNativeMention, checkNoMention, memeCtaMode, pickNativePoint, roleAt, slideCount, slideCountWord, structureError, type MemeCtaMode } from '../dbt/meme_cta';
 import { buildDescription, buildTitle } from '../dbt/ss_slideshow';
 
@@ -168,7 +169,7 @@ function nextPromise() {
 }
 
 const HASHTAG_FALLBACKS = ['#endometriose', '#endometrioseawareness', '#endo', '#periodenschmerzen', '#frauengesundheit'];
-function buildEndoHashtags(raw: unknown): string[] {
+export function buildEndoHashtags(raw: unknown): string[] {
     const list = Array.isArray(raw) ? raw : String(raw ?? '').split(/[\s,]+/);
     const tags: string[] = [];
     for (const entry of [...list, ...HASHTAG_FALLBACKS]) {
@@ -189,12 +190,21 @@ const NATIVE_CTA = {
     example: 'Trag es direkt ein, in Endumi dauert das drei Taps, dann musst du beim nächsten Termin nicht raten, seit wann es so ist.',
 };
 
-export async function generateEndoMemeSlideshow(params: { topic?: string; theme?: string; notes?: string; previousTopics?: string[]; model?: string; axis?: string; promise?: string; cta?: string; ANTHROPIC_API_KEY: string }) {
+export async function generateEndoMemeSlideshow(params: { topic?: string; theme?: string; notes?: string; previousTopics?: string[]; model?: string; axis?: string; promise?: string; cta?: string; effort?: 'low' | 'medium' | 'high'; ANTHROPIC_API_KEY: string }) {
     const ctaMode = memeCtaMode(params.cta);
     const native = { ...NATIVE_CTA, point: pickNativePoint() };
     const system = applyCtaMode(SYSTEM_PROMPT, ctaMode, native);
     const count = slideCountWord(ctaMode);
-    const model = ['claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(params.model || '') ? params.model! : 'claude-sonnet-4-6';
+    // The system prompt is identical for every post with the same CTA mode, so it is cached:
+    // within five minutes (a batch run, a retry) it is read back at a tenth of the input price.
+    const cachedSystem = [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }];
+    const model = ['claude-sonnet-5-5', 'claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(params.model || '') ? params.model! : 'claude-sonnet-5-5';
+    // Sonnet 5.5 thinks before it answers, so it needs room beyond the ~4000 tokens of copy, and
+    // a declined request is finished by a fallback model.
+    const sonnet55 = model === 'claude-sonnet-5-5';
+    // Medium effort measured at a quarter of high's output tokens (891 vs 3519 on average over
+    // three posts each) with copy of the same standard, so it is the Sonnet 5.5 default.
+    const effort = params.effort || (sonnet55 ? 'medium' : undefined);
     const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)]!;
     const promise = params.promise && ENDO_PROMISES.includes(params.promise) ? params.promise : nextPromise();
     const allowed = (AXES_FOR_PROMISE[promise] || ENDO_AXES.map((_, i) => i)).map((i) => ENDO_AXES[i]!);
@@ -213,11 +223,12 @@ export async function generateEndoMemeSlideshow(params: { topic?: string; theme?
     for (let attempt = 0; attempt < 2; attempt++) {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST', signal: AbortSignal.timeout(150000),
-            headers: { 'x-api-key': params.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-            body: JSON.stringify({ model, max_tokens: 4000, system, messages }),
+            headers: { 'x-api-key': params.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', ...(sonnet55 ? { 'anthropic-beta': 'server-side-fallback-2026-07-01' } : {}) },
+            body: JSON.stringify({ model, max_tokens: sonnet55 ? 16000 : 4000, system: cachedSystem, messages, ...(sonnet55 ? { fallbacks: 'default' } : {}), ...(effort ? { output_config: { effort } } : {}) }),
         });
         if (!response.ok) throw new Error(`Text provider returned ${response.status}. Please retry.`);
         const data = await response.json() as any;
+        logClaudeUsage('Endo memes · copy', data, attempt);
         const raw = (data.content || []).filter((block: any) => block.type === 'text').map((block: any) => block.text).join('\n');
         try {
             let parsed: unknown;

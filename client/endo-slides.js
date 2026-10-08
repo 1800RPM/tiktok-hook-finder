@@ -4,6 +4,7 @@ createMemeSlides({
     prefix: 'endo', storageKey: 'endo-meme-slides-v1', endpoint: '/generate-endo-meme-slideshow',
     settingNames: ['theme', 'notes', 'model', 'cta'], exportName: 'endo-meme-slides',
     migrateCats: false, example: false,
+    modelUpgrade: { from: 'claude-sonnet-4-6', to: 'claude-sonnet-5-5' },
     canvas: {
         prefix: 'endo-art', artwork: 'endo-artwork', panel: '#panel-endo', filePrefix: 'endo-slide',
         low: 'assets/endo-slides/pain_level_low.png',

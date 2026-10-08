@@ -129,7 +129,7 @@ export async function generateSsTopicSeeds(params: { model?: string; usedSeeds?:
     return { seeds };
 }
 
-function extractJsonObject(text: string): any {
+export function extractJsonObject(text: string): any {
     const src = String(text || '');
     const start = src.search(/[[{]/);
     if (start < 0) throw new Error('No JSON found in AI response');
@@ -1603,7 +1603,7 @@ part that was breaking, not the folding."
 
 // Fable 5 always thinks, so content[] starts with a thinking block — take the
 // first *text* block rather than content[0].
-function firstTextBlock(rawData: any): string {
+export function firstTextBlock(rawData: any): string {
     const blocks = Array.isArray(rawData?.content) ? rawData.content : [];
     const text = blocks.find((b: any) => b?.type === 'text');
     return typeof text?.text === 'string' ? text.text : '';
@@ -1730,7 +1730,7 @@ function validateSsGerman(candidate: any): string[] {
 // Listicle guards (simple + dbt formats): the hook digit must equal the point count, the
 // hook must contain the format keyword, and no slide text may repeat an earlier
 // generation word for word (same topic with different wording is fine).
-function normalizeSsSlideText(value: string): string {
+export function normalizeSsSlideText(value: string): string {
     return String(value || '')
         .toLowerCase()
         .replace(/[^a-z0-9äöüß]+/gi, ' ')
@@ -1791,6 +1791,7 @@ export async function generateSsSlideshow(params: {
     topicSeed?: string;
     model?: string;
     previousTexts?: string[];
+    effort?: 'low' | 'medium' | 'high';
     ANTHROPIC_API_KEY: string;
 }) {
     const { theme, ANTHROPIC_API_KEY } = params;
@@ -1984,6 +1985,9 @@ export async function generateSsSlideshow(params: {
                 // field) and sampling params are rejected — don't add temperature/top_p.
                 model,
                 max_tokens: 16000,
+                // Weird hacks on Sonnet 5.5 default to medium effort (the user's call on 2026-10-08:
+                // ~50% cheaper; medium leans toward the more obvious hacks for a situation).
+                ...(params.effort || (hacks && model === 'claude-sonnet-5-5') ? { output_config: { effort: params.effort || 'medium' } } : {}),
                 ...(model === 'claude-fable-5' || model === 'claude-opus-5' ? { fallbacks: [{ model: 'claude-opus-4-8' }] } : {}),
                 ...(model === 'claude-sonnet-5-5' ? { fallbacks: 'default' } : {}),
                 system: hacks

@@ -20,7 +20,8 @@
                 <button class="service-btn active" data-service="dbt">DBT-Mind</button>
                 <button class="service-btn" data-service="syp">SaveYourPet</button>
                 <button class="service-btn service-btn-lh" data-service="lh">Little Habits</button>
-                <button class="service-btn service-btn-ss" data-service="ss">Slideshows</button>
+                <button class="service-btn service-btn-ss" data-service="ss" data-ss-profile="dbt">Slideshows</button>
+                <button class="service-btn service-btn-ss" data-service="ss" data-ss-profile="endo">Endo Slideshows</button>
                 <button class="service-btn" data-service="meme">Meme Slides</button>
                 <button class="service-btn" data-service="bfrb">BFRB Memes</button>
                 <button class="service-btn" data-service="endo">Endo Memes</button>
@@ -286,7 +287,7 @@
                     <p class="section-hint">Generate the copy, then arrange your cats on white slides. Cover + five comparisons + the Endumi slide, exported at 1080 × 1350.</p>
                     <div class="meme-settings">
                         <label>Character theme<input id="endo-theme" class="text-input" maxlength="120" value="endo cat" placeholder="z. B. endo cat"></label>
-                        <label>Text model<select id="endo-model" class="select-input"><option value="claude-sonnet-4-6">Claude Sonnet 4.6</option><option value="claude-fable-5">Claude Fable 5</option><option value="claude-opus-5">Claude Opus 5</option><option value="claude-opus-4-8">Claude Opus 4.8</option></select></label>
+                        <label>Text model<select id="endo-model" class="select-input"><option value="claude-sonnet-5-5" selected>Claude Sonnet 5.5 (default)</option><option value="claude-sonnet-4-6">Claude Sonnet 4.6</option><option value="claude-fable-5">Claude Fable 5</option><option value="claude-opus-5">Claude Opus 5</option><option value="claude-opus-4-8">Claude Opus 4.8</option></select></label>
                         <label>App CTA<select id="endo-cta" class="select-input"><option value="slide">App slide at the end (7 slides)</option><option value="native">Native mention inside a point (6 slides)</option><option value="none">No CTA, pure value (6 slides)</option></select></label>
                         <label class="meme-wide">Creative direction (optional)<textarea id="endo-notes" class="prompt-textarea" rows="2" maxlength="2000" placeholder="Leer lassen für ein frisches Thema, oder eine Richtung beschreiben (Deutsch oder Englisch)"></textarea></label>
                     </div>
@@ -1530,8 +1531,15 @@ Slide 3: App Placement..." style="height: 120px;"></textarea>
                                 <option value="dbt">DBT · "N things I learned in DBT"</option>
                                 <option value="hacks">Weird hacks · therapist hacks + app bridge</option>
                                 <option value="legacy">Legacy · 6 slides / face hook + atmospheric photos</option>
+                                <option value="endo_hacks" data-profile="endo">Endo-Hacks · Gyn-Hacks auf Deutsch, Endumi mittendrin</option>
                             </select>
                             <p id="ss-format-hint" class="ss-hint" style="margin: 6px 0 0;">Current format: 1 hook plus 5 numbered value slides. Photos are selected in the Slides step.</p>
+                        </div>
+
+                        <div id="ss-gyn-tips-group" class="input-group" style="display: none; margin-bottom: 12px;">
+                            <label for="ss-gyn-tips" class="ss-label">Tipps deiner Gyn (einer pro Zeile)</label>
+                            <textarea id="ss-gyn-tips" class="prompt-textarea" rows="5" maxlength="8000" placeholder="z. B. Bei Krämpfen die Knie anziehen und auf die Seite legen"></textarea>
+                            <p class="ss-hint" style="margin: 6px 0 0;">Der Hook sagt &bdquo;von meiner Gyn&ldquo;. Mit Liste kommen die Hacks nur aus diesen Tipps, damit das stimmt. Ohne Liste schreibt die KI eigene, alltägliche Tipps.</p>
                         </div>
 
                         <div class="input-group ss-angle-picker" id="ss-archetype-group" style="margin-bottom: 12px;">
@@ -2190,12 +2198,12 @@ INSIDE: ..."></textarea>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="app.js?v=20261006d"></script>
+    <script src="app.js?v=20261008e"></script>
     <script src="meme-canvas.js?v=20261005b"></script>
     <script src="meme-slides.js?v=20261008b"></script>
-    <script src="batch.js?v=20261008b"></script>
+    <script src="batch.js?v=20261008e"></script>
     <script src="bfrb-slides.js?v=20261008a"></script>
-    <script src="endo-slides.js?v=20261007a"></script>
+    <script src="endo-slides.js?v=20261008a"></script>
 </body>
 
 </html>

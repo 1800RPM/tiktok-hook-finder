@@ -14,6 +14,7 @@ import { recommendSsSounds, resolveSoundAudio } from "./projects/dbt/ss_sounds";
 import { generateMemeSlideshow } from "./projects/dbt/meme_slideshow";
 import { generateBfrbMemeSlideshow } from "./projects/bfrb/bfrb_meme_slideshow";
 import { generateEndoMemeSlideshow } from "./projects/endo/endo_meme_slideshow";
+import { generateEndoHacksSlideshow } from "./projects/endo/endo_ss_hacks";
 import { getMemeAssets, startMemeAnalysis, editMemeLabels, selectMemeAssets } from "./projects/dbt/meme_assets";
 import { usageSummary } from "./claude_usage";
 import { createTikTokDraft, getDraftStatus, listPublishAccounts, listScheduledTimes, publishingStatus, uploadSlideImage } from "./publish";
@@ -3031,7 +3032,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                 if (!ANTHROPIC_API_KEY) return sendJSON({ error: "Anthropic API key is not configured on the server." }, 503);
                 return sendJSON(await generateMemeSlideshow({
                     topic: body.topic?.trim(), theme: body.theme, notes: body.notes, previousTopics: body.previousTopics,
-                    language: body.language, model: body.model, cta: body.cta, ANTHROPIC_API_KEY,
+                    language: body.language, model: body.model, cta: body.cta, effort: ['low', 'medium', 'high'].includes(body.effort) ? body.effort : undefined, ANTHROPIC_API_KEY,
                 }));
             } catch (error) {
                 console.error("[Meme Slideshow] Generation failed:", error);
@@ -3052,7 +3053,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                 }
                 if (!ANTHROPIC_API_KEY) return sendJSON({ error: "Anthropic API key is not configured on the server." }, 503);
                 return sendJSON(await generateBfrbMemeSlideshow({
-                    theme: body.theme, notes: body.notes, previousTopics: body.previousTopics, model: body.model, cta: body.cta, ANTHROPIC_API_KEY,
+                    theme: body.theme, notes: body.notes, previousTopics: body.previousTopics, model: body.model, cta: body.cta, effort: ['low', 'medium', 'high'].includes(body.effort) ? body.effort : undefined, ANTHROPIC_API_KEY,
                 }));
             } catch (error) {
                 console.error("[BFRB Memes] Generation failed:", error);
@@ -3073,7 +3074,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                 }
                 if (!ANTHROPIC_API_KEY) return sendJSON({ error: "Anthropic API key is not configured on the server." }, 503);
                 return sendJSON(await generateEndoMemeSlideshow({
-                    theme: body.theme, notes: body.notes, previousTopics: body.previousTopics, model: body.model, cta: body.cta, ANTHROPIC_API_KEY,
+                    theme: body.theme, notes: body.notes, previousTopics: body.previousTopics, model: body.model, cta: body.cta, effort: ['low', 'medium', 'high'].includes(body.effort) ? body.effort : undefined, ANTHROPIC_API_KEY,
                 }));
             } catch (error) {
                 console.error("[Endo Memes] Generation failed:", error);
@@ -3152,6 +3153,16 @@ Output ONLY the JSON object.No markdown, no explanation.`
                 const model = ['claude-sonnet-5-5', 'claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(requestedModel)
                     ? requestedModel
                     : 'claude-sonnet-5-5';
+                // Endo-Hacks (German, Endumi) has its own prompt and checks; same response shape.
+                if (body?.format === 'endo_hacks') {
+                    return sendJSON(await generateEndoHacksSlideshow({
+                        model,
+                        previousTexts: Array.isArray(body?.previousTexts) ? body.previousTexts : undefined,
+                        gynTips: Array.isArray(body?.gynTips) ? body.gynTips.filter((t: unknown) => typeof t === 'string' && t.length <= 400) : undefined,
+                        effort: ['low', 'medium', 'high'].includes(body?.effort) ? body.effort : undefined,
+                        ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!,
+                    }));
+                }
                 const result = await generateSsSlideshow({
                     theme: typeof body?.theme === 'string' ? body.theme : undefined,
                     language: body?.language === 'de' ? 'de' : 'en',
@@ -3161,6 +3172,7 @@ Output ONLY the JSON object.No markdown, no explanation.`
                     territory: typeof body?.territory === 'string' ? body.territory : undefined,
                     hook: typeof body?.hook === 'string' ? body.hook : undefined,
                     previousTexts: Array.isArray(body?.previousTexts) ? body.previousTexts : undefined,
+                    effort: ['low', 'medium', 'high'].includes(body?.effort) ? body.effort : undefined,
                     model,
                     ANTHROPIC_API_KEY: ANTHROPIC_API_KEY!
                 });

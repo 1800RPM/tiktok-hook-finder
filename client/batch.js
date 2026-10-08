@@ -19,6 +19,7 @@
         { id: 'ss:simple', label: 'Slideshow · Simple listicle', kind: 'ss', format: 'simple' },
         { id: 'ss:dbt', label: 'Slideshow · DBT listicle', kind: 'ss', format: 'dbt' },
         { id: 'ss:meme', label: 'Slideshow · Everyday', kind: 'ss', format: 'meme' },
+        { id: 'ss:endo_hacks', label: 'Endo Slideshow · Endo-Hacks (DE)', kind: 'ss', format: 'endo_hacks', profile: 'endo' },
         { id: 'meme', label: 'Meme Slides · bpd cat', kind: 'meme' },
     ];
     const STATUS_LABEL = { queued: 'Queued', generating: 'Writing', ready: 'To review', failed: 'Failed', approved: 'Approved', rejected: 'Rejected', sending: 'Sending', sent: 'Sent as draft' };
@@ -157,19 +158,33 @@
     async function generateSs(p, formatDef, language, batchTexts) {
         await ensureSsLibrary();
         const model = BATCH_MODEL;
+        // Endo posts belong to the Endo Slideshows tab: German, its own slide history, its own
+        // hook folder and the gyn tips typed there.
+        const profile = formatDef.profile || 'dbt';
+        const endo = profile === 'endo';
         const data = await api('/generate-ss-slideshow', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ theme: '', language, format: formatDef.format, model, previousTexts: [...loadSsSimpleHistory(), ...batchTexts] }),
+            body: JSON.stringify({
+                theme: '', language: endo ? 'de' : language, format: formatDef.format, model,
+                previousTexts: [...loadSsSimpleHistory(profile), ...batchTexts],
+                ...(endo ? { gynTips: ssGynTips() } : {}),
+            }),
         });
         const slides = Array.isArray(data.slides) ? data.slides : [];
         if (!slides.length) throw new Error('The generator returned no slides.');
-        saveSsSimpleHistory(slides);
+        saveSsSimpleHistory(slides, profile);
         batchTexts.push(...slides.map((s) => String(s.text || '')));
         // One pink or green theme per post, like the Slideshows tab, and the hook folder chosen there.
         const stepSet = state.ssStepPhotoSets[Math.floor(Math.random() * state.ssStepPhotoSets.length)].id;
         const steps = shuffle(await folderImages(stepSet));
         if (!steps.length) throw new Error('The step photo folder is empty.');
-        const hookSet = state.ssHookSet, hooks = state.ssHookImages;
+        let hookSet = state.ssHookSet, hooks = state.ssHookImages;
+        if (profile !== (state.ssProfile || 'dbt')) {
+            let saved = '';
+            try { saved = localStorage.getItem(ssProfileKey('ss_hook_set', profile)) || ''; } catch { /* storage blocked */ }
+            if (saved && saved !== hookSet) { hookSet = saved; hooks = await folderImages(saved); }
+        }
+        if (!hooks.length) throw new Error('The hook photo folder is empty. Pick one in the Slideshows tab.');
         Object.assign(p, {
             title: data.title || '', description: data.description || '', hashtags: Array.isArray(data.hashtags) ? data.hashtags : [],
             caption: data.caption || '', pinned: data.pinned_comment || '', stepSet, hookSet,

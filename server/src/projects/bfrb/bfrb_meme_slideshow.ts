@@ -215,15 +215,21 @@ const NATIVE_CTA = {
     example: 'Start the five-minute urge surfing timer in BFRB Ally and give your hands the stress ball until it runs out.',
 };
 
-export async function generateBfrbMemeSlideshow(params: { topic?: string; theme?: string; notes?: string; previousTopics?: string[]; model?: string; axis?: string; promise?: string; cta?: string; ANTHROPIC_API_KEY: string }) {
+export async function generateBfrbMemeSlideshow(params: { topic?: string; theme?: string; notes?: string; previousTopics?: string[]; model?: string; axis?: string; promise?: string; cta?: string; effort?: 'low' | 'medium' | 'high'; ANTHROPIC_API_KEY: string }) {
     const ctaMode = memeCtaMode(params.cta);
     const native = { ...NATIVE_CTA, point: pickNativePoint() };
     const system = applyCtaMode(SYSTEM_PROMPT, ctaMode, native);
     const count = slideCountWord(ctaMode);
+    // The system prompt is identical for every post with the same CTA mode, so it is cached:
+    // within five minutes (a batch run, a retry) it is read back at a tenth of the input price.
+    const cachedSystem = [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }];
     const model = ['claude-sonnet-5-5', 'claude-fable-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-4-6'].includes(params.model || '') ? params.model! : 'claude-sonnet-5-5';
     // Sonnet 5.5 thinks before it answers, so it needs room beyond the ~4000 tokens of copy, and
     // a declined request is finished by a fallback model.
     const sonnet55 = model === 'claude-sonnet-5-5';
+    // Medium effort measured at a quarter of high's output tokens (891 vs 3519 on average over
+    // three posts each) with copy of the same standard, so it is the Sonnet 5.5 default.
+    const effort = params.effort || (sonnet55 ? 'medium' : undefined);
     const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)]!;
     const promise = params.promise && BFRB_PROMISES.includes(params.promise) ? params.promise : nextPromise();
     const allowed = (AXES_FOR_PROMISE[promise] || BFRB_AXES.map((_, i) => i)).map((i) => BFRB_AXES[i]!);
@@ -243,7 +249,7 @@ export async function generateBfrbMemeSlideshow(params: { topic?: string; theme?
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST', signal: AbortSignal.timeout(150000),
             headers: { 'x-api-key': params.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', ...(sonnet55 ? { 'anthropic-beta': 'server-side-fallback-2026-07-01' } : {}) },
-            body: JSON.stringify({ model, max_tokens: sonnet55 ? 16000 : 4000, system, messages, ...(sonnet55 ? { fallbacks: 'default' } : {}) }),
+            body: JSON.stringify({ model, max_tokens: sonnet55 ? 16000 : 4000, system: cachedSystem, messages, ...(sonnet55 ? { fallbacks: 'default' } : {}), ...(effort ? { output_config: { effort } } : {}) }),
         });
         if (!response.ok) throw new Error(`Text provider returned ${response.status}. Please retry.`);
         const data = await response.json() as any;

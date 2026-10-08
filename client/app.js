@@ -4667,10 +4667,14 @@ function ssExportDims() {
 // after a code change) restores it instead of forcing a regeneration. Photos are NOT
 // persisted (too large for localStorage) — re-fill them with one click after a reload.
 const SS_LAST_GENERATION_KEY = 'ss_last_generation';
+// The Slideshows editor serves two accounts: "dbt" (the BPD/DBT slideshows) and "endo" (the
+// German Endumi slideshows, its own tab button). Each profile keeps its own last post, slide
+// history and hook folder, so switching tabs never mixes the two accounts' posts.
+const ssProfileKey = (key, profile = state.ssProfile) => (profile === 'endo' ? `${key}_endo` : key);
 
 function saveSsGeneration(data) {
     try {
-        localStorage.setItem(SS_LAST_GENERATION_KEY, JSON.stringify({
+        localStorage.setItem(ssProfileKey(SS_LAST_GENERATION_KEY), JSON.stringify({
             slides: data.slides,
             variety: data.variety,
             save_trigger: data.save_trigger,
@@ -4691,7 +4695,7 @@ function saveSsGeneration(data) {
 function restoreSsGeneration() {
     let saved = null;
     try {
-        saved = JSON.parse(localStorage.getItem(SS_LAST_GENERATION_KEY) || 'null');
+        saved = JSON.parse(localStorage.getItem(ssProfileKey(SS_LAST_GENERATION_KEY)) || 'null');
     } catch { /* corrupted entry — ignore */ }
     if (!saved || !Array.isArray(saved.slides) || saved.slides.length === 0) return;
 
@@ -5004,7 +5008,7 @@ async function loadSsLibrarySets() {
         // Step photos are Pink or Green only. Slide 1 remains a dedicated hook image.
         elements.ssLibrarySelect.value = '__random-pink-green__';
         let savedHookSet = '';
-        try { savedHookSet = localStorage.getItem('ss_hook_set') || ''; } catch { /* storage blocked */ }
+        try { savedHookSet = localStorage.getItem(ssProfileKey('ss_hook_set')) || ''; } catch { /* storage blocked */ }
         const hook = hookChoices.find(s => s.id === savedHookSet) || hookChoices[0];
         if (hook && elements.ssHookLibrarySelect) elements.ssHookLibrarySelect.value = hook.id;
 
@@ -5160,21 +5164,21 @@ async function ssFillRandomPhotos() {
 const SS_SIMPLE_HISTORY_KEY = 'ss_simple_slide_history';
 const SS_SIMPLE_HISTORY_MAX = 800; // ~100 posts worth of slide texts
 
-function loadSsSimpleHistory() {
+function loadSsSimpleHistory(profile = state.ssProfile) {
     try {
-        const list = JSON.parse(localStorage.getItem(SS_SIMPLE_HISTORY_KEY) || '[]');
+        const list = JSON.parse(localStorage.getItem(ssProfileKey(SS_SIMPLE_HISTORY_KEY, profile)) || '[]');
         return Array.isArray(list) ? list.filter((t) => typeof t === 'string' && t.trim()) : [];
     } catch { return []; }
 }
 
-function saveSsSimpleHistory(slides) {
+function saveSsSimpleHistory(slides, profile = state.ssProfile) {
     try {
         const newTexts = (Array.isArray(slides) ? slides : [])
             .map((slide) => String(slide?.text || '').trim())
             .filter(Boolean);
         if (!newTexts.length) return;
-        const merged = [...loadSsSimpleHistory(), ...newTexts].slice(-SS_SIMPLE_HISTORY_MAX);
-        localStorage.setItem(SS_SIMPLE_HISTORY_KEY, JSON.stringify(merged));
+        const merged = [...loadSsSimpleHistory(profile), ...newTexts].slice(-SS_SIMPLE_HISTORY_MAX);
+        localStorage.setItem(ssProfileKey(SS_SIMPLE_HISTORY_KEY, profile), JSON.stringify(merged));
     } catch { /* ignore storage limits */ }
 }
 
@@ -5211,7 +5215,8 @@ async function generateSsSlideshow(format = 'current') {
     // excluded because it is driven by an explicit topic seed the user picks.
     const remembersHistory = format !== 'legacy';
     const theme = elements.ssThemeInput?.value?.trim() || '';
-    const language = elements.ssLanguageSelect?.value === 'de' ? 'de' : 'en';
+    const endoHacks = format === 'endo_hacks';
+    const language = endoHacks || elements.ssLanguageSelect?.value === 'de' ? 'de' : 'en';
     const model = elements.ssModelSelect?.value || 'claude-sonnet-5-5';
     const topicSeed = elements.ssTopicSeedSelect?.value?.trim() || '';
     if (legacy && !topicSeed) {
@@ -5229,7 +5234,7 @@ async function generateSsSlideshow(format = 'current') {
 
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = `<span>⏳ Writing the ${legacy ? 'legacy ' : simple ? 'simple ' : dbt ? 'dbt ' : hacks ? 'weird hacks ' : format === 'meme' ? 'everyday ' : ''}slideshow...</span>`;
+        btn.innerHTML = `<span>⏳ Writing the ${legacy ? 'legacy ' : simple ? 'simple ' : dbt ? 'dbt ' : hacks ? 'weird hacks ' : endoHacks ? 'Endo-Hacks ' : format === 'meme' ? 'everyday ' : ''}slideshow...</span>`;
     }
 
     try {
@@ -5241,6 +5246,7 @@ async function generateSsSlideshow(format = 'current') {
                 // Only the picker that applies to this format is sent; the rest stay on rotation.
                 ...(format === 'current' ? { archetype: elements.ssArchetypeSelect?.value || 'random' } : {}),
                 ...(format === 'simple' ? { territory: elements.ssTerritorySelect?.value || 'random', hook: elements.ssHookSelect?.value || 'random' } : {}),
+                ...(endoHacks ? { gynTips: ssGynTips() } : {}),
                 ...(remembersHistory ? { previousTexts: loadSsSimpleHistory() } : {})
             })
         });
@@ -5459,7 +5465,9 @@ function syncSsFormatChoice() {
     if (elements.ssTerritoryGroup) elements.ssTerritoryGroup.style.display = simple ? 'block' : 'none';
     if (elements.ssHookGroup) elements.ssHookGroup.style.display = simple ? 'block' : 'none';
     if (elements.ssFormatHint) {
-        elements.ssFormatHint.textContent = hacks
+        elements.ssFormatHint.textContent = format === 'endo_hacks'
+            ? 'Endo-Hacks: Selfie-Hook "Weird Endo-Hacks von meiner Gyn ..." auf Denglisch, dann 5 bis 7 nummerierte Hacks. Ein Hack in der Mitte ist die eigene Endumi-Gewohnheit, der Post endet auf dem letzten Hack. Keine Medikamente, keine Behandlung.'
+            : hacks
             ? 'Weird hacks format: a face-cam hook, then 5–7 numbered therapist hacks (each with a plain-language "why it works"). One hack mid-list is the DBT-Mind habit; the post ends on the last hack. 6–8 slides.'
             : legacy
             ? 'Legacy format: 6 slides with a face hook, five atmospheric photos, numbered points 1–5, and a woven app mention. This matches the older folder-1 post.'
@@ -9273,7 +9281,50 @@ function copyMetadata() {
 // ==========================================
 // SERVICE SWITCHING
 // ==========================================
-function switchService(service) {
+// Tells both Slideshows tab buttons apart and swaps what belongs to one account: the format
+// list, the language, the hook folder and the restored post.
+function applySsProfile(profile) {
+    const changed = (state.ssProfile || 'dbt') !== profile;
+    state.ssProfile = profile;
+    const endo = profile === 'endo';
+    if (elements.ssFormatSelect) {
+        [...elements.ssFormatSelect.options].forEach((option) => {
+            option.hidden = endo ? option.dataset.profile !== 'endo' : option.dataset.profile === 'endo';
+        });
+        if (elements.ssFormatSelect.selectedOptions[0]?.hidden) {
+            let saved = 'current';
+            try { saved = localStorage.getItem('ss_format_dbt') || 'current'; } catch { /* storage blocked */ }
+            elements.ssFormatSelect.value = endo ? 'endo_hacks' : saved;
+        }
+        syncSsFormatChoice();
+    }
+    if (elements.ssLanguageSelect) {
+        if (endo) elements.ssLanguageSelect.value = 'de';
+        elements.ssLanguageSelect.disabled = endo;
+    }
+    const gyn = document.getElementById('ss-gyn-tips-group');
+    if (gyn) gyn.style.display = endo ? 'block' : 'none';
+    const heading = document.querySelector('#ss-create-section .ss-heading');
+    if (heading) heading.textContent = endo ? 'Endo slideshow (Deutsch)' : 'Aesthetic photo slideshow';
+    if (!changed) return;
+    // The other account's post must not stay on screen or be saved under this profile.
+    state.slides = state.slides.filter((slide) => !slide?.ss);
+    if (elements.ssHookLibrarySelect && state.ssLibraryLoaded) {
+        let saved = '';
+        try { saved = localStorage.getItem(ssProfileKey('ss_hook_set')) || ''; } catch { /* storage blocked */ }
+        if (saved && [...elements.ssHookLibrarySelect.options].some((o) => o.value === saved) && elements.ssHookLibrarySelect.value !== saved) {
+            elements.ssHookLibrarySelect.value = saved;
+            loadSsHookImages();
+        }
+    }
+}
+function ssGynTips() {
+    return String(document.getElementById('ss-gyn-tips')?.value || '').split(/\r?\n/)
+        .map((line) => line.replace(/^\s*(?:[-*\u2022]|\d+[.)])\s*/, '').trim()).filter(Boolean);
+}
+
+function switchService(service, ssProfile) {
+    if (service === 'ss') applySsProfile(ssProfile === 'endo' ? 'endo' : 'dbt');
     state.currentService = service;
     state.staticSlides = {};
     state.useStaticSlide1 = false;
@@ -9309,7 +9360,8 @@ function switchService(service) {
 
     // Update buttons
     document.querySelectorAll('.service-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.service === service);
+        btn.classList.toggle('active', btn.dataset.service === service &&
+            (service !== 'ss' || (btn.dataset.ssProfile || 'dbt') === state.ssProfile));
     });
 
     // Update panels
@@ -9338,7 +9390,7 @@ function initEventListeners() {
 
     // Service switcher
     document.querySelectorAll('.service-btn').forEach(btn => {
-        btn.addEventListener('click', () => switchService(btn.dataset.service));
+        btn.addEventListener('click', () => switchService(btn.dataset.service, btn.dataset.ssProfile));
     });
 
     // Format and topic selectors
@@ -10502,7 +10554,16 @@ function initEventListeners() {
         // planning a post, and the pool takes a moment to warm up on a cold start.
         loadSsSounds().catch(() => {});
     }
+    const gynTips = document.getElementById('ss-gyn-tips');
+    if (gynTips) {
+        try { gynTips.value = localStorage.getItem('ss_gyn_tips') || ''; } catch { /* storage blocked */ }
+        gynTips.addEventListener('input', () => { try { localStorage.setItem('ss_gyn_tips', gynTips.value); } catch { /* storage blocked */ } });
+    }
     if (elements.ssFormatSelect) {
+        // The DBT profile remembers its last format, so leaving the Endo tab returns to it.
+        elements.ssFormatSelect.addEventListener('change', () => {
+            if (state.ssProfile !== 'endo') { try { localStorage.setItem('ss_format_dbt', elements.ssFormatSelect.value); } catch { /* storage blocked */ } }
+        });
         elements.ssFormatSelect.addEventListener('change', syncSsFormatChoice);
         syncSsFormatChoice();
     }
@@ -10644,7 +10705,7 @@ function initEventListeners() {
     if (elements.ssHookLibrarySelect) {
         // Switching the hook folder swaps slide 1 right away; the dice keeps drawing from it.
         elements.ssHookLibrarySelect.addEventListener('change', async () => {
-            try { localStorage.setItem('ss_hook_set', elements.ssHookLibrarySelect.value); } catch { /* storage blocked */ }
+            try { localStorage.setItem(ssProfileKey('ss_hook_set'), elements.ssHookLibrarySelect.value); } catch { /* storage blocked */ }
             await loadSsHookImages();
             const hookIndex = state.slides.findIndex(slide => slide?.ss?.role === 'hook');
             if (hookIndex >= 0) await ssShuffleHookPhoto(hookIndex);
