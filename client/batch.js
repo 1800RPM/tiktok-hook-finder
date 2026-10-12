@@ -527,11 +527,13 @@
     // Uploads to post-bridge are spaced a little so image hosting and the API are not hammered.
     const SEND_GAP_MS = 12000;
 
-    // TikTok caps API uploads per account at roughly 15 a day (drafts count, and so does every
-    // other app posting there) and restricts accounts that get bursts. So a batch reaches each
-    // account spread out: one post per hour, at most 8 in any 24 hours, so 24 posts fill three
-    // days and any number simply runs further ahead. post-bridge holds each post until its time.
-    const DAILY_CAP = 8;
+    // TikTok caps API uploads per account per day (drafts count, and so does every other app
+    // posting there) and restricts accounts that get bursts. Measured on all four accounts
+    // (2026-10-06 to 10-09): about 6 drafts a day got through, the 7th and 8th were refused as
+    // "temporarily restricted" every day. So a batch reaches each account spread out: one post
+    // per hour, at most 5 in any 24 hours (one below the measured limit, since manual uploads
+    // count too). Any number simply runs further ahead; post-bridge holds each post until its time.
+    const DAILY_CAP = 5;
     const SLOT_GAP_MS = 60 * 60 * 1000;
     const DAY_MS = 24 * 60 * 60 * 1000;
     const SLOTS_KEY = 'batch_account_slots';
